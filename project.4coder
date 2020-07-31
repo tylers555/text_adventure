@@ -1,0 +1,22 @@
+version(1);
+
+project_name = "Text Adventure";
+
+patterns = {
+"*.cpp",
+"*.h",
+"*.c",
+"*.vert",
+"*.frag",
+"*.glsl",
+"*.bat",
+"*.4coder",
+"*.txt",
+"*.sja"
+};
+
+load_paths = {
+{ {
+		{".", .relative = true, .recursive = true},
+	}, .os = "win"},
+};
