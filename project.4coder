@@ -1,0 +1,22 @@
+version(1);
+
+project_name = "TA Game";
+
+patterns = {
+    "*.cpp",
+    "*.h",
+    "*.c",
+    "*.vert",
+    "*.frag",
+    "*.glsl",
+    "*.bat",
+    "*.4coder",
+    "*.txt",
+    "*.sja"
+};
+
+load_paths = {
+    { {
+            {".", .relative = true, .recursive = true},
+        }, .os = "win"},
+};
