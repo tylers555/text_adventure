@@ -86,7 +86,7 @@ InitializeGame(){
     AudioMixer.Initialize(&PermanentStorageArena);
     
     AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
-    AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("test_music")), MixerSoundFlag_Music|MixerSoundFlag_Loop, 1.0f);
+    //AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("test_music")), MixerSoundFlag_Music|MixerSoundFlag_Loop, 1.0f);
 }
 
 //~
@@ -159,7 +159,6 @@ ChangeState(game_mode NewMode, string NewLevel){
 //~ Text input
 inline void
 os_input::DeleteFromBuffer(u32 Begin, u32 End){
-    u32 BufferLength = CStringLength(Buffer);
     MoveMemory(&Buffer[Begin],
                &Buffer[End], BufferLength-(End-1));
     u32 Size = End-Begin;
@@ -169,8 +168,6 @@ os_input::DeleteFromBuffer(u32 Begin, u32 End){
 
 inline u32 
 os_input::SeekForward(u32 Start){
-    u32 BufferLength = CStringLength(Buffer);
-    
     u32 Result=Start;
     b8 HitAlphabetic = false;
     for(u32 I=Start; I<=BufferLength; I++){
@@ -186,8 +183,6 @@ os_input::SeekForward(u32 Start){
 
 inline u32 
 os_input::SeekBackward(u32 Start){
-    u32 BufferLength = CStringLength(Buffer);
-    
     u32 Result = Start;
     b8 HitAlphabetic = false;
     for(s32 I=CursorPosition-1; I>=0; I--){
@@ -205,9 +200,9 @@ inline void
 os_input::AddToBuffer(os_key_code Key){
     if(!DoTextInput) return;
     
-    u32 BufferLength = CStringLength(Buffer);
     if(Key == KeyCode_NULL){
     }else if(Key < U8_MAX){
+        
         char Char = (char)Key;
         if(('A' <= Char) && (Char <= 'Z')){
             Char += 'a'-'A';
@@ -228,9 +223,11 @@ os_input::AddToBuffer(os_key_code Key){
             MoveMemory(&Buffer[CursorPosition+1],
                        &Buffer[CursorPosition],
                        BufferLength-CursorPosition);
+            
             Buffer[CursorPosition++] = Char;
             BufferLength++;
         }
+        
     }else if(Key == KeyCode_BackSpace){
         if(SelectionMark >= 0){
             u32 Begin = Minimum(CursorPosition, (u32)SelectionMark);
@@ -281,8 +278,20 @@ os_input::AddToBuffer(os_key_code Key){
             CursorPosition++;
         }
     }else if(Key == KeyCode_Home){
+        if(!TestModifier(KeyFlag_Shift|KeyFlag_Any)){
+            SelectionMark = -1;
+        }else if(SelectionMark < 0){
+            SelectionMark = CursorPosition;
+        }
+        
         CursorPosition = 0;
     }else if(Key == KeyCode_End){
+        if(!TestModifier(KeyFlag_Shift|KeyFlag_Any)){
+            SelectionMark = -1;
+        }else if(SelectionMark < 0){
+            SelectionMark = CursorPosition;
+        }
+        
         CursorPosition = BufferLength;
     }
     
@@ -292,6 +301,7 @@ os_input::AddToBuffer(os_key_code Key){
 inline void
 os_input::BeginTextInput(){
     ZeroMemory(Buffer, DEFAULT_BUFFER_SIZE);
+    BufferLength = 0;
     SelectionMark = -1;
     CursorPosition = 0;
     DoTextInput = true;

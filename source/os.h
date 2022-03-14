@@ -328,6 +328,7 @@ struct os_input {
     
     //~ Text input
     char Buffer[DEFAULT_BUFFER_SIZE];
+    u32 BufferLength;
     u32 CursorPosition;
     s32 SelectionMark = -1;
     b8 DoTextInput;

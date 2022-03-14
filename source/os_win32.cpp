@@ -99,6 +99,7 @@ Win32ConvertVKCode(u32 VKCode){
             case VK_DIVIDE:     return (os_key_code)'/';
         }
     }
+    
     return KeyCode_NULL;
 }
 
@@ -811,6 +812,8 @@ OSProcessInput(os_input *Input){
     b8 Result = true;
     MSG Message;
     while(true){
+        u64 _Start = __rdtsc();
+        
         if(!PeekMessage(&Message, 0, 0, 0, PM_REMOVE)) break;
         
         // TODO(Tyler): This may not actually be needed here
@@ -879,8 +882,6 @@ OSProcessInput(os_input *Input){
                                Message.wParam, Message.lParam);
             }break;
         }
-        
-        break;
     }
 }
 

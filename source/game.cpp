@@ -6,7 +6,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);
     asset_font *Font = AssetSystem.GetFont(String("font_one"));
     Assert(Font);
-    FontRenderString(Font, V2(100), BLUE, "Hello, world!");
+    FontRenderString(Font, V2(100), BLUE, "Enter text:");
     
     v2 P = V2(100, 93);
     char *Text = OSInput.Buffer;
