@@ -466,11 +466,3 @@ file_reader::PeekToken(){
     Line = Line_;
     return(Result);
 }
-
-//~ 
-internal inline b8 
-IsAlphabetic(char C){
-    b8 Result = ((('a' <= C) && (C <= 'z')) ||
-                 (('A' <= C) && (C <= 'Z')));
-    return Result;
-}

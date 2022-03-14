@@ -382,7 +382,7 @@ asset_system::ProcessFont(){
                 Font->Table[C].Width = Width;
                 Font->Table[C].Offset.X = CurrentOffset.X;
                 Font->Table[C].Offset.Y = Font->Size.Height-CurrentOffset.Y-Height;
-                if(IsAlphabetic(C)){
+                if(IsALetter(C)){
                     C = C - 'A' + 'a';
                     Font->Table[C].Width = Width;
                     Font->Table[C].Offset.X = CurrentOffset.X;

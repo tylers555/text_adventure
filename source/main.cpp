@@ -157,6 +157,13 @@ ChangeState(game_mode NewMode, string NewLevel){
 }
 
 //~ Text input
+inline b8 
+StopSeeking(char C){
+    b8 Result = (!IsALetter(C) &&
+                 !IsANumber(C));
+    return Result;
+}
+
 inline void
 os_input::DeleteFromBuffer(u32 Begin, u32 End){
     MoveMemory(&Buffer[Begin],
@@ -173,7 +180,7 @@ os_input::SeekForward(u32 Start){
     for(u32 I=Start; I<=BufferLength; I++){
         char C = Buffer[I];
         Result = I;
-        if(IsWhiteSpace(C)){
+        if(StopSeeking(C)){
             if(HitAlphabetic) break;
         }else HitAlphabetic = true;
     }
@@ -187,7 +194,7 @@ os_input::SeekBackward(u32 Start){
     b8 HitAlphabetic = false;
     for(s32 I=CursorPosition-1; I>=0; I--){
         char C = Buffer[I];
-        if(IsWhiteSpace(C)){
+        if(StopSeeking(C)){
             if(HitAlphabetic) break;
         }else HitAlphabetic = true;
         Result = I;
@@ -200,9 +207,9 @@ inline void
 os_input::AddToBuffer(os_key_code Key){
     if(!DoTextInput) return;
     
+    BufferLength = CStringLength(Buffer);
     if(Key == KeyCode_NULL){
     }else if(Key < U8_MAX){
-        
         char Char = (char)Key;
         if(('A' <= Char) && (Char <= 'Z')){
             Char += 'a'-'A';
@@ -227,6 +234,9 @@ os_input::AddToBuffer(os_key_code Key){
             Buffer[CursorPosition++] = Char;
             BufferLength++;
         }
+        
+        u64 _Start = __rdtsc();
+        LogMessage("Elapsed: %llu", __rdtsc()-_Start);
         
     }else if(Key == KeyCode_BackSpace){
         if(SelectionMark >= 0){
