@@ -1,11 +1,3 @@
-
-internal void
-MoveMemory(const void *To, const void *From, umw Size) {
-    u8 *Temp = PushArray(&TransientStorageArena, u8, Size);
-    CopyMemory(Temp, From, Size);
-    CopyMemory(To, Temp, Size);
-}
-
 //~ Array
 
 template<typename T>

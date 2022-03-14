@@ -64,6 +64,8 @@ Win32ConvertVKCode(u32 VKCode){
             case VK_F10:       return KeyCode_F10;       
             case VK_F11:       return KeyCode_F11;       
             case VK_F12:       return KeyCode_F12;       
+            case VK_HOME:      return KeyCode_Home;
+            case VK_END:       return KeyCode_End;
             
             //~ Normal ascii
             
@@ -78,6 +80,23 @@ Win32ConvertVKCode(u32 VKCode){
             case VK_OEM_5:      return (os_key_code)'\\'; 
             case VK_OEM_6:      return (os_key_code)']'; 
             case VK_OEM_7:      return (os_key_code)'\''; 
+            
+            //~ Numpad
+            case VK_NUMPAD0:    return (os_key_code)'0';
+            case VK_NUMPAD1:    return (os_key_code)'1';
+            case VK_NUMPAD2:    return (os_key_code)'2';
+            case VK_NUMPAD3:    return (os_key_code)'3';
+            case VK_NUMPAD4:    return (os_key_code)'4';
+            case VK_NUMPAD5:    return (os_key_code)'5';
+            case VK_NUMPAD6:    return (os_key_code)'6';
+            case VK_NUMPAD7:    return (os_key_code)'7';
+            case VK_NUMPAD8:    return (os_key_code)'8';
+            case VK_NUMPAD9:    return (os_key_code)'9';
+            case VK_MULTIPLY:   return (os_key_code)'*';
+            case VK_ADD:        return (os_key_code)'+';
+            case VK_SUBTRACT:   return (os_key_code)'-';
+            case VK_DECIMAL:    return (os_key_code)'.';
+            case VK_DIVIDE:     return (os_key_code)'/';
         }
     }
     return KeyCode_NULL;
@@ -836,6 +855,7 @@ OSProcessInput(os_input *Input){
                 
                 os_key_code KeyCode = Win32ConvertVKCode(VKCode);
                 if(IsDown){
+                    Input->AddToBuffer(KeyCode);
                     Input->KeyboardState[KeyCode] |= KeyState_RepeatDown;
                     Input->KeyboardState[KeyCode] |= KeyState_IsDown;
                     if(IsDown != WasDown){

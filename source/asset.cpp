@@ -55,7 +55,7 @@ VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, 
         TextureR.Max.X /= Font->Size.Width;
         TextureR.Min.Y /= Font->Size.Height;
         TextureR.Max.Y /= Font->Size.Height;
-        RenderTexture(&GameRenderer, R, 0.0, Font->Texture, TextureR);
+        RenderTexture(&GameRenderer, R, 0.0, Font->Texture, TextureR, false, Color);
         //RenderRect(&GameRenderer, R, 0.0, MakeColor(1.0, 1.0, 0.0, 0.0));
         
         P.X += Glyph.Width + 1;
@@ -70,4 +70,62 @@ FontRenderString(asset_font *Font, v2 P, color Color, const char *Format, ...){
     VFontRenderString(Font, P, Color, Format, VarArgs);
     
     va_end(VarArgs);
+}
+
+f32
+VFontStringAdvance(asset_font *Font, const char *Format, va_list VarArgs){
+    char Buffer[DEFAULT_BUFFER_SIZE];
+    stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
+    
+    f32 Result = 0;
+    u32 Length = CStringLength(Buffer);
+    for(u32 I=0; I<Length; I++){
+        char C = Buffer[I];
+        
+        asset_font_glyph Glyph = Font->Table[C];
+        Result += Glyph.Width + 1;
+    }
+    
+    return Result;
+}
+
+f32
+FontStringAdvance(asset_font *Font, const char *Format, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Format);
+    
+    f32 Result = VFontStringAdvance(Font, Format, VarArgs);
+    
+    va_end(VarArgs);
+    
+    return Result;
+}
+
+f32
+VFontStringAdvance(asset_font *Font, u32 N, const char *Format, va_list VarArgs){
+    char Buffer[DEFAULT_BUFFER_SIZE];
+    stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
+    
+    f32 Result = 0;
+    u32 Length = Minimum(CStringLength(Buffer), N);
+    for(u32 I=0; I<Length; I++){
+        char C = Buffer[I];
+        
+        asset_font_glyph Glyph = Font->Table[C];
+        Result += Glyph.Width + 1;
+    }
+    
+    return Result;
+}
+
+f32
+FontStringAdvance(asset_font *Font, u32 N, const char *Format, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Format);
+    
+    f32 Result = VFontStringAdvance(Font, N, Format, VarArgs);
+    
+    va_end(VarArgs);
+    
+    return Result;
 }

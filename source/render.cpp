@@ -114,10 +114,9 @@ RenderRectOutline(game_renderer *Renderer, rect R, f32 Z, color Color, f32 Thick
 
 internal void
 RenderTexture(game_renderer *Renderer, rect R, f32 Z, render_texture Texture, 
-              rect TextureRect=MakeRect(V2(0,0), V2(1,1)), b8 HasAlpha=false){
+              rect TextureRect=MakeRect(V2(0,0), V2(1,1)), b8 HasAlpha=false, color Color=WHITE){
     Assert(Texture);
     
-    color Color = WHITE;
     RenderQuad(Renderer, Texture, Z,
                V2(R.Min.X, R.Min.Y), V2(TextureRect.Min.X, TextureRect.Min.Y), Color,
                V2(R.Min.X, R.Max.Y), V2(TextureRect.Min.X, TextureRect.Max.Y), Color,

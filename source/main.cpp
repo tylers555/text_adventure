@@ -22,18 +22,13 @@ global string_manager Strings;
 
 global asset_system AssetSystem;
 
-global audio_mixer AudioMixer;
-
 global game_renderer GameRenderer;
+
+global audio_mixer AudioMixer;
 
 global game_settings GameSettings;
 
 global f32 Accumulator;
-
-//~ Gameplay variables
-global s32 Score;
-global f32 CompletionCooldown;
-global world_data *CurrentWorld;
 
 //~ Hotloaded variables file!
 // TODO(Tyler): Load this from a variables file at startup
@@ -120,7 +115,7 @@ GameUpdateAndRender(){
     TIMED_FUNCTION();
     
     ArenaClear(&TransientStorageArena);
-    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, MakeColor(0.30f, 0.55f, 0.70f));
+    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, MakeColor(0.0f, 0.0f, 0.0f));
     
     OSProcessInput(&OSInput);
     
@@ -159,4 +154,150 @@ ChangeState(game_mode NewMode, string NewLevel){
     StateChangeData.DidChange = true;
     StateChangeData.NewMode = NewMode;
     StateChangeData.NewLevel = Strings.GetString(NewLevel);
+}
+
+//~ Text input
+inline void
+os_input::DeleteFromBuffer(u32 Begin, u32 End){
+    u32 BufferLength = CStringLength(Buffer);
+    MoveMemory(&Buffer[Begin],
+               &Buffer[End], BufferLength-(End-1));
+    u32 Size = End-Begin;
+    ZeroMemory(&Buffer[BufferLength-Size], Size);
+    CursorPosition = Begin;
+}
+
+inline u32 
+os_input::SeekForward(u32 Start){
+    u32 BufferLength = CStringLength(Buffer);
+    
+    u32 Result=Start;
+    b8 HitAlphabetic = false;
+    for(u32 I=Start; I<=BufferLength; I++){
+        char C = Buffer[I];
+        Result = I;
+        if(IsWhiteSpace(C)){
+            if(HitAlphabetic) break;
+        }else HitAlphabetic = true;
+    }
+    
+    return Result;
+}
+
+inline u32 
+os_input::SeekBackward(u32 Start){
+    u32 BufferLength = CStringLength(Buffer);
+    
+    u32 Result = Start;
+    b8 HitAlphabetic = false;
+    for(s32 I=CursorPosition-1; I>=0; I--){
+        char C = Buffer[I];
+        if(IsWhiteSpace(C)){
+            if(HitAlphabetic) break;
+        }else HitAlphabetic = true;
+        Result = I;
+    }
+    
+    return Result;
+}
+
+inline void
+os_input::AddToBuffer(os_key_code Key){
+    if(!DoTextInput) return;
+    
+    u32 BufferLength = CStringLength(Buffer);
+    if(Key == KeyCode_NULL){
+    }else if(Key < U8_MAX){
+        char Char = (char)Key;
+        if(('A' <= Char) && (Char <= 'Z')){
+            Char += 'a'-'A';
+        }
+        if(OSInput.KeyFlags & KeyFlag_Shift){
+            Char = KEYBOARD_SHIFT_TABLE[Char];
+        }
+        Assert(Char);
+        
+        if(SelectionMark >= 0){
+            u32 Begin = Minimum(CursorPosition, (u32)SelectionMark);
+            u32 End   = Maximum(CursorPosition, (u32)SelectionMark);
+            DeleteFromBuffer(Begin, End);
+            SelectionMark = -1;
+        }
+        
+        if(BufferLength < DEFAULT_BUFFER_SIZE-1){
+            MoveMemory(&Buffer[CursorPosition+1],
+                       &Buffer[CursorPosition],
+                       BufferLength-CursorPosition);
+            Buffer[CursorPosition++] = Char;
+            BufferLength++;
+        }
+    }else if(Key == KeyCode_BackSpace){
+        if(SelectionMark >= 0){
+            u32 Begin = Minimum(CursorPosition, (u32)SelectionMark);
+            u32 End   = Maximum(CursorPosition, (u32)SelectionMark);
+            SelectionMark = -1;
+            DeleteFromBuffer(Begin, End);
+        }else if(CursorPosition > 0){
+            u32 Begin = CursorPosition-1;
+            u32 End = CursorPosition;
+            if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+                Begin = SeekBackward(CursorPosition);
+            }
+            DeleteFromBuffer(Begin, End);
+        }
+    }else if(Key == KeyCode_Delete){
+        u32 Begin = CursorPosition;
+        u32 End = CursorPosition+1;
+        if(SelectionMark >= 0){
+            Begin = Minimum(CursorPosition, (u32)SelectionMark);
+            End   = Maximum(CursorPosition, (u32)SelectionMark);
+            SelectionMark = -1;
+        }else if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+            End = SeekForward(CursorPosition);
+        }
+        DeleteFromBuffer(Begin, End);
+    }else if(Key == KeyCode_Left){
+        if(!TestModifier(KeyFlag_Shift|KeyFlag_Any)){
+            SelectionMark = -1;
+        }else if(SelectionMark < 0){
+            SelectionMark = CursorPosition;
+        }
+        
+        if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+            CursorPosition = SeekBackward(CursorPosition);
+        }else if(CursorPosition > 0){
+            CursorPosition--;
+        }
+    }else if(Key == KeyCode_Right){
+        if(!TestModifier(KeyFlag_Shift|KeyFlag_Any)){
+            SelectionMark = -1;
+        }else if(SelectionMark < 0){
+            SelectionMark = CursorPosition;
+        }
+        
+        if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+            CursorPosition = SeekForward(CursorPosition);
+        }else{
+            CursorPosition++;
+        }
+    }else if(Key == KeyCode_Home){
+        CursorPosition = 0;
+    }else if(Key == KeyCode_End){
+        CursorPosition = BufferLength;
+    }
+    
+    CursorPosition = Minimum(CursorPosition, BufferLength);
+}
+
+inline void
+os_input::BeginTextInput(){
+    ZeroMemory(Buffer, DEFAULT_BUFFER_SIZE);
+    SelectionMark = -1;
+    CursorPosition = 0;
+    DoTextInput = true;
+}
+
+inline void
+os_input::EndTextInput(){
+    DoTextInput = false;
 }

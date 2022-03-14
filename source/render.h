@@ -86,7 +86,6 @@ struct render_light {
 
 global u32 MAX_CLIP_RECTS = 128;
 
-struct world_data;
 struct game_renderer {
     //~
     render_texture WhiteTexture;

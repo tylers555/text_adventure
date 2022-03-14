@@ -129,3 +129,13 @@ ArenaEndMarker(memory_arena *Arena, memory_arena_marker *Marker){
 
 global memory_arena PermanentStorageArena;
 global memory_arena TransientStorageArena;
+
+//~
+
+internal void
+MoveMemory(const void *To, const void *From, umw Size) {
+    u8 *Temp = PushArray(&TransientStorageArena, u8, Size);
+    CopyMemory(Temp, From, Size);
+    CopyMemory(To, Temp, Size);
+}
+

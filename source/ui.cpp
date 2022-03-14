@@ -1,27 +1,10 @@
 
 #if 0
+
 void
 ui_manager::ConstructTextInput(os_key_code Key){
     if(BuildTextInputBuffer){
-        if(Key < U8_MAX){
-            char Char = (char)Key;
-            if(('A' <= Char) && (Char <= 'Z')){
-                Char += 'a'-'A';
-            }
-            if(OSInput.KeyFlags & KeyFlag_Shift){
-                Char = KEYBOARD_SHIFT_TABLE[Char];
-            }
-            Buffer[BufferIndex++] = Char;
-        }else if(Key == KeyCode_BackSpace){
-            BackSpaceCount++;
-        }else if(Key == KeyCode_Left){
-            CursorMove--;
-        }else if(Key == KeyCode_Right){
-            CursorMove++;
-        }else if(Key == KeyCode_Escape){
-            BuildTextInputBuffer = false;
-            ResetActiveElement();
-        }
+        
     }
 }
 ui_behavior

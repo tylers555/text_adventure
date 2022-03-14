@@ -93,10 +93,10 @@ struct state_change_data {
 };
 
 //~ Includes
-#include "os.h"
-#include "debug.h"
 #include "random.h"
 #include "helpers.cpp"
+#include "os.h"
+#include "debug.h"
 #include "memory_arena.cpp"
 #include "array.cpp"
 #include "stack.cpp"
