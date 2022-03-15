@@ -1,6 +1,3 @@
-global os_file *LogFile;
-global u32 LogFileOffset;
-
 internal void
 VLogMessage(char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];

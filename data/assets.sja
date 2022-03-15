@@ -1,4 +1,4 @@
-: Font font_one
+: Font basic
     path "asset_fonts/basic.png"
     height 5
     padding 1
@@ -61,11 +61,123 @@
     BACKSLASH 3
     SQUARE_BRACKET_RIGHT 2
     CARET 3
+    BACK_TICK 2
     UNDERSCORE 4
     CURLY_BRACKET_LEFT 3
     PIPE 1
     CURLY_BRACKET_RIGHT 3
     TILDE 4
+    PERCENT 5
+    DOLLAR_SIGN 3
+    AMPERSAND 4
+    AT_SIGN 5
+
+: Font basic2
+    path "asset_fonts/font2.png"
+    height 5
+    padding 1
+    SPACE 2
+    EXCLAMATION 1
+    QUOTATION 3
+    POUND 5
+    APOSTROPHE 1
+    PARENTHESIS_LEFT 2
+    PARENTHESIS_RIGHT 2
+    ASTERISK 1
+    PLUS 3
+    COMMA 2
+    DASH 2
+    PERIOD 1
+    SLASH 3
+    ZERO 3
+    ONE 3
+    TWO 3
+    THREE 3
+    FOUR 3
+    FIVE 3
+    SIX 3
+    SEVEN 3
+    EIGHT 3
+    NINE 3
+    COLON 1
+    SEMICOLON 2
+    ANGLE_BRACKET_LEFT 3
+    EQUAL 3
+    ANGLE_BRACKET_RIGHT 3
+    QUESTION 3
+    A 3
+    B 3
+    C 3
+    D 3
+    E 3
+    F 3
+    G 3 
+    H 3
+    I 3
+    J 3
+    K 3
+    L 3
+    M 5
+    N 4
+    O 4
+    P 3
+    Q 4
+    R 3
+    S 3
+    T 3
+    U 3 
+    V 3
+    W 5
+    X 3
+    Y 3
+    Z 3
+    SQUARE_BRACKET_LEFT 2
+    BACKSLASH 3
+    SQUARE_BRACKET_RIGHT 2
+    CARET 3
+    BACK_TICK 2
+    UNDERSCORE 4
+    CURLY_BRACKET_LEFT 3
+    PIPE 1
+    CURLY_BRACKET_RIGHT 3
+    TILDE 4
+    PERCENT 5
+    DOLLAR_SIGN 3
+    AMPERSAND 4
+    AT_SIGN 5
+
+: Font basic_lowercase
+    path "asset_fonts/basic_lowercase.png"
+    height 7
+    padding 1
+    descent 2
+    A 3
+    B 3
+    C 3 
+    D 3
+    E 3
+    F 3
+    G 3
+    H 3
+    I 1
+    J 2
+    K 3
+    L 1
+    M 5
+    N 3
+    O 3
+    P 3
+    Q 3
+    R 3
+    S 2
+    T 3
+    U 3
+    V 3
+    W 5
+    X 3
+    Y 3
+    Z 2
+
 
 # //////////////////////////////////////////////////////////////////////////
 #                              Sound effects

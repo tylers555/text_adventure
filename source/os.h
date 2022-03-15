@@ -292,6 +292,8 @@ typedef u8 os_input_flags;
 enum os_input_flags_ {
     OSInputFlag_CapturedByUI = (1 << 0),
     OSInputFlag_MouseMoved   = (1 << 1),
+    OSInputFlag_DoTextInput  = (1 << 2),
+    OSInputFlag_EndTextInput = (1 << 3),
 };
 
 struct os_input {
@@ -331,14 +333,11 @@ struct os_input {
     u32 BufferLength;
     u32 CursorPosition;
     s32 SelectionMark = -1;
-    b8 DoTextInput;
     
-    inline u32 SeekForward(u32 Start);
-    inline u32 SeekBackward(u32 Start);
     inline void AddToBuffer(os_key_code Key);
     inline void DeleteFromBuffer(u32 Begin, u32 End);
     inline void BeginTextInput();
-    inline void EndTextInput();
+    inline b8   MaybeEndTextInput();
 };
 
 global os_input OSInput;

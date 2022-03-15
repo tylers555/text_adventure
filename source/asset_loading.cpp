@@ -76,11 +76,16 @@ asset_system::InitializeLoader(memory_arena *Arena){
     InsertIntoHashTable(&ASCIITable, "BACKSLASH",            '\\');
     InsertIntoHashTable(&ASCIITable, "SQUARE_BRACKET_RIGHT", ']');
     InsertIntoHashTable(&ASCIITable, "CARET",                '^');
+    InsertIntoHashTable(&ASCIITable, "BACK_TICK",            '`');
     InsertIntoHashTable(&ASCIITable, "UNDERSCORE",           '_');
     InsertIntoHashTable(&ASCIITable, "CURLY_BRACKET_LEFT",   '{');
     InsertIntoHashTable(&ASCIITable, "PIPE",                  '|');
     InsertIntoHashTable(&ASCIITable, "CURLY_BRACKET_RIGHT",  '}');
     InsertIntoHashTable(&ASCIITable, "TILDE",                '~');
+    InsertIntoHashTable(&ASCIITable, "PERCENT",              '%');
+    InsertIntoHashTable(&ASCIITable, "DOLLAR_SIGN",          '$');
+    InsertIntoHashTable(&ASCIITable, "AMPERSAND",            '&');
+    InsertIntoHashTable(&ASCIITable, "AT_SIGN",              '@');
 }
 
 //~ Base
@@ -214,8 +219,6 @@ asset_system::ProcessIgnore(){
 
 void
 asset_system::LoadAssetFile(const char *Path){
-    TIMED_FUNCTION();
-    
     CurrentCommand = 0;
     CurrentAttribute = 0;
     
@@ -357,6 +360,8 @@ asset_system::ProcessFont(){
             Padding = ExpectPositiveInteger();
             
             CurrentOffset.Y += Padding;
+        }else if(DoAttribute(String, "descent")){
+            Font->Descent = (f32)ExpectPositiveInteger();
         }else{
             if(!Font->Texture){
                 LogError("The font image must be defined before any characters!");

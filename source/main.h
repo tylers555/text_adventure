@@ -8,7 +8,6 @@
 #include "basics.h"
 #include "math.h"
 #include "intrinsics.h"
-#include "simd.h"
 
 //~ Constants TODO(Tyler): Several of these should be hotloaded in a variables file
 global_constant u32 DEFAULT_BUFFER_SIZE = 512;
@@ -96,7 +95,6 @@ struct state_change_data {
 #include "random.h"
 #include "helpers.cpp"
 #include "os.h"
-#include "debug.h"
 #include "memory_arena.cpp"
 #include "array.cpp"
 #include "stack.cpp"

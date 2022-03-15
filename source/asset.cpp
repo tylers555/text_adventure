@@ -37,15 +37,34 @@ asset_system::GetFont(string Name){
     return(Result);
 }
 
-void
+internal inline fancy_font_format
+MakeFancyFormat(color Color, f32 Amplitude, f32 Speed, f32 dT){
+    fancy_font_format Result = {};
+    Result.Color = Color;
+    Result.Amplitude = Amplitude;
+    Result.Speed = Speed;
+    Result.dT = dT;
+    return Result;
+}
+
+internal f32
 VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, va_list VarArgs){
+    f32 Height = Font->Height+FONT_VERTICAL_SPACE;
+    
     char Buffer[DEFAULT_BUFFER_SIZE];
     stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
     
+    StartP.Y -= Font->Descent;
     v2 P = StartP;
     u32 Length = CStringLength(Buffer);
     for(u32 I=0; I<Length; I++){
         char C = Buffer[I];
+        if(C == '\n'){
+            P.X = StartP.X;
+            P.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            Height += Font->Height+FONT_VERTICAL_SPACE;
+            continue;
+        }
         
         asset_font_glyph Glyph = Font->Table[C];
         rect R = SizeRect(P, V2((f32)Glyph.Width, (f32)Font->Height));
@@ -60,19 +79,82 @@ VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, 
         
         P.X += Glyph.Width + 1;
     }
+    
+    return Height;
 }
 
-void
+internal f32
 FontRenderString(asset_font *Font, v2 P, color Color, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
     
-    VFontRenderString(Font, P, Color, Format, VarArgs);
+    f32 Result = VFontRenderString(Font, P, Color, Format, VarArgs);
     
     va_end(VarArgs);
+    return Result;
 }
 
-f32
+internal inline f32
+FontRenderFancyGlyph(asset_font *Font, fancy_font_format *Fancy, v2 P, f32 T, char C){
+    v2 CharP = P;
+    CharP.Y += Fancy->Amplitude*Sin(T);
+    
+    asset_font_glyph Glyph = Font->Table[C];
+    rect R = SizeRect(CharP, V2((f32)Glyph.Width, (f32)Font->Height));
+    rect TextureR = SizeRect(V2((f32)Glyph.Offset.X, (f32)Glyph.Offset.Y),
+                             V2((f32)Glyph.Width, Font->Height));
+    TextureR.Min.X /= Font->Size.Width;
+    TextureR.Max.X /= Font->Size.Width;
+    TextureR.Min.Y /= Font->Size.Height;
+    TextureR.Max.Y /= Font->Size.Height;
+    RenderTexture(&GameRenderer, R, 0.0, Font->Texture, TextureR, false, Fancy->Color);
+    //RenderRect(&GameRenderer, R, 0.0, MakeColor(1.0, 1.0, 0.0, 0.0));
+    
+    return (f32)Glyph.Width;
+}
+
+internal f32
+FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S){
+    if(!S[0]) return 0;
+    f32 Height = Font->Height+FONT_VERTICAL_SPACE;
+    
+    Assert(FancyCount > 0);
+    const u32 MAX_FANCY_COUNT = 10;
+    
+    u32 Length = CStringLength(S);
+    u32 CurrentFancyIndex = 0;
+    fancy_font_format *Fancy = &Fancies[CurrentFancyIndex];
+    
+    StartP.Y -= Font->Descent;
+    v2 P = StartP;
+    f32 Ts[MAX_FANCY_COUNT];
+    for(u32 I=0; I<FancyCount; I++){
+        Ts[I] = Fancies[I].Speed*Counter;
+    }
+    for(u32 I=0; I<Length; I++){
+        char C = S[I];
+        if(C == '\x02'){
+            I++;
+            Assert(I < Length);
+            CurrentFancyIndex = S[I];
+            Assert(CurrentFancyIndex <= FancyCount);
+            CurrentFancyIndex--;
+            Fancy = &Fancies[CurrentFancyIndex];
+            continue;
+        }else if(C == '\n'){
+            P.X = StartP.X;
+            P.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            Height += Font->Height+FONT_VERTICAL_SPACE;
+            continue;
+        }
+        P.X += FontRenderFancyGlyph(Font, Fancy, P, Ts[CurrentFancyIndex], C)+1;
+        Ts[CurrentFancyIndex] += Fancy->dT;
+    }
+    
+    return Height;
+}
+
+internal f32
 VFontStringAdvance(asset_font *Font, const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
     stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
@@ -89,7 +171,7 @@ VFontStringAdvance(asset_font *Font, const char *Format, va_list VarArgs){
     return Result;
 }
 
-f32
+internal f32
 FontStringAdvance(asset_font *Font, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
@@ -101,7 +183,7 @@ FontStringAdvance(asset_font *Font, const char *Format, ...){
     return Result;
 }
 
-f32
+internal f32
 VFontStringAdvance(asset_font *Font, u32 N, const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
     stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
@@ -118,7 +200,7 @@ VFontStringAdvance(asset_font *Font, u32 N, const char *Format, va_list VarArgs)
     return Result;
 }
 
-f32
+internal f32
 FontStringAdvance(asset_font *Font, u32 N, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);

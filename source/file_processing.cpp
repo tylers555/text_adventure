@@ -297,28 +297,6 @@ ConsumeTextComment(stream *Stream){
     ConsumeTextWhiteSpace(Stream);
 }
 
-internal inline b8
-IsWhiteSpace(char C){
-    b8 Result = ((C == ' ') ||
-                 (C == '\t') ||
-                 (C == '\n') ||
-                 (C == '\r'));
-    return(Result);
-}
-
-internal inline b8
-IsALetter(char C){
-    b8 Result = ((('a' <= C) && (C <= 'z')) ||
-                 (('A' <= C) && (C <= 'Z')));
-    return(Result);
-}
-
-internal inline b8
-IsANumber(char C){
-    b8 Result = (('0' <= C) && (C <= '9'));
-    return(Result);
-}
-
 internal inline file_reader
 MakeFileReader(const char *Path){
     file_reader Result = {};

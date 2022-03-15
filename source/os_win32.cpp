@@ -759,8 +759,6 @@ WriteToDebugConsole(os_file *Output, const char *Format, ...){
 
 internal void
 OSProcessInput(os_input *Input){
-    TIMED_FUNCTION();
-    
     //~ Reset
     Input->ScrollMovement = 0;
     Input->InputFlags &= ~OSInputFlag_MouseMoved;

@@ -466,8 +466,6 @@ GLRenderNodes(game_renderer *Renderer, render_node *StartNode){
 
 internal void
 RendererRenderAll(game_renderer *Renderer){
-    TIMED_FUNCTION();
-    
     v2 OutputSize = Renderer->OutputSize;
     glScissor(0, 0, (u32)OutputSize.X, (u32)OutputSize.Y);
     glViewport(0, 0, (u32)OutputSize.X, (u32)OutputSize.Y);

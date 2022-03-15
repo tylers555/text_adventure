@@ -51,8 +51,7 @@ PushHashTable(memory_arena *Arena, u32 MaxBuckets){
 
 template <typename KeyType, typename ValueType>
 internal constexpr void
-InsertIntoHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key, 
-                    ValueType Value){
+InsertIntoHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key, ValueType Value){
     //TIMED_FUNCTION();
     Assert(Table->BucketsUsed < Table->MaxBuckets);
     

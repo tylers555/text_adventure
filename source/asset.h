@@ -31,6 +31,14 @@ struct asset_sound_effect {
 };
 
 //~ Fonts
+global u32 FONT_VERTICAL_SPACE = 3;
+struct fancy_font_format {
+    color Color;
+    f32 Amplitude;
+    f32 Speed;
+    f32 dT;
+};
+
 struct asset_font_glyph {
     v2s Offset;
     s32 Width;
@@ -40,6 +48,7 @@ struct asset_font {
     render_texture Texture;
     v2s Size;
     f32 Height;
+    f32 Descent;
     
     asset_font_glyph Table[128];
 };

@@ -49,3 +49,71 @@ GetRandomFloat(u32 Seed, u32 Spread=5, f32 Power=0.2f){
     f32 Result = Power * (f32)Random;
     return(Result);
 }
+
+//~
+internal inline b8
+IsWhiteSpace(char C){
+    b8 Result = ((C == ' ') ||
+                 (C == '\t') ||
+                 (C == '\n') ||
+                 (C == '\r'));
+    return(Result);
+}
+
+internal inline b8
+IsALetter(char C){
+    b8 Result = ((('a' <= C) && (C <= 'z')) ||
+                 (('A' <= C) && (C <= 'Z')));
+    return(Result);
+}
+
+internal inline b8
+IsANumber(char C){
+    b8 Result = (('0' <= C) && (C <= '9'));
+    return(Result);
+}
+
+internal inline b8 
+StopSeeking(char C){
+    b8 Result = (!IsALetter(C) &&
+                 !IsANumber(C));
+    return Result;
+}
+
+internal inline u32 
+SeekForward(const char *Buffer, u32 BufferLength, u32 Start){
+    u32 Result = Start;
+    b8 HitAlphabetic = false;
+    for(u32 I=Start; I<=BufferLength; I++){
+        char C = Buffer[I];
+        Result = I;
+        if(StopSeeking(C)){
+            if(HitAlphabetic) break;
+        }else HitAlphabetic = true;
+    }
+    
+    return Result;
+}
+
+internal inline u32 
+SeekBackward(const char *Buffer, u32 Start){
+    if(Start == 0) return 0;
+    u32 Result = Start;
+    b8 HitAlphabetic = false;
+    for(s32 I=Start-1; I>=0; I--){
+        char C = Buffer[I];
+        if(StopSeeking(C)){
+            if(HitAlphabetic) break;
+        }else HitAlphabetic = true;
+        Result = I;
+    }
+    
+    return Result;
+}
+
+internal inline void 
+CStringToLower(char *S){
+    for(u32 I=0; S[I]; I++){
+        if((('A' <= S[I]) && (S[I] <= 'Z'))) S[I] -= 'A'-'a';
+    }
+}
