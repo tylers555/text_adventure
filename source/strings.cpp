@@ -125,3 +125,40 @@ string_manager::FindInHashTablePtr(hash_table<string, T> *Table, const char *Key
     T *Result = ::FindInHashTablePtr(Table, String);
     return(Result);
 }
+
+//~ String builder
+struct string_builder {
+    char *Buffer;
+    u32 BufferSize;
+    u32 BufferCapacity;
+};
+
+internal inline string_builder 
+BeginStringBuilder(memory_arena *Arena, u32 Capacity){
+    string_builder Result = {};
+    Result.Buffer = PushArray(Arena, char, Capacity);
+    Result.BufferCapacity = Capacity;
+    return Result;
+}
+
+internal inline char *
+EndStringBuilder(memory_arena *Arena, string_builder *Builder){
+    char *Result = ArenaPushCString(Arena, Builder->Buffer);
+    return Result;
+}
+
+internal inline void
+StringBuilderAdd(string_builder *Builder, const char *S){
+    u32 Length = CStringLength(S);
+    Assert(Builder->BufferSize+Length < Builder->BufferCapacity-1);
+    CopyCString(&Builder->Buffer[Builder->BufferSize], S, Length);
+    Builder->BufferSize += Length;
+    Builder->Buffer[Builder->BufferSize] = 0;
+}
+
+internal inline void
+StringBuilderAdd(string_builder *Builder, char C){
+    Assert(Builder->BufferSize+1 < Builder->BufferCapacity-1);
+    Builder->Buffer[Builder->BufferSize++] = C;
+    Builder->Buffer[Builder->BufferSize] = 0;
+}

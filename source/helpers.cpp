@@ -13,7 +13,7 @@ CStringLength(const char *String){
 internal void
 CopyCString(char *To, const char *From, u32 MaxSize){
     u32 I = 0;
-    while(From[I] && (I < MaxSize-1)){
+    while(From[I] && (I < MaxSize)){
         To[I] = From[I];
         I++;
     }

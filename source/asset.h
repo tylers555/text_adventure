@@ -32,6 +32,8 @@ struct asset_sound_effect {
 
 //~ Fonts
 global u32 FONT_VERTICAL_SPACE = 3;
+global u32 FONT_LETTER_SPACE = 1;
+
 struct fancy_font_format {
     color Color;
     f32 Amplitude;
@@ -76,14 +78,14 @@ struct asset_system {
     
     //~ SJA reading and parsing
     u64 LastFileWriteTime;
-    hash_table<const char *, direction> DirectionTable;
     hash_table<const char *, char> ASCIITable;
     
     file_reader Reader;
     file_token ExpectToken(file_token_type Type);
     u32        ExpectPositiveInteger_();
     
-    array<s32>         ExpectTypeArrayS32();
+    array<s32>          ExpectTypeArrayS32();
+    array<const char *> ExpectTypeArrayCString();
     
     void InitializeLoader(memory_arena *Arena);
     
@@ -92,8 +94,9 @@ struct asset_system {
     void LoadAssetFile(const char *Path);
     b8 ProcessCommand();
     b8 ProcessIgnore();
-    b8 ProcessFont();
     b8 ProcessSoundEffect();
+    b8 ProcessFont();
+    b8 ProcessTARoom();
 };
 
 #endif //SNAIL_JUMPY_ASSET_H

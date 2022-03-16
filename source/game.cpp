@@ -58,34 +58,10 @@ ta_system::Initialize(memory_arena *Arena){
     InsertIntoHashTable(&DirectionTable, "nw", Direction_NorthWest);
     
     RoomTable = PushHashTable<string, ta_room>(Arena, 64);
-    {
-        ta_room Room = {};
-        Room.Name = "Main hall";
-        Room.Adjacents[Direction_North] = String("Room 1");
-        Room.Adjacents[Direction_South] = String("Room 2");
-        Room.Description = "This is the main hall\nThere is a room to the north and--you guessed it!--another room to the south";
-        InsertIntoHashTable(&RoomTable, String(Room.Name), Room);
-    }
-    {
-        ta_room Room = {};
-        Room.Name = "Room 1";
-        Room.Adjacents[Direction_South] = String("Main hall");
-        Room.Adjacents[Direction_West] = String("Room 2");
-        Room.Description = "You find yourself in a small room.\nThere is not yet much in the room";
-        InsertIntoHashTable(&RoomTable, String(Room.Name), Room);
-    }
-    {
-        ta_room Room = {};
-        Room.Name = "Room 2";
-        Room.Adjacents[Direction_North] = String("Main hall");
-        Room.Adjacents[Direction_East] = String("Room 1");
-        Room.Description = "You look around and see the walls are a hot bright pink.\nThere are signs everywhere that read WIP";
-        InsertIntoHashTable(&RoomTable, String(Room.Name), Room);
-    }
-    
-    CurrentRoom = FindInHashTablePtr(&RoomTable, String("Main hall"));
-    
-    
+    Inventory = MakeArray<string>(Arena, 10);
+    ArrayAdd(&Inventory, String("Red roses"));
+    ArrayAdd(&Inventory, String("White roses"));
+    ArrayAdd(&Inventory, String("Pink tulips"));
 }
 
 char **
@@ -117,59 +93,95 @@ TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
 //~ 
 internal void
 UpdateAndRenderMainGame(game_renderer *Renderer){
-    if(FrameCounter == 0){
+    if(!TextAdventure.CurrentRoom){
         OSInput.BeginTextInput();
+        TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Shop front"));
     }
     
     //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);
+    asset_font *BoldFont = AssetSystem.GetFont(String("font_bold"));
     asset_font *Font = AssetSystem.GetFont(String("basic"));
     Assert(Font);
     
     v2 WindowSize = GameRenderer.ScreenToWorld(OSInput.WindowSize);
-    v2 P = V2(10, WindowSize.Y-10);
+    fancy_font_format BasicFancy = MakeFancyFormat(WHITE, 0.0, 0.0, 0.0);
     
-    fancy_font_format Fancy0 = MakeFancyFormat(YELLOW, 1.0,  7.0, 2.0);
-    fancy_font_format Fancy1 = MakeFancyFormat(GREEN,  0.0,  0.0, 0.0);
-    fancy_font_format Fancy2 = MakeFancyFormat(PURPLE, 0.0,  0.0, 0.0);
-    fancy_font_format Fancy3 = MakeFancyFormat(PINK, 1.0, 13.0, 3.0);
-    P.Y -= FontRenderFancyString(Font, &Fancy0, 1, P, TextAdventure.CurrentRoom->Name);
-    P.Y -= FontRenderFancyString(Font, &Fancy1, 1, P, TextAdventure.CurrentRoom->Description);
-    
-    fancy_font_format ResponseFancies[2] = {Fancy2, Fancy3};
-    P.Y -= FontRenderFancyString(Font, ResponseFancies, ArrayCount(ResponseFancies), P, TextAdventure.ResponseBuffer);
-    
-    char *Text = OSInput.Buffer;
-    FontRenderString(Font, P, WHITE, "%s", Text);
-    
-    v2 CursorP = P;
-    CursorP.X += FontStringAdvance(Font, OSInput.CursorPosition, "%s", Text);
-    if(((FrameCounter+30) / 30) % 3){
-        RenderLine(&GameRenderer, CursorP, CursorP+V2(0, 5), 0.0, 1, WHITE);
+    //~ Room display
+    {
+        fancy_font_format RoomNameFancy = MakeFancyFormat(YELLOW, 1.0,  5.0, 1.0);
+        fancy_font_format ItemFancy = MakeFancyFormat(RED, 1.0,  7.0, 1.0);
+        fancy_font_format RoomFancy = MakeFancyFormat(ORANGE, 1.0,  7.0, 1.0);
+        fancy_font_format DirectionFancy = MakeFancyFormat(PINK, 0.0,  0.0, 0.0);
+        
+        v2 RoomP = V2(10, WindowSize.Y-10);
+        f32 DescriptionWidth = WindowSize.X-150;
+        
+        RoomP.Y -= FontRenderFancyString(BoldFont, &RoomNameFancy, 1, RoomP, TextAdventure.CurrentRoom->Name);
+        
+        fancy_font_format DescriptionFancies[] = {BasicFancy, DirectionFancy, RoomFancy, ItemFancy};
+        RoomP.Y -= FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
+                                         RoomP, TextAdventure.CurrentRoom->Description, DescriptionWidth);
     }
     
-    if(OSInput.SelectionMark >= 0){
-        f32 SelectionX = P.X+FontStringAdvance(Font, OSInput.SelectionMark, Text);
-        f32 Width = SelectionX-CursorP.X;
-        RenderRect(&GameRenderer, RectFix(SizeRect(V2(CursorP.X, CursorP.Y-1), V2(Width, Font->Height+2))), 1.0, BLUE);
-    }
-    
-    if(OSInput.MaybeEndTextInput()){
-        command_func *Func = 0;
-        u32 TokenCount;
-        char **Tokens = TokenizeCommand(&TransientStorageArena, OSInput.Buffer, &TokenCount);
-        for(u32 I=0; I < TokenCount; I++){
-            char *Word = Tokens[I];
-            CStringToLower(Word);
-            Func = FindInHashTable(&TextAdventure.CommandTable, (const char *)Word);
-            if(Func) break;
-        }
-        if(Func){
-            (*Func)(&Tokens[1], TokenCount-1);
-        }else{
-            CopyCString(TextAdventure.ResponseBuffer, "That is not a valid command!\n\002\002You fool!!!", DEFAULT_BUFFER_SIZE);
+    //~ Text input rendering
+    {
+        fancy_font_format ResponseFancy = MakeFancyFormat(GREEN,  0.0,  0.0, 0.0);
+        fancy_font_format EmphasisFancy = MakeFancyFormat(PURPLE, 1.0, 13.0, 3.0);
+        
+        f32 InputHeight = 50;
+        v2 InputP = V2(10, InputHeight);
+        
+        fancy_font_format ResponseFancies[2] = {ResponseFancy, EmphasisFancy};
+        InputP.Y -= FontRenderFancyString(Font, ResponseFancies, ArrayCount(ResponseFancies), InputP, TextAdventure.ResponseBuffer);
+        
+        char *Text = OSInput.Buffer;
+        FontRenderFancyString(Font, &BasicFancy, 1, InputP, Text);
+        
+        v2 CursorP = InputP+FontStringAdvance(Font, OSInput.CursorPosition, Text);
+        if(((FrameCounter+30) / 30) % 3){
+            RenderLine(&GameRenderer, CursorP, CursorP+V2(0, 5), 0.0, 1, WHITE);
         }
         
-        OSInput.BeginTextInput();
+        //~ Selection
+        if(OSInput.SelectionMark >= 0){
+            v2 SelectionP = InputP+FontStringAdvance(Font, OSInput.SelectionMark, Text);
+            f32 Width = SelectionP.X-CursorP.X;
+            RenderRect(&GameRenderer, RectFix(SizeRect(V2(CursorP.X, CursorP.Y-1), V2(Width, Font->Height+2))), 1.0, BLUE);
+        }
+        
+        //~ Command processing
+        if(OSInput.MaybeEndTextInput()){
+            command_func *Func = 0;
+            u32 TokenCount;
+            char **Tokens = TokenizeCommand(&TransientStorageArena, OSInput.Buffer, &TokenCount);
+            for(u32 I=0; I < TokenCount; I++){
+                char *Word = Tokens[I];
+                CStringToLower(Word);
+                Func = FindInHashTable(&TextAdventure.CommandTable, (const char *)Word);
+                if(Func) break;
+            }
+            if(Func){
+                (*Func)(&Tokens[1], TokenCount-1);
+            }else{
+                CopyCString(TextAdventure.ResponseBuffer, "That is not a valid command!\n\002\002You fool!!!", DEFAULT_BUFFER_SIZE);
+            }
+            
+            OSInput.BeginTextInput();
+        }
+    }
+    
+    //~ Inventory
+    {
+        fancy_font_format ItemFancy = MakeFancyFormat(RED, 0.0, 0.0, 0.0);
+        
+        f32 InventoryWidth = 100;
+        v2 InventoryP = V2(WindowSize.X-InventoryWidth, WindowSize.Y-10);
+        InventoryP.Y -= FontRenderFancyString(BoldFont, &BasicFancy, 1, InventoryP, "Inventory:");
+        
+        for(u32 I=0; I<TextAdventure.Inventory.Count; I++){
+            const char *Item = Strings.GetString(TextAdventure.Inventory[I]);
+            InventoryP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, InventoryP, Item);
+        }
     }
 }
 

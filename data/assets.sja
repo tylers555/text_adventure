@@ -1,11 +1,20 @@
+
+# //////////////////////////////////////////////////////////////////////////
+#                                  Fonts
+# //////////////////////////////////////////////////////////////////////////
+
 : Font basic
     path "asset_fonts/basic.png"
-    height 5
+    height 7
     padding 1
+    descent 2
     SPACE 2
     EXCLAMATION 1
     QUOTATION 3
     POUND 5
+    DOLLAR_SIGN 3
+    PERCENT 5
+    AMPERSAND 4
     APOSTROPHE 1
     PARENTHESIS_LEFT 2
     PARENTHESIS_RIGHT 2
@@ -31,32 +40,33 @@
     EQUAL 3
     ANGLE_BRACKET_RIGHT 3
     QUESTION 3
-    A 3
-    B 3
-    C 3
-    D 3
-    E 3
-    F 3
-    G 3 
-    H 3
-    I 3
-    J 3
-    K 3
-    L 3
-    M 5
-    N 4
-    O 4
-    P 3
-    Q 4
-    R 3
-    S 3
-    T 3
-    U 3 
-    V 3
-    W 5
-    X 3
-    Y 3
-    Z 3
+    AT_SIGN 5
+    char "A" 3
+    char "B" 3
+    char "C" 3
+    char "D" 3
+    char "E" 3
+    char "F" 3
+    char "G" 3 
+    char "H" 3
+    char "I" 3
+    char "J" 3
+    char "K" 3
+    char "L" 3
+    char "M" 5
+    char "N" 4
+    char "O" 4
+    char "P" 3
+    char "Q" 4
+    char "R" 3
+    char "S" 3
+    char "T" 3
+    char "U" 3 
+    char "V" 3
+    char "W" 5
+    char "X" 3
+    char "Y" 3
+    char "Z" 3
     SQUARE_BRACKET_LEFT 2
     BACKSLASH 3
     SQUARE_BRACKET_RIGHT 2
@@ -67,10 +77,33 @@
     PIPE 1
     CURLY_BRACKET_RIGHT 3
     TILDE 4
-    PERCENT 5
-    DOLLAR_SIGN 3
-    AMPERSAND 4
-    AT_SIGN 5
+    char "a" 3
+    char "b" 3
+    char "c" 3 
+    char "d" 3
+    char "e" 3
+    char "f" 3
+    char "g" 3
+    char "h" 3
+    char "i" 1
+    char "j" 2
+    char "k" 3
+    char "l" 1
+    char "m" 5
+    char "n" 3
+    char "o" 3
+    char "p" 3
+    char "q" 3
+    char "r" 2
+    char "s" 2
+    char "t" 3
+    char "u" 3
+    char "v" 3
+    char "w" 5
+    char "x" 3
+    char "y" 3
+    char "z" 2
+
 
 : Font basic2
     path "asset_fonts/font2.png"
@@ -147,10 +180,11 @@
     AT_SIGN 5
 
 : Font basic_lowercase
-    path "asset_fonts/basic_lowercase.png"
+    path "asset_fonts/basic_lowercase_2.png"
     height 7
     padding 1
     descent 2
+    SPACE 2
     A 3
     B 3
     C 3 
@@ -168,7 +202,7 @@
     O 3
     P 3
     Q 3
-    R 3
+    R 2
     S 2
     T 3
     U 3
@@ -178,9 +212,82 @@
     Y 3
     Z 2
 
+: Font font_bold
+    path "asset_fonts/bold_font.png"
+    height 5
+    padding 1
+    SPACE 2
+    EXCLAMATION 2
+    QUOTATION 3
+    POUND 5
+    APOSTROPHE 1
+    PARENTHESIS_LEFT 2
+    PARENTHESIS_RIGHT 2
+    ASTERISK 1
+    PLUS 3
+    COMMA 2
+    DASH 2
+    PERIOD 1
+    SLASH 3
+    ZERO 3
+    ONE 3
+    TWO 3
+    THREE 3
+    FOUR 3
+    FIVE 3
+    SIX 3
+    SEVEN 3
+    EIGHT 3
+    NINE 3
+    COLON 1
+    SEMICOLON 2
+    ANGLE_BRACKET_LEFT 3
+    EQUAL 3
+    ANGLE_BRACKET_RIGHT 3
+    QUESTION 4
+    A 3
+    B 3
+    C 3
+    D 3
+    E 3
+    F 3
+    G 3 
+    H 3
+    I 3
+    J 3
+    K 3
+    L 3
+    M 5
+    N 4
+    O 3
+    P 3
+    Q 4
+    R 3
+    S 3
+    T 3
+    U 3 
+    V 3
+    W 5
+    X 3
+    Y 3
+    Z 3
+    SQUARE_BRACKET_LEFT 2
+    BACKSLASH 3
+    SQUARE_BRACKET_RIGHT 2
+    CARET 3
+    BACK_TICK 2
+    UNDERSCORE 4
+    CURLY_BRACKET_LEFT 3
+    PIPE 1
+    CURLY_BRACKET_RIGHT 3
+    TILDE 4
+    PERCENT 5
+    DOLLAR_SIGN 3
+    AMPERSAND 4
+    AT_SIGN 5
 
 # //////////////////////////////////////////////////////////////////////////
-#                              Sound effects
+#                               Sound effects
 # //////////////////////////////////////////////////////////////////////////
 
 : SoundEffect entity_land
@@ -213,3 +320,89 @@
 : SoundEffect ttt_lose
     # path "asset_sound_effects/puhp_00.wav"
     path "asset_sound_effects/osj/LoseFX.wav"
+
+# //////////////////////////////////////////////////////////////////////////
+#                              Rooms
+# //////////////////////////////////////////////////////////////////////////
+
+: TARoom "Plaza SE"
+    description
+#        "A BCDEFGHIJKLMNOPQRSTUVWXYZ\n"
+        "There is very little here, aside from several tall and looming oak trees. "
+        "The ground is damp from the rainy weather, and the blowing breeze brings a crisp chill. "
+        "\n\2The plaza\0 extends further \1west\0 for a great distance, "
+        "\n\2the general shop\0 stands in the \1south\0, "
+        "\n\2the bakery\0 in the \1east\0."
+        "\nand \2a sprawling cathedral\0 in the \1north\0."
+    adjacents
+        west  "Plaza SW"
+        south "Shop front"
+        east  "Bakery front"
+        north "Cathedral front"
+
+: TARoom "Shop front"
+    description
+        "A thin but sturdy wooden door is surrounded by brick on either side, welcoming you to enter. "
+        "Above the door is a large sign that reads: \2'Susan's Shop'"
+    adjacents
+        north "Plaza SE"
+        south "Shop"
+        east  "Bakery front"
+
+: TARoom "Shop"
+    description
+        "The shop boasts nothing more than a modestly sized room, with a large counter at the far wall."
+        "The sides of the room are surrounded by shelves, serving as homes to numerous common goods. "
+        "Several items catch your eye: \3a town map\0, \3an umbrella\0, and \3a lantern\0."
+    adjacents
+        north "Shop front"
+#    items  Array("Town map" "Umbrella" "Lantern")
+#    person "Susan"
+
+: TARoom "Bakery front"
+    description
+        "The warmth almost penetrates the solid wall and seems to infect even the door. "
+        "A beautiful aroma permeates through a large area infront of the bakery. "
+        "It boasts of skillfully baked goods one would find inside. "
+    adjacents
+        east "Bakery"
+        west "Plaza SE"
+
+: TARoom "Cathedral front"
+    description
+        "The cathedral stands tall and proud right in front of you, radiating a certain holiness. "
+        "A weathered wooden door, framed by intricate stone priests and gargoyles, looms before you, "
+        "and speaks to the cathedrals wonderous age. "
+        "In the center of the door lies a heavy brass knocker. "
+        "\n\2The plaza\0 is behind you to the \1south\0"
+        "\nand \2the nave\0 lies \1northward\0 beyond the door."
+    adjacents
+        north "Cathedral nave"
+        south "Plaza SE"
+
+: TARoom "Cathedral nave"
+    description
+        "Lines of stone pillars reach up into arches at a vaulted ceiling. "
+        "Despite the large stained-glass windows on either side, the cathedral is oddly dim, lit more by candelabras than natural light. "
+        "There are a few rows of red-cushioned benches facing the altar. "
+        "\nFurther \1northward\0 lies \2the altar\0, "
+        "\nbehind you to the \1south\0 stands \2the door\0, "
+        "\n\2the choir\0 exists to \1east\0, "
+        "\nyou are just able to glimpse \2the organ console\0 towards the \1northeast\0"
+    adjacents
+        north     "Cathedral altar"
+        east      "Cathedral choir"
+        northeast "Cathdral organ console"
+        south     "Cathedral front"
+
+: TARoom "Cathedral altar"
+    description
+        "You cannot help but feel that you are in the presence of a spiritual being..."
+        "\nBehind you in the \1south\0 is \2the nave\0, "
+        "\n\2the organ console\0 to the \1east\0, "
+        "\nand another door leads \1west\0"
+    adjacents
+        south "Cathedral nave"
+        east  "Cathedral organ console"
+        west  "Cathedral vestry"
+        

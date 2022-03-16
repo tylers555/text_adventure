@@ -64,7 +64,7 @@ VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, 
             P.Y -= Font->Height+FONT_VERTICAL_SPACE;
             Height += Font->Height+FONT_VERTICAL_SPACE;
             continue;
-        }
+        }else if(C == '\r') continue;
         
         asset_font_glyph Glyph = Font->Table[C];
         rect R = SizeRect(P, V2((f32)Glyph.Width, (f32)Font->Height));
@@ -77,7 +77,7 @@ VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, 
         RenderTexture(&GameRenderer, R, 0.0, Font->Texture, TextureR, false, Color);
         //RenderRect(&GameRenderer, R, 0.0, MakeColor(1.0, 1.0, 0.0, 0.0));
         
-        P.X += Glyph.Width + 1;
+        P.X += Glyph.Width+FONT_LETTER_SPACE;
     }
     
     return Height;
@@ -113,8 +113,61 @@ FontRenderFancyGlyph(asset_font *Font, fancy_font_format *Fancy, v2 P, f32 T, ch
     return (f32)Glyph.Width;
 }
 
+internal f32 
+FontWordAdvance(asset_font *Font, const char *S, u32 WordStart){
+    f32 Result = 0;
+    u32 Length = CStringLength(S);
+    b8 HitAlphabetic = false;
+    for(u32 I=WordStart; I<Length; I++){
+        char C = S[I];
+        if(IsWhiteSpace(C)){
+            if(HitAlphabetic) break;
+        }else HitAlphabetic = true;
+        
+        asset_font_glyph Glyph = Font->Table[C];
+        Result += Glyph.Width+FONT_LETTER_SPACE;
+    }
+    
+    return Result;
+}
+
+internal v2
+FontStringAdvance(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+    v2 Result = V2(0);
+    u32 Length = Minimum(CStringLength(S), N);
+    for(u32 I=0; I<Length; I++){
+        char C = S[I];
+        asset_font_glyph Glyph = Font->Table[C];
+        
+        if(C == ' '){
+            f32 WordAdvance = FontWordAdvance(Font, S, I);
+            if(Result.X+WordAdvance > MaxWidth){
+                Result.X = 0;
+                Result.Y -= Font->Height+FONT_VERTICAL_SPACE;
+                continue;
+            }
+        }else if(Result.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
+            Result.X = 0;
+            Result.Y -= Font->Height+FONT_VERTICAL_SPACE;
+        }
+        
+        Result.X += Glyph.Width+FONT_LETTER_SPACE;
+    }
+    
+    Assert(Result.X <= MaxWidth);
+    
+    return Result;
+}
+
+internal v2
+FontStringAdvance(asset_font *Font, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+    v2 Result = FontStringAdvance(Font, CStringLength(S), S, MaxWidth);
+    return Result;
+}
+
 internal f32
-FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S){
+FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+    if(!S) return 0;
     if(!S[0]) return 0;
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
     
@@ -133,6 +186,8 @@ FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCou
     }
     for(u32 I=0; I<Length; I++){
         char C = S[I];
+        asset_font_glyph Glyph = Font->Table[C];
+        
         if(C == '\x02'){
             I++;
             Assert(I < Length);
@@ -146,68 +201,24 @@ FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCou
             P.Y -= Font->Height+FONT_VERTICAL_SPACE;
             Height += Font->Height+FONT_VERTICAL_SPACE;
             continue;
+        }else if(C == '\r'){
+            continue;
+        }else if(C == ' '){
+            f32 WordAdvance = FontWordAdvance(Font, S, I);
+            if(P.X-StartP.X+WordAdvance > MaxWidth){
+                P.X = StartP.X;
+                P.Y -= Font->Height+FONT_VERTICAL_SPACE;
+                Height += Font->Height+FONT_VERTICAL_SPACE;
+                continue;
+            }
+        }else if(P.X-StartP.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
+            P.X = StartP.X;
+            P.Y -= Font->Height+FONT_VERTICAL_SPACE;
         }
-        P.X += FontRenderFancyGlyph(Font, Fancy, P, Ts[CurrentFancyIndex], C)+1;
+        
+        P.X += FontRenderFancyGlyph(Font, Fancy, P, Ts[CurrentFancyIndex], C)+FONT_LETTER_SPACE;
         Ts[CurrentFancyIndex] += Fancy->dT;
     }
     
     return Height;
-}
-
-internal f32
-VFontStringAdvance(asset_font *Font, const char *Format, va_list VarArgs){
-    char Buffer[DEFAULT_BUFFER_SIZE];
-    stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
-    
-    f32 Result = 0;
-    u32 Length = CStringLength(Buffer);
-    for(u32 I=0; I<Length; I++){
-        char C = Buffer[I];
-        
-        asset_font_glyph Glyph = Font->Table[C];
-        Result += Glyph.Width + 1;
-    }
-    
-    return Result;
-}
-
-internal f32
-FontStringAdvance(asset_font *Font, const char *Format, ...){
-    va_list VarArgs;
-    va_start(VarArgs, Format);
-    
-    f32 Result = VFontStringAdvance(Font, Format, VarArgs);
-    
-    va_end(VarArgs);
-    
-    return Result;
-}
-
-internal f32
-VFontStringAdvance(asset_font *Font, u32 N, const char *Format, va_list VarArgs){
-    char Buffer[DEFAULT_BUFFER_SIZE];
-    stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
-    
-    f32 Result = 0;
-    u32 Length = Minimum(CStringLength(Buffer), N);
-    for(u32 I=0; I<Length; I++){
-        char C = Buffer[I];
-        
-        asset_font_glyph Glyph = Font->Table[C];
-        Result += Glyph.Width + 1;
-    }
-    
-    return Result;
-}
-
-internal f32
-FontStringAdvance(asset_font *Font, u32 N, const char *Format, ...){
-    va_list VarArgs;
-    va_start(VarArgs, Format);
-    
-    f32 Result = VFontStringAdvance(Font, N, Format, VarArgs);
-    
-    va_end(VarArgs);
-    
-    return Result;
 }

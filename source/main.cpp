@@ -76,6 +76,8 @@ InitializeGame(){
     
     Strings.Initialize(&PermanentStorageArena);
     
+    TextAdventure.Initialize(&PermanentStorageArena);
+    
     //~ Load things
     LoadedImageTable = PushHashTable<const char *, image>(&PermanentStorageArena, 256);
     AssetSystem.Initialize(&PermanentStorageArena);
@@ -84,8 +86,6 @@ InitializeGame(){
     
     AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
     //AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("test_music")), MixerSoundFlag_Music|MixerSoundFlag_Loop, 1.0f);
-    
-    TextAdventure.Initialize(&PermanentStorageArena);
 }
 
 //~

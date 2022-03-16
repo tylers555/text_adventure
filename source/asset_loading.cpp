@@ -2,20 +2,6 @@
 //~ Initialization
 void
 asset_system::InitializeLoader(memory_arena *Arena){
-    DirectionTable = PushHashTable<const char *, direction>(Arena, Direction_TOTAL+8);
-    InsertIntoHashTable(&DirectionTable, "north",     Direction_North);
-    InsertIntoHashTable(&DirectionTable, "northeast", Direction_NorthEast);
-    InsertIntoHashTable(&DirectionTable, "east",      Direction_East);
-    InsertIntoHashTable(&DirectionTable, "southeast", Direction_SouthEast);
-    InsertIntoHashTable(&DirectionTable, "south",     Direction_South);
-    InsertIntoHashTable(&DirectionTable, "southwest", Direction_SouthWest);
-    InsertIntoHashTable(&DirectionTable, "west",      Direction_West);
-    InsertIntoHashTable(&DirectionTable, "northwest", Direction_NorthWest);
-    InsertIntoHashTable(&DirectionTable, "up",        Direction_Up);
-    InsertIntoHashTable(&DirectionTable, "down",      Direction_Down);
-    InsertIntoHashTable(&DirectionTable, "left",      Direction_Left);
-    InsertIntoHashTable(&DirectionTable, "right",     Direction_Right);
-    
     ASCIITable = PushHashTable<const char *, char>(Arena, 128);
     InsertIntoHashTable(&ASCIITable, "SPACE",                ' ');
     InsertIntoHashTable(&ASCIITable, "EXCLAMATION",          '!');
@@ -197,6 +183,34 @@ asset_system::ExpectTypeArrayS32(){
     return(Result);
 }
 
+array<const char *>
+asset_system::ExpectTypeArrayCString(){
+    array<const char *> Result = MakeArray<const char *>(&TransientStorageArena, SJA_MAX_ARRAY_ITEM_COUNT);
+    
+    const char *Identifier = Expect(Identifier);
+    if(CompareStrings(Identifier, "Array")){
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError();
+        
+        file_token Token = Reader.PeekToken();
+        while(Token.Type != FileTokenType_EndArguments){
+            const char *String = Expect(String);
+            ArrayAdd(&Result, String);
+            
+            Token = Reader.PeekToken();
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError();
+        
+    }else{
+        Reader.LastError = FileReaderError_InvalidToken;
+        return(Result);
+    }
+    
+    return(Result);
+}
+
 //~ 
 
 b8 
@@ -283,6 +297,7 @@ asset_system::ProcessCommand(){
     IfCommand(Ignore);
     IfCommand(Font);
     IfCommand(SoundEffect);
+    IfCommand(TARoom);
     
     LogMessage("(Line: %u) '%s' isn't a valid command!", Reader.Line, String);
     return(false);
@@ -308,9 +323,9 @@ asset_system::ProcessSoundEffect(){
     while(true){
         file_token Token = Reader.PeekToken();
         HandleToken(Token);
-        const char *String = Expect(Identifier);
+        const char *Attribute = Expect(Identifier);
         
-        if(DoAttribute(String, "path")){
+        if(DoAttribute(Attribute, "path")){
             const char *Path = Expect(String);
             sound_data Data = LoadWavFile(&OSSoundBuffer, &Memory, Path);
             if(!Data.Samples){
@@ -318,7 +333,7 @@ asset_system::ProcessSoundEffect(){
             }
             Sound->Sound = Data;
             
-        }else{ LogInvalidAttribute(String); return false; }
+        }else{ LogInvalidAttribute(Attribute); return false; }
     }
     
     return true;
@@ -339,9 +354,9 @@ asset_system::ProcessFont(){
     while(true){
         file_token Token = Reader.PeekToken();
         HandleToken(Token);
-        const char *String = Expect(Identifier);
+        const char *Attribute = Expect(Identifier);
         
-        if(DoAttribute(String, "path")){ 
+        if(DoAttribute(Attribute, "path")){ 
             const char *Path = Expect(String);
             
             image *Image = LoadImageFromPath(Path);
@@ -352,16 +367,38 @@ asset_system::ProcessFont(){
             
             Font->Texture = Image->Texture;
             Font->Size = Image->Size;
-        }else if(DoAttribute(String, "height")){
+        }else if(DoAttribute(Attribute, "height")){
             Height = ExpectPositiveInteger();
             
             Font->Height = (f32)Height;
-        }else if(DoAttribute(String, "padding")){
+        }else if(DoAttribute(Attribute, "padding")){
             Padding = ExpectPositiveInteger();
             
             CurrentOffset.Y += Padding;
-        }else if(DoAttribute(String, "descent")){
+        }else if(DoAttribute(Attribute, "descent")){
             Font->Descent = (f32)ExpectPositiveInteger();
+        }else if(DoAttribute(Attribute, "char")){
+            const char *S = Expect(String);
+            if(S[1] || !S[0]){
+                LogError("'%s' is not a single character!", S);
+                return false;
+            }
+            char C = S[0];
+            
+            s32 Width = ExpectPositiveInteger();
+            
+            if(CurrentOffset.X+Width+Padding >= Font->Size.X){
+                CurrentOffset.X = 0;
+                CurrentOffset.Y += Height+2*Padding;
+                Assert(CurrentOffset.Y >= 0);
+            }
+            CurrentOffset.X += Padding;
+            
+            Font->Table[C].Width = Width;
+            Font->Table[C].Offset.X = CurrentOffset.X;
+            Font->Table[C].Offset.Y = Font->Size.Height-CurrentOffset.Y-Height;
+            
+            CurrentOffset.X += Width+Padding;
         }else{
             if(!Font->Texture){
                 LogError("The font image must be defined before any characters!");
@@ -372,7 +409,7 @@ asset_system::ProcessFont(){
                 return false;
             }
             
-            char C = FindInHashTable(&ASCIITable, String);
+            char C = FindInHashTable(&ASCIITable, Attribute);
             
             if(C){
                 s32 Width = ExpectPositiveInteger();
@@ -395,8 +432,87 @@ asset_system::ProcessFont(){
                 }
                 
                 CurrentOffset.X += Width+Padding;
-            }else{ LogInvalidAttribute(String); return false; }
+            }else{ LogInvalidAttribute(Attribute); return false; }
         }
+    }
+    
+    return true;
+}
+
+//~ Text adventure rooms
+
+
+b8
+asset_system::ProcessTARoom(){
+    b8 Result = false;
+    
+    ta_system *TA = &TextAdventure;
+    
+    const char *Name = Expect(String);
+    ta_room *Room = Strings.GetInHashTablePtr(&TA->RoomTable, Name);
+    *Room = {};
+    Room->Name = Name;
+    
+    v2s CurrentOffset = V2S(0);
+    s32 Height = 0;
+    s32 Padding = 0;
+    while(true){
+        file_token Token = Reader.PeekToken();
+        HandleToken(Token);
+        const char *Attribute = Expect(Identifier);
+        
+        if(DoAttribute(Attribute, "description")){ 
+            string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+            while(true){
+                file_token Token = Reader.PeekToken();
+                if(Token.Type != FileTokenType_String) break;
+                const char *S = Expect(String);
+                
+                u32 Length = CStringLength(S);
+                char *Buffer = &Builder.Buffer[Builder.BufferSize];
+                for(u32 I=0; S[I]; I++){
+                    char C = S[I];
+                    
+                    if(C == '\\'){
+                        char Next = S[I+1];
+                        if(IsANumber(Next)){
+                            Next -= '0';
+                            StringBuilderAdd(&Builder, '\002');
+                            StringBuilderAdd(&Builder, Next+1);
+                            I++;
+                            continue;
+                        }else if(Next == '\\') I++;
+                        else if(Next == 'n'){
+                            I++;
+                            StringBuilderAdd(&Builder, '\n');
+                            continue;
+                        }
+                    }
+                    StringBuilderAdd(&Builder, C);
+                    
+                }
+            }
+            Room->Description = EndStringBuilder(&Memory, &Builder);
+        }else if(DoAttribute(Attribute, "adjacents")){ 
+            while(true){
+                file_token Token = Reader.PeekToken();
+                if(Token.Type != FileTokenType_Identifier) break;
+                
+                direction Direction = FindInHashTable(&TA->DirectionTable, (const char *)Token.Identifier);
+                if(!Direction) break;
+                Expect(Identifier);
+                
+                const char *NextRoomName = Expect(String);
+                Room->Adjacents[Direction] = Strings.GetString(NextRoomName);
+            }
+        }else if(DoAttribute(Attribute, "items")){
+            array<const char *> CStringItems = ExpectTypeArrayCString();
+            array<string> Items = MakeArray<string>(&Memory, CStringItems.Count);
+            for(u32 I=0; I<CStringItems.Count; I++){
+                ArrayAdd(&Items, Strings.GetString(CStringItems[I]));
+            }
+            
+        }else{ LogInvalidAttribute(Attribute); return false; }
     }
     
     return true;

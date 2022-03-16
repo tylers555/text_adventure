@@ -23,8 +23,9 @@ typedef void command_func(char **Words, u32 WordCount);
 
 struct ta_room {
     const char *Name;
-    string Adjacents[Direction_TOTAL];
     const char *Description;
+    string Adjacents[Direction_TOTAL];
+    array<string> Items;
 };
 
 struct ta_system {
@@ -33,6 +34,8 @@ struct ta_system {
     hash_table<string, ta_room>   RoomTable;
     ta_room *CurrentRoom;
     char ResponseBuffer[DEFAULT_BUFFER_SIZE];
+    
+    array<string> Inventory;
     
     void Initialize(memory_arena *Arena);
 };
