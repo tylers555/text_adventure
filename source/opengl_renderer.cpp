@@ -471,7 +471,6 @@ RendererRenderAll(game_renderer *Renderer){
     glViewport(0, 0, (u32)OutputSize.X, (u32)OutputSize.Y);
     
     OpenGL.UploadRenderData(&Renderer->Vertices, &Renderer->Indices);
-    GLClearOutput(Renderer->ClearColor);
     OpenGL.NormalSetup();
     
     //~ Pixel items

@@ -140,13 +140,7 @@ Win32MainWindowProc(HWND Window,
         case WM_SETCURSOR: {
             HCURSOR Cursor = LoadCursorA(0, IDC_ARROW);
             SetCursor(Cursor);
-        }break;
-        case WM_SIZE: {
-            RECT ClientRect;
-            GetClientRect(Window, &ClientRect);
-            int Width = ClientRect.right - ClientRect.left;
-            int Height = ClientRect.bottom - ClientRect.top;
-            OSInput.WindowSize = {(f32)Width, (f32)Height};
+            DefWindowProcA(Window, Message, WParam, LParam);
         }break;
         case WM_CLOSE: {
             Running = false;
@@ -552,6 +546,13 @@ WinMain(HINSTANCE Instance,
             
             CreateThread(0, 0, Win32AudioThreadProc, DeviceContext, 0, 0);
             
+            //~
+            RECT ClientRect;
+            GetClientRect(MainWindow, &ClientRect);
+            int Width = ClientRect.right - ClientRect.left;
+            int Height = ClientRect.bottom - ClientRect.top;
+            OSInput.WindowSize = {(f32)Width, (f32)Height};
+            
             //~ 
             InitializeGame();
             
@@ -761,8 +762,9 @@ internal void
 OSProcessInput(os_input *Input){
     //~ Reset
     Input->ScrollMovement = 0;
-    Input->InputFlags &= ~OSInputFlag_MouseMoved;
+    Input->InputFlags &= ~(OSInputFlag_MouseMoved);
     Input->FirstKeyDown = KeyCode_NULL;
+    Input->LastWindowSize = Input->WindowSize;
     
     //~ Miscellaneous
     // NOTE(Tyler): This is done so that alt-tab does not cause problems, or when a key is pressed
@@ -810,8 +812,6 @@ OSProcessInput(os_input *Input){
     b8 Result = true;
     MSG Message;
     while(true){
-        u64 _Start = __rdtsc();
-        
         if(!PeekMessage(&Message, 0, 0, 0, PM_REMOVE)) break;
         
         // TODO(Tyler): This may not actually be needed here
@@ -824,13 +824,6 @@ OSProcessInput(os_input *Input){
             case WM_SETCURSOR: {
                 HCURSOR Cursor = LoadCursorA(0, IDC_ARROW);
                 SetCursor(Cursor);
-            }break;
-            case WM_SIZE: {
-                RECT ClientRect;
-                GetClientRect(MainWindow, &ClientRect);
-                int Width = ClientRect.right - ClientRect.left;
-                int Height = ClientRect.bottom - ClientRect.top;
-                Input->WindowSize = {(f32)Width, (f32)Height};
             }break;
             case WM_CLOSE: {
                 Running = false;
@@ -876,8 +869,7 @@ OSProcessInput(os_input *Input){
             case WM_MOUSEWHEEL:  Input->ScrollMovement = GET_WHEEL_DELTA_WPARAM(Message.wParam); break;
             case WM_MOUSEMOVE:   Input->InputFlags |= OSInputFlag_MouseMoved; break;
             default: {
-                DefWindowProcA(Message.hwnd, Message.message, 
-                               Message.wParam, Message.lParam);
+                DefWindowProcA(Message.hwnd, Message.message, Message.wParam, Message.lParam);
             }break;
         }
     }

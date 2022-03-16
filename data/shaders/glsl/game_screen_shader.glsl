@@ -48,6 +48,8 @@ void main(){
     
     vec2 UV = floor(Pixel) + 0.5;
     
+    //vec2 UV = FragmentUV;
+    
     //UV += 1.0 - clamp((1.0-fract(Pixel))*InScale, 0.0, 1.0);
     
     vec4 Color = texture(InTexture, UV/TextureSize);

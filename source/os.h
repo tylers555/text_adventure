@@ -302,10 +302,13 @@ struct os_input {
     os_file *ConsoleErrorFile;
     
     //~ Other stuff
+    v2 LastWindowSize;
     v2 WindowSize;
     f32 dTime;
     os_input_flags InputFlags;
     os_key_code FirstKeyDown;
+    
+    inline b8 WasWindowResized();
     
     //~ Mouse stuff
     v2 MouseP;
@@ -342,6 +345,13 @@ struct os_input {
 
 global os_input OSInput;
 
+//~
+inline b8
+os_input::WasWindowResized(){
+    b8 Result = ((LastWindowSize.Width  != WindowSize.Width) ||
+                 (LastWindowSize.Height != WindowSize.Height));
+    return Result;
+}
 //~ Modifier
 
 inline b8

@@ -465,12 +465,8 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
 
 void
 game_renderer::ChangeScale(f32 NewScale){
-    f32 Epsilon = 0.0001f;
-    if((NewScale <= (CameraScale+Epsilon)) &&((CameraScale-Epsilon) <= NewScale)){
-    }else{
-        CameraScale = NewScale;
-        ResizeFramebuffer(&GameScreenFramebuffer, OutputSize/CameraScale);
-    }
+    CameraScale = NewScale;
+    ResizeFramebuffer(&GameScreenFramebuffer, OutputSize/CameraScale);
 }
 
 void
@@ -498,10 +494,13 @@ game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
     CameraFinalP += Delta;
 #endif
     
-    f32 Factor = 210.0f;
-    f32 NewScale = Minimum(OutputSize.X/Factor, OutputSize.Y/Factor);
-    NewScale = Maximum(NewScale, 1.0f);
-    ChangeScale(Round(NewScale));
+    if(OSInput.WasWindowResized()){
+        f32 Aspect = OutputSize.X/OutputSize.Y;
+        f32 Factor = 216.0f;
+        f32 NewScale = Minimum(OutputSize.X, OutputSize.Y)/Factor;
+        NewScale = Maximum(NewScale, 1.0f);
+        ChangeScale(Round(NewScale));
+    }
 }
 
 //~ Render stuff
