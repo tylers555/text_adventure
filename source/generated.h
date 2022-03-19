@@ -1,0 +1,6 @@
+#ifndef GENERATED_H
+#define GENERATED_H
+
+#define STRING_HASH(S) STRING_HASHES_##S
+
+#endif //GENERATED_H

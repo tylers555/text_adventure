@@ -272,8 +272,8 @@ void CommandExamine(char **Words, u32 WordCount){
         TA->Respond(Description->Data);
         FoundSomething = true;
     }
-    
     if(FoundSomething) return;
+    
     ta_room *Room = TA->CurrentRoom;
     for(u32 I=0; I<WordCount; I++){
         const char *Word = Words[I];
@@ -285,10 +285,9 @@ void CommandExamine(char **Words, u32 WordCount){
         ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
         if(!Description) continue;
         TA->Respond(Description->Data);
-        FoundSomething = true;
     }
-    
     if(FoundSomething) return;
+    
     TA->Respond("I have no idea what you want to examine!");
 }
 
@@ -376,12 +375,17 @@ DoDescription(ta_system *TA, ta_room *Room, asset_font *Font, v2 P, f32 Descript
     
     f32 Result = FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
                                        P, Description->Data, DescriptionWidth);
-    P.Y -= Result;
+    
+    ta_string *Adjacents = TARoomFindDescription(Room, String("adjacents"));
+    if(Adjacents){
+        Result += FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
+                                        V2(P.X, P.Y-Result), Adjacents->Data, DescriptionWidth);
+    }
     
     ta_string *Items = TARoomFindDescription(Room, String("items"));
     if(Items){
         Result += FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
-                                        P, Items->Data, DescriptionWidth);
+                                        V2(P.X, P.Y-Result), Items->Data, DescriptionWidth);
     }
     
     return Result;
@@ -391,7 +395,7 @@ internal void
 UpdateAndRenderMainGame(game_renderer *Renderer){
     if(!TextAdventure.CurrentRoom){
         OSInput.BeginTextInput();
-        TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Shop front"));
+        TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Plaza SE"));
     }
     
     //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);

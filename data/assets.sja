@@ -407,7 +407,7 @@
         "You must be really desperate or really don’t like wasting food."
 
 # //////////////////////////////////////////////////////////////////////////
-#                                  Rooms
+#                                 Plaza rooms
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Plaza SE"
@@ -415,7 +415,8 @@
 #        "A BCDEFGHIJKLMNOPQRSTUVWXYZ\n"
         "There is very little here, aside from several tall and looming oak trees. "
         "The ground is damp from the rainy weather, and the blowing breeze brings a crisp chill. "
-        "\n\2The plaza\0 extends further \1west\0 for a great distance, "
+    description Tag("adjacents")
+        "\2The plaza\0 extends further \1west\0 for a great distance, "
         "\n\2the general shop\0 stands in the \1south\0, "
         "\n\2the bakery\0 in the \1east\0."
         "\nand \2a monstrous cathedral\0 in the \1north\0."
@@ -424,6 +425,27 @@
         south "Shop front"
         east  "Bakery front"
         north "Cathedral front"
+
+: TARoom "Plaza SW"
+    description
+        ""
+    description Tag("adjacents")
+        "\2The plaza\0 extends both further \1east\0 and \1north\0 for a great distance. "
+    adjacents
+        north "Plaza NW"
+        east  "Plaza SE"
+
+: TARoom "Plaza NW"
+    description
+        ""
+    description Tag("adjacents")
+        "\2The plaza\0 extends  further \south\0 for a great distance. "
+    adjacents
+        south "Plaza SW"
+
+# //////////////////////////////////////////////////////////////////////////
+#                                Shop rooms
+# //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Shop front"
     description
@@ -450,7 +472,8 @@
         "The warmth almost penetrates the solid wall and seems to infect even the door. "
         "A beautiful aroma permeates through a large area infront of the bakery. "
         "It boasts of the skillfully baked goods one would find inside. "
-        "\nthe door beckons you further \1eastward\0 into \2the bakery\0"
+    description Tag("adjacents")
+        "The door beckons you further \1eastward\0 into \2the bakery\0"
         "\nand \2the plaza\0 extends behind you in the \1west\0"
     adjacents
         east "Bakery"
@@ -460,14 +483,19 @@
     description
         "A glass counter consumes the majority of the space inside the small bakery. " 
         "Behind it extends a vast kitchen, which seems to be the source of the beautiful aroma. "
-#        "\nThe counter houses \3carrot cake muffins\0, \3honeyed almond pastries\0, \3cinnamon sugar churros\0, and \3chocolate croissants\0. "
-#        "Perched on the shelves are \3large loaves of wheat bread\0. "
-        "\n\2the kitchen\0 extends further \1eastward\0, while"
+    description Tag("adjacents")
+        "\2The kitchen\0 extends further \1eastward\0, while"
         "\n\2the front\0 of the store lays behind you in the \1west\0"
+    description Tag("items")
+        "Inside the counter and perched on the shelves are: "
     adjacents
         west "Bakery front"
         east "Bakery kitchen"
     items Array("carrot cake muffins" "honeyed almond pastries" "cinnamon sugar churros" "chocolate croissants" "large loaves of wheat bread")
+
+# //////////////////////////////////////////////////////////////////////////
+ #                              Cathedral rooms
+# //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Cathedral front"
     description
@@ -475,7 +503,8 @@
         "A weathered wooden door, framed by intricate stone priests and gargoyles, looms before you, "
         "and speaks to the cathedrals wonderous age. "
         "In the center of the door lies a heavy brass knocker. "
-        "\n\2The plaza\0 is behind you to the \1south\0"
+    description Tag("adjacents")
+        "\2The plaza\0 is behind you to the \1south\0"
         "\nand \2the nave\0 lies \1northward\0 beyond the door."
     adjacents
         north "Cathedral nave"
@@ -486,7 +515,8 @@
         "Lines of stone pillars reach up into arches at a vaulted ceiling. "
         "Despite the large stained-glass windows on either side, the cathedral is oddly dim, lit more by candelabras than natural light. "
         "There are a few rows of red-cushioned benches facing the altar. "
-        "\nFurther \1northward\0 lies \2the altar\0, "
+    description Tag("adjacents")        
+        "Further \1northward\0 lies \2the altar\0, "
         "\nbehind you to the \1south\0 stands \2the door\0, "
         "\nand you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
     adjacents
@@ -497,7 +527,8 @@
 : TARoom "Cathedral altar"
     description
         "You cannot help but feel that you are in the presence of a spiritual being..."
-        "\nBehind you in the \1south\0 is \2the nave\0, "
+    description Tag("adjacents")
+        "Behind you in the \1south\0 is \2the nave\0, "
         "\n\2the organ console\0 to the \1east\0, "
         "\nand another door leads \1west\0"
     adjacents
@@ -514,7 +545,7 @@
     description Tag("repaired")
         "A great pipe organ stands tall. It looks to be getting regular use."
     description Tag("adjacents")
-        "\nthis room connects to \2the altar\0 in the \1west\0 "
+        "this room connects to \2the altar\0 in the \1west\0 "
         "\nand \2the nave\0 in the \1southwest\0"
     description Tag("examine-broken")
         "The organ appears to be in poor condition. "
@@ -528,17 +559,5 @@
         "All the notes sound with renewed strength."
     adjacents
         west      "Cathedral altar"
-        southwest "Cahtedral nave"
+        southwest "Cathedral nave"
 
-# : TARoom "Cathedral organ console"
-: Ignore
-    description 
-        "A once-great pipe organ sits in neglected despair. "
-        "It looks to be missing some parts. "
-        "There is a small scrap of paper sitting on the manual."
-        "The paper reads: 'Please fix the organ' "
-        "\nthis room connects to \2the altar\0 in the \1west\0 "
-        "\nand \2the nave\0 in the \1southwest\0"
-    adjacents
-        west      "Cathedral altar"
-        southwest "Cahtedral nave"
