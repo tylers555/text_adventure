@@ -286,21 +286,42 @@
     AMPERSAND 4
     AT_SIGN 5
 
+: Font font_fancy
+	path  "asset_fonts/fancy_font.png"
+	height 15
+	padding 1
+	descent 5
+	A 10
+	B 9
+    C 7
+    D 9
+    E 7
+    F 10
+    G 6
+    H 11 
+    I 7
+    J 8
+    K 11
+    L 8
+    M 14
+    N 11
+    O 8
+    P 9
+    Q 10
+    R 10
+    S 6
+    T 10
+    U 9
+    V 8
+    W 12
+    X 10
+    Y 9
+    Z 11
+    SPACE 10
+
 # //////////////////////////////////////////////////////////////////////////
 #                               Sound effects
 # //////////////////////////////////////////////////////////////////////////
-
-: SoundEffect entity_land
-    path "asset_sound_effects/osj/LandFX.wav"
-
-: SoundEffect level_change
-    path "asset_sound_effects/osj/ArenaFX.wav"
-
-: SoundEffect damage
-    path "asset_sound_effects/osj/DeathFX.wav"
-
-: SoundEffect death
-    path "asset_sound_effects/osj/LoseFX.wav"
 
 : SoundEffect menu_move
     path "asset_sound_effects/puhp_01.wav"
@@ -309,20 +330,84 @@
     # path "asset_sound_effects/osj/Music.wav"
     path "asset_sound_effects/osj_music.wav"
 
-: SoundEffect ttt_place_mark
+: SoundEffect room_change 
+    path "asset_sound_effects/osj/JumpFX.wav"
+
+: SoundEffect item_taken
     path "asset_sound_effects/crack_00.wav"
-    # path "asset_sound_effects/osj/LandFX.wav"
 
-: SoundEffect ttt_win
-    # path "asset_sound_effects/puhp_00.wav"
-    path "asset_sound_effects/osj/WinFX.wav"
-
-: SoundEffect ttt_lose
-    # path "asset_sound_effects/puhp_00.wav"
-    path "asset_sound_effects/osj/LoseFX.wav"
+: SoundEffect item_dropped
+    path "asset_sound_effects/drop_00.wav"
 
 # //////////////////////////////////////////////////////////////////////////
-#                              Rooms
+#                                    Items
+# //////////////////////////////////////////////////////////////////////////
+
+: TAItem "A town map" Tag("map")
+    Array("map" "maps")
+    description Tag("examine")
+        "This map appears very old and very weathered, however its detail is unparalleled. "
+        "You can make out just about every aspect of this town on the map. "
+
+: TAItem "An umbrella" 
+    Array("umbrella" "umbrellas")
+    description Tag("examine")
+        "A bit dusty, but in exquisite condition"
+
+: TAItem "A lantern" Tag("light")
+    Array("lantern" "lanterns")
+    description Tag("examine")
+        "A bit rusty, but in otherwise perfect working condition. "
+        "This will work nicely to light dark areas. "
+    description Tag("activate")
+        "The lantern flickers to life, filling the area with warm yellow glow. "
+
+: TAItem "carrot cake muffins" 
+    Array("muffin" "muffins" "cake" "cakes")
+    description Tag("examine")
+        "It is a grainy orange color with smooth cream cheese frosting on top."
+    description Tag("eat")
+        "Seemingly healthy, but wonderfully sweet; it really is quite a treat!"
+
+: TAItem "honeyed almond pastries" 
+    Array("pastry" "pastries")
+    description Tag("examine")
+        "This many-layered shortened pastry is covered in thin slices of almond and glazed over with a thin coating of honey."
+    description Tag("eat")
+        "The nutritional value of this pastry might be as low as its gameplay value, but man it sure is delicious!"
+
+: TAItem "cinnamon sugar churros" 
+    Array("churro" "churros")
+    description Tag("examine")
+        "A long, ridged, dark-brown churro with a generous sprinkling of cinnamon sugar."
+    description Tag("eat")
+        "That was great for a quick snack!"
+
+: TAItem "chocolate croissants" 
+    Array("croissant" "croissants")
+    description Tag("examine")
+        "A classic delectable. You can see the chocolate filling slightly spilling out the ends of this light croissant."
+    description Tag("eat")
+        "That was well worth the price of 2 coins."
+
+: TAItem "large loaves of wheat bread" Tag("bread")
+    Array("bread" "loaf" "loafs" "loaves")
+    description Tag("examine")
+        "The bread is warm, with a light brown crust."
+    description Tag("eat")
+        "Nothing beats fresh bread from the bakery. "
+        "You feel more full—physically, and emotionally. "
+        "As you eat it, the thin, crispy crust turns into bread crumbs. "
+
+: TAItem "bread crumbs" 
+    Array("crumb" "crumb")
+    description Tag("examine")
+        "It’s literally just a handful of crumbs... from bread."
+    description Tag("eat")
+        "You must be really desperate or really don’t like wasting food."
+
+# //////////////////////////////////////////////////////////////////////////
+#                                  Rooms
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Plaza SE"
@@ -333,7 +418,7 @@
         "\n\2The plaza\0 extends further \1west\0 for a great distance, "
         "\n\2the general shop\0 stands in the \1south\0, "
         "\n\2the bakery\0 in the \1east\0."
-        "\nand \2a sprawling cathedral\0 in the \1north\0."
+        "\nand \2a monstrous cathedral\0 in the \1north\0."
     adjacents
         west  "Plaza SW"
         south "Shop front"
@@ -353,20 +438,36 @@
     description
         "The shop boasts nothing more than a modestly sized room, with a large counter at the far wall."
         "The sides of the room are surrounded by shelves, serving as homes to numerous common goods. "
-        "Several items catch your eye: \3a town map\0, \3an umbrella\0, and \3a lantern\0."
+    description Tag("items")
+        "Several items catch your eye: "
     adjacents
         north "Shop front"
-#    items  Array("Town map" "Umbrella" "Lantern")
+    items  Array("A town map" "An umbrella" "A lantern")
 #    person "Susan"
 
 : TARoom "Bakery front"
     description
         "The warmth almost penetrates the solid wall and seems to infect even the door. "
         "A beautiful aroma permeates through a large area infront of the bakery. "
-        "It boasts of skillfully baked goods one would find inside. "
+        "It boasts of the skillfully baked goods one would find inside. "
+        "\nthe door beckons you further \1eastward\0 into \2the bakery\0"
+        "\nand \2the plaza\0 extends behind you in the \1west\0"
     adjacents
         east "Bakery"
         west "Plaza SE"
+
+: TARoom "Bakery"
+    description
+        "A glass counter consumes the majority of the space inside the small bakery. " 
+        "Behind it extends a vast kitchen, which seems to be the source of the beautiful aroma. "
+#        "\nThe counter houses \3carrot cake muffins\0, \3honeyed almond pastries\0, \3cinnamon sugar churros\0, and \3chocolate croissants\0. "
+#        "Perched on the shelves are \3large loaves of wheat bread\0. "
+        "\n\2the kitchen\0 extends further \1eastward\0, while"
+        "\n\2the front\0 of the store lays behind you in the \1west\0"
+    adjacents
+        west "Bakery front"
+        east "Bakery kitchen"
+    items Array("carrot cake muffins" "honeyed almond pastries" "cinnamon sugar churros" "chocolate croissants" "large loaves of wheat bread")
 
 : TARoom "Cathedral front"
     description
@@ -387,12 +488,10 @@
         "There are a few rows of red-cushioned benches facing the altar. "
         "\nFurther \1northward\0 lies \2the altar\0, "
         "\nbehind you to the \1south\0 stands \2the door\0, "
-        "\n\2the choir\0 exists to \1east\0, "
-        "\nyou are just able to glimpse \2the organ console\0 towards the \1northeast\0"
+        "\nand you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
     adjacents
         north     "Cathedral altar"
-        east      "Cathedral choir"
-        northeast "Cathdral organ console"
+        northeast "Cathedral organ console"
         south     "Cathedral front"
 
 : TARoom "Cathedral altar"
@@ -405,4 +504,41 @@
         south "Cathedral nave"
         east  "Cathedral organ console"
         west  "Cathedral vestry"
-        
+
+: TARoom "Cathedral organ console" Tag("organ")
+    description Tag("broken")
+        "A once-great pipe organ sits in neglected despair. "
+        "It looks to be missing some parts. "
+        "There is a small scrap of paper sitting on the manual."
+        "The paper reads: 'Please fix the organ' "
+    description Tag("repaired")
+        "A great pipe organ stands tall. It looks to be getting regular use."
+    description Tag("adjacents")
+        "\nthis room connects to \2the altar\0 in the \1west\0 "
+        "\nand \2the nave\0 in the \1southwest\0"
+    description Tag("examine-broken")
+        "The organ appears to be in poor condition. "
+        "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
+    description Tag("examine-repaired")
+        "You're a little biased, but the organ almost looks brand new, whilst simultaneously boasting its grand old age!"
+        "The keys and new stops shine, even though you never dusted them..."
+    description Tag("play-broken")
+        "Not all the notes sound properly, and you hear the breathy sound of leaking air."
+    description Tag("play-repaired")
+        "All the notes sound with renewed strength."
+    adjacents
+        west      "Cathedral altar"
+        southwest "Cahtedral nave"
+
+# : TARoom "Cathedral organ console"
+: Ignore
+    description 
+        "A once-great pipe organ sits in neglected despair. "
+        "It looks to be missing some parts. "
+        "There is a small scrap of paper sitting on the manual."
+        "The paper reads: 'Please fix the organ' "
+        "\nthis room connects to \2the altar\0 in the \1west\0 "
+        "\nand \2the nave\0 in the \1southwest\0"
+    adjacents
+        west      "Cathedral altar"
+        southwest "Cahtedral nave"

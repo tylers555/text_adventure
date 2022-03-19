@@ -12,9 +12,6 @@ struct array {
     }
     
     inline operator b8(){  return(Items != 0); }
-    inline operator b16(){ return(Items != 0); }
-    inline operator b32(){ return(Items != 0); }
-    inline operator b64(){ return(Items != 0); }
 };
 
 template<typename T> internal inline array<T>
@@ -51,6 +48,16 @@ ArrayAdd(array<T> *Array, T Item){
         Array->Items[Array->Count++] = Item;
     }else{
         Assert(0);
+    }
+}
+
+template<typename T> internal inline b8
+ArrayMaybeAdd(array<T> *Array, T Item){
+    if(Array->Count+1 <= Array->MaxCount){
+        Array->Items[Array->Count++] = Item;
+        return true;
+    }else{
+        return false;
     }
 }
 
@@ -138,6 +145,17 @@ InitializeArray(dynamic_array<T> *Array, int InitialCapacity, memory_arena *Aren
     else Array->Items = (T *)DefaultAlloc(InitialCapacity*sizeof(T));
     Array->Arena = Arena;
     Array->Capacity = InitialCapacity;
+}
+
+template <typename T> internal inline dynamic_array<T>
+MakeDynamicArray(s32 InitialCapacity, memory_arena *Arena=0){
+    dynamic_array<T> Result = {};
+    if(Arena) Result.Items = PushArray(Arena, T, InitialCapacity);
+    else Result.Items = (T *)DefaultAlloc(InitialCapacity*sizeof(T));
+    Result.Arena = Arena;
+    Result.Capacity = InitialCapacity;
+    
+    return Result;
 }
 
 template <typename T> void 

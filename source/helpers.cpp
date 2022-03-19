@@ -112,8 +112,14 @@ SeekBackward(const char *Buffer, u32 Start){
 }
 
 internal inline void 
-CStringToLower(char *S){
+CStringMakeLower(char *S){
     for(u32 I=0; S[I]; I++){
         if((('A' <= S[I]) && (S[I] <= 'Z'))) S[I] -= 'A'-'a';
     }
+}
+
+internal inline char 
+CharToLower(char C){
+    if((('A' <= C) && (C <= 'Z'))) C -= 'A'-'a';
+    return C;
 }

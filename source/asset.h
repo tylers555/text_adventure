@@ -55,6 +55,9 @@ struct asset_font {
     asset_font_glyph Table[128];
 };
 
+//~
+struct ta_string;
+
 //~ Asset system
 struct asset_system {
     //~ Asset stuff
@@ -86,6 +89,7 @@ struct asset_system {
     
     array<s32>          ExpectTypeArrayS32();
     array<const char *> ExpectTypeArrayCString();
+    string              MaybeExpectTag();
     
     void InitializeLoader(memory_arena *Arena);
     
@@ -96,7 +100,10 @@ struct asset_system {
     b8 ProcessIgnore();
     b8 ProcessSoundEffect();
     b8 ProcessFont();
+    
+    b8 ProcessTADescription(dynamic_array<ta_string *> *Descriptions);
     b8 ProcessTARoom();
+    b8 ProcessTAItem();
 };
 
 #endif //SNAIL_JUMPY_ASSET_H

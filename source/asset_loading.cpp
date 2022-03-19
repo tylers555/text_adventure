@@ -78,7 +78,7 @@ asset_system::InitializeLoader(memory_arena *Arena){
 
 #define ExpectPositiveInteger() \
 ExpectPositiveInteger_();   \
-HandleError();
+HandleError();HandleError();
 
 #define EnsurePositive(Var) \
 if(Var < 0){            \
@@ -211,6 +211,29 @@ asset_system::ExpectTypeArrayCString(){
     return(Result);
 }
 
+string
+asset_system::MaybeExpectTag(){
+    string Result = {};
+    
+    file_token Token = Reader.PeekToken();
+    if(Token.Type != FileTokenType_Identifier) return Result;
+    if(CompareStrings(Token.Identifier, "Tag")){
+        Expect(Identifier);
+        
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError();
+        
+        const char *S = Expect(String);
+        Result = Strings.GetString(S);
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError();
+        
+    }
+    
+    return(Result);
+}
+
 //~ 
 
 b8 
@@ -298,6 +321,7 @@ asset_system::ProcessCommand(){
     IfCommand(Font);
     IfCommand(SoundEffect);
     IfCommand(TARoom);
+    IfCommand(TAItem);
     
     LogMessage("(Line: %u) '%s' isn't a valid command!", Reader.Line, String);
     return(false);
@@ -440,7 +464,49 @@ asset_system::ProcessFont(){
 }
 
 //~ Text adventure rooms
-
+b8
+asset_system::ProcessTADescription(dynamic_array<ta_string *> *Descriptions){
+    b8 Result = false;
+    
+    string Tag = MaybeExpectTag();
+    HandleError();
+    
+    string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+    StringBuilderAdd(&Builder, Tag);
+    while(true){
+        file_token Token = Reader.PeekToken();
+        if(Token.Type != FileTokenType_String) break;
+        const char *S = Expect(String);
+        
+        u32 Length = CStringLength(S);
+        for(u32 I=0; S[I]; I++){
+            char C = S[I];
+            
+            if(C == '\\'){
+                char Next = S[I+1];
+                if(IsANumber(Next)){
+                    Next -= '0';
+                    StringBuilderAdd(&Builder, '\002');
+                    StringBuilderAdd(&Builder, Next+1);
+                    I++;
+                    continue;
+                }else if(Next == '\\') I++;
+                else if(Next == 'n'){
+                    I++;
+                    StringBuilderAdd(&Builder, '\n');
+                    continue;
+                }
+            }
+            StringBuilderAdd(&Builder, C);
+            
+        }
+    }
+    
+    ta_string *Description = (ta_string *)StringBuilderFinalize(&Memory, &Builder);
+    ArrayAdd(Descriptions, Description);
+    
+    return true;
+}
 
 b8
 asset_system::ProcessTARoom(){
@@ -452,7 +518,11 @@ asset_system::ProcessTARoom(){
     ta_room *Room = Strings.GetInHashTablePtr(&TA->RoomTable, Name);
     *Room = {};
     Room->Name = Name;
+    Room->Tag = MaybeExpectTag();
     
+    dynamic_array<ta_string *> Descriptions = MakeDynamicArray<ta_string *>(8, &TransientStorageArena);
+    
+    u32 MaxItemCount = TA_ROOM_DEFAULT_ITEM_COUNT;
     v2s CurrentOffset = V2S(0);
     s32 Height = 0;
     s32 Padding = 0;
@@ -462,37 +532,7 @@ asset_system::ProcessTARoom(){
         const char *Attribute = Expect(Identifier);
         
         if(DoAttribute(Attribute, "description")){ 
-            string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
-            while(true){
-                file_token Token = Reader.PeekToken();
-                if(Token.Type != FileTokenType_String) break;
-                const char *S = Expect(String);
-                
-                u32 Length = CStringLength(S);
-                char *Buffer = &Builder.Buffer[Builder.BufferSize];
-                for(u32 I=0; S[I]; I++){
-                    char C = S[I];
-                    
-                    if(C == '\\'){
-                        char Next = S[I+1];
-                        if(IsANumber(Next)){
-                            Next -= '0';
-                            StringBuilderAdd(&Builder, '\002');
-                            StringBuilderAdd(&Builder, Next+1);
-                            I++;
-                            continue;
-                        }else if(Next == '\\') I++;
-                        else if(Next == 'n'){
-                            I++;
-                            StringBuilderAdd(&Builder, '\n');
-                            continue;
-                        }
-                    }
-                    StringBuilderAdd(&Builder, C);
-                    
-                }
-            }
-            Room->Description = EndStringBuilder(&Memory, &Builder);
+            if(!ProcessTADescription(&Descriptions)) return false;
         }else if(DoAttribute(Attribute, "adjacents")){ 
             while(true){
                 file_token Token = Reader.PeekToken();
@@ -505,14 +545,61 @@ asset_system::ProcessTARoom(){
                 const char *NextRoomName = Expect(String);
                 Room->Adjacents[Direction] = Strings.GetString(NextRoomName);
             }
+        }else if(DoAttribute(Attribute, "item_count")){
+            MaxItemCount = ExpectPositiveInteger();
         }else if(DoAttribute(Attribute, "items")){
             array<const char *> CStringItems = ExpectTypeArrayCString();
-            array<string> Items = MakeArray<string>(&Memory, CStringItems.Count);
+            HandleError();
+            u32 Count = Maximum(CStringItems.Count, MaxItemCount);
+            Room->Items = MakeArray<string>(&Memory, Count);
             for(u32 I=0; I<CStringItems.Count; I++){
-                ArrayAdd(&Items, Strings.GetString(CStringItems[I]));
+                ArrayAdd(&Room->Items, Strings.GetString(CStringItems[I]));
             }
             
         }else{ LogInvalidAttribute(Attribute); return false; }
+    }
+    
+    Room->Descriptions = MakeArray<ta_string *>(&Memory, Descriptions.Count);
+    for(u32 I=0; I<Descriptions.Count; I++){
+        ArrayAdd(&Room->Descriptions, Descriptions[I]);
+    }
+    
+    return true;
+}
+
+//~
+b8
+asset_system::ProcessTAItem(){
+    b8 Result = false;
+    
+    ta_system *TA = &TextAdventure;
+    const char *Name = Expect(String);
+    ta_item *Item = Strings.GetInHashTablePtr(&TA->ItemTable, Name);
+    
+    Item->Tag = MaybeExpectTag();
+    
+    // Aliases
+    array<const char *> Array = ExpectTypeArrayCString();
+    HandleError();
+    Item->Aliases = MakeArray<const char *>(&Memory, Array.Count);
+    for(u32 I=0; I<Array.Count; I++){
+        ArrayAdd(&Item->Aliases, Array[I]);
+    }
+    
+    // Attributes
+    dynamic_array<ta_string *> Descriptions = MakeDynamicArray<ta_string *>(8, &TransientStorageArena);
+    while(true){
+        file_token Token = Reader.PeekToken();
+        HandleToken(Token);
+        const char *Attribute = Expect(Identifier);
+        if(DoAttribute(Attribute, "description")){ 
+            if(!ProcessTADescription(&Descriptions)) return false;
+        }else{ LogInvalidAttribute(Attribute); return false; }
+    }
+    
+    Item->Descriptions = MakeArray<ta_string *>(&Memory, Descriptions.Count);
+    for(u32 I=0; I<Descriptions.Count; I++){
+        ArrayAdd(&Item->Descriptions, Descriptions[I]);
     }
     
     return true;

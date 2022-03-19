@@ -95,7 +95,7 @@ FontRenderString(asset_font *Font, v2 P, color Color, const char *Format, ...){
 }
 
 internal inline f32
-FontRenderFancyGlyph(asset_font *Font, fancy_font_format *Fancy, v2 P, f32 T, char C){
+FontRenderFancyGlyph(asset_font *Font, const fancy_font_format *Fancy, v2 P, f32 T, char C){
     v2 CharP = P;
     CharP.Y += Fancy->Amplitude*Sin(T);
     
@@ -120,7 +120,9 @@ FontWordAdvance(asset_font *Font, const char *S, u32 WordStart){
     b8 HitAlphabetic = false;
     for(u32 I=WordStart; I<Length; I++){
         char C = S[I];
-        if(IsWhiteSpace(C)){
+        if(C == '\n'){ 
+            break;
+        }else if(IsWhiteSpace(C)){
             if(HitAlphabetic) break;
         }else HitAlphabetic = true;
         
@@ -166,7 +168,7 @@ FontStringAdvance(asset_font *Font, const char *S, f32 MaxWidth=F32_POSITIVE_INF
 }
 
 internal f32
-FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
     if(!S) return 0;
     if(!S[0]) return 0;
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
@@ -176,7 +178,7 @@ FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCou
     
     u32 Length = CStringLength(S);
     u32 CurrentFancyIndex = 0;
-    fancy_font_format *Fancy = &Fancies[CurrentFancyIndex];
+    const fancy_font_format *Fancy = &Fancies[CurrentFancyIndex];
     
     StartP.Y -= Font->Descent;
     v2 P = StartP;
@@ -205,7 +207,7 @@ FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCou
             continue;
         }else if(C == ' '){
             f32 WordAdvance = FontWordAdvance(Font, S, I);
-            if(P.X-StartP.X+WordAdvance > MaxWidth){
+            if(P.X-StartP.X+WordAdvance >= MaxWidth){
                 P.X = StartP.X;
                 P.Y -= Font->Height+FONT_VERTICAL_SPACE;
                 Height += Font->Height+FONT_VERTICAL_SPACE;
@@ -214,6 +216,7 @@ FontRenderFancyString(asset_font *Font, fancy_font_format *Fancies, u32 FancyCou
         }else if(P.X-StartP.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
             P.X = StartP.X;
             P.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            Height += Font->Height+FONT_VERTICAL_SPACE;
         }
         
         P.X += FontRenderFancyGlyph(Font, Fancy, P, Ts[CurrentFancyIndex], C)+FONT_LETTER_SPACE;

@@ -4,6 +4,8 @@ struct string {
     u64 ID;
 };
 
+global_constant string String0 = {0};
+
 internal inline constexpr b8
 operator==(string A, string B){
     b8 Result = (A.ID == B.ID);
@@ -142,8 +144,17 @@ BeginStringBuilder(memory_arena *Arena, u32 Capacity){
 }
 
 internal inline char *
+StringBuilderFinalize(memory_arena *Arena, string_builder *Builder){
+    u32 Size = Builder->BufferSize+1;
+    char *Result = PushArray(Arena, char, Size);
+    CopyMemory(Result, Builder->Buffer, Size);
+    Result[Size] = 0;
+    return Result;
+}
+
+internal inline char *
 EndStringBuilder(memory_arena *Arena, string_builder *Builder){
-    char *Result = ArenaPushCString(Arena, Builder->Buffer);
+    char *Result = Builder->Buffer;
     return Result;
 }
 
@@ -160,5 +171,14 @@ internal inline void
 StringBuilderAdd(string_builder *Builder, char C){
     Assert(Builder->BufferSize+1 < Builder->BufferCapacity-1);
     Builder->Buffer[Builder->BufferSize++] = C;
+    Builder->Buffer[Builder->BufferSize] = 0;
+}
+
+internal inline void
+StringBuilderAdd(string_builder *Builder, string S){
+    u32 Size = sizeof(S);
+    Assert(Builder->BufferSize+Size < Builder->BufferCapacity-1);
+    CopyMemory(&Builder->Buffer[Builder->BufferSize], &S, Size);
+    Builder->BufferSize += Size;
     Builder->Buffer[Builder->BufferSize] = 0;
 }

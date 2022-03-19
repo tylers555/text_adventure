@@ -8,6 +8,7 @@
 #include "basics.h"
 #include "math.h"
 #include "intrinsics.h"
+#include "generated.h"
 
 //~ Constants TODO(Tyler): Several of these should be hotloaded in a variables file
 global_constant u32 DEFAULT_BUFFER_SIZE = 512;
