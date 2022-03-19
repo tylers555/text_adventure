@@ -342,6 +342,12 @@
 : SoundEffect item_eaten
     path "asset_sound_effects/osj/PowUpFX.wav"
 
+: SoundEffect organ_play_broken
+    path "asset_sound_effects/osj/LoseFX.wav"
+
+: SoundEffect organ_play_repaired
+    path "asset_sound_effects/osj/PowerMusic.wav"
+
 # //////////////////////////////////////////////////////////////////////////
 #                                    Items
 # //////////////////////////////////////////////////////////////////////////

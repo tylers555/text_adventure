@@ -365,6 +365,10 @@ void CommandPlay(char **Words, u32 WordCount){
         string Tag;
         if(Item->Tag == String("organ")){
             Tag = (TA->OrganState == String("broken")) ? String("play-broken") : String("play-repaired");
+            if(TA->OrganState == String("broken"))
+                AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_broken")));
+            else
+                AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_repaired")));
         }else{
             Tag = String("play");
         }

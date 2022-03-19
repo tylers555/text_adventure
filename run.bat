@@ -1,4 +1,4 @@
 @echo off
 pushd data
-..\build\Win32ToeTacTic.exe
+..\build\Win32TAGame.exe
 popd
