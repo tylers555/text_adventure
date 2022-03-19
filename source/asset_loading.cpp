@@ -594,6 +594,8 @@ asset_system::ProcessTAItem(){
         const char *Attribute = Expect(Identifier);
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "cost")){
+            Item->Cost = ExpectPositiveInteger();
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     

@@ -148,6 +148,8 @@ void CommandTake(char **Words, u32 WordCount){
         if(CompareStrings(Word, "all") ||
            CompareStrings(Word, "everything")){
             for(u32 J=0; J<Room->Items.Count; J++){
+                ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
+                if(Item->Cost > 0) continue;
                 if(TA->AddItem(Room->Items[J])) ArrayOrderedRemove(&Room->Items, J);
                 else break;
                 TookSomething = true;
@@ -159,6 +161,14 @@ void CommandTake(char **Words, u32 WordCount){
         if(Index < 0) continue;
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
+        Assert(Item);
+        
+        if(Item->Cost > 0){
+            TA->Respond("You're going to have to \002\002buy\002\001 for that!");
+            TookSomething = true;
+            continue;
+        }
+        
         ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
         TA->Respond(Description->Data);
         
@@ -211,9 +221,65 @@ void CommandDrop(char **Words, u32 WordCount){
     TextAdventure.ResponseBuffer[0] = 0;
 }
 
+void CommandBuy(char **Words, u32 WordCount){
+    ta_system *TA = &TextAdventure;
+    
+    ta_room *Room = TA->CurrentRoom;
+    
+    b8 TookSomething = false;
+    for(u32 I=0; I<WordCount; I++){
+        CStringMakeLower(Words[I]);
+        char *Word = Words[I];
+        
+        if(CompareStrings(Word, "all") ||
+           CompareStrings(Word, "everything")){
+            for(u32 J=0; J<Room->Items.Count; J++){
+                ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
+                if(TA->Money >= Item->Cost){
+                    TA->Money -= Item->Cost;
+                    Item->Cost = 0;
+                }else{
+                    continue;
+                }
+                if(TA->AddItem(Room->Items[J])) ArrayOrderedRemove(&Room->Items, J);
+                else break;
+                TookSomething = true;
+            }
+            break;
+        }
+        
+        s32 Index = TAFindItem(TA, &Room->Items, Word);
+        if(Index < 0) continue;
+        
+        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
+        Assert(Item);
+        TookSomething = true;
+        
+        if(TA->Money >= Item->Cost){
+            TA->Money -= Item->Cost;
+            Item->Cost = 0;
+        }else{
+            TA->Respond("You don't have enough \002\002money\002\001 for that!");
+            continue;
+        }
+        
+        ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
+        TA->Respond(Description->Data);
+        
+        if(TA->AddItem(Room->Items[Index])) ArrayOrderedRemove(&Room->Items, Index);
+    }
+    
+    if(!TookSomething){
+        TA->Respond("I have no idea what you want to take!");
+        return;
+    }
+    AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_taken")));
+}
+
 void CommandEat(char **Words, u32 WordCount){
     ta_system *TA = &TextAdventure;
     
+    b8 AteSomething = false;
     for(u32 I=0; I<WordCount; I++){
         char *Word = Words[I];
         
@@ -224,7 +290,7 @@ void CommandEat(char **Words, u32 WordCount){
         ta_string *Description = TAFindDescription(&Item->Descriptions, String("eat"));
         if(!Description){
             TA->Respond("You can't eat \002\002that\002\001!");
-            return; // TODO(Tyler): I don't like this return, but we need a better response system first.
+            // TODO(Tyler): We need a better response system, because thing will get overwritten
         }
         TA->Respond(Description->Data);
         
@@ -233,7 +299,11 @@ void CommandEat(char **Words, u32 WordCount){
         }
         
         ArrayOrderedRemove(&TA->Inventory, Index);
+        AteSomething = true;
     }
+    
+    if(!AteSomething) return;
+    AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_eaten")));
 }
 
 void CommandPlay(char **Words, u32 WordCount){
@@ -299,30 +369,44 @@ void CommandTestRepair(char **Words, u32 WordCount){
     else if(TA->OrganState == String("repaired")) TA->OrganState = String("broken");
 }
 
+void CommandTestAddMoney(char **Words, u32 WordCount){
+    ta_system *TA = &TextAdventure;
+    TA->Money += 10;
+}
+
+void CommandTestSubMoney(char **Words, u32 WordCount){
+    ta_system *TA = &TextAdventure;
+    if(TA->Money >= 10) TA->Money -= 10;
+}
+
 //~ Text adventure system
 void
 ta_system::Initialize(memory_arena *Arena){
     CommandTable = PushHashTable<const char *, command_func *>(Arena, 64);
-    InsertIntoHashTable(&CommandTable, "go",   CommandMove);
-    InsertIntoHashTable(&CommandTable, "move", CommandMove);
-    InsertIntoHashTable(&CommandTable, "take", CommandTake);
-    InsertIntoHashTable(&CommandTable, "pick", CommandTake);
-    InsertIntoHashTable(&CommandTable, "grab", CommandTake);
-    InsertIntoHashTable(&CommandTable, "drop",  CommandDrop);
-    InsertIntoHashTable(&CommandTable, "leave", CommandDrop);
-    InsertIntoHashTable(&CommandTable, "eat",     CommandEat);
-    InsertIntoHashTable(&CommandTable, "consume", CommandEat);
-    InsertIntoHashTable(&CommandTable, "ingest",  CommandEat);
-    InsertIntoHashTable(&CommandTable, "swallow", CommandEat);
-    InsertIntoHashTable(&CommandTable, "bite",    CommandEat);
-    InsertIntoHashTable(&CommandTable, "munch",   CommandEat);
-    InsertIntoHashTable(&CommandTable, "play",    CommandPlay);
-    InsertIntoHashTable(&CommandTable, "examine", CommandExamine);
-    InsertIntoHashTable(&CommandTable, "inspect", CommandExamine);
-    InsertIntoHashTable(&CommandTable, "observe", CommandExamine);
-    InsertIntoHashTable(&CommandTable, "look",    CommandExamine);
+    InsertIntoHashTable(&CommandTable, "go",       CommandMove);
+    InsertIntoHashTable(&CommandTable, "move",     CommandMove);
+    InsertIntoHashTable(&CommandTable, "take",     CommandTake);
+    InsertIntoHashTable(&CommandTable, "pick",     CommandTake);
+    InsertIntoHashTable(&CommandTable, "grab",     CommandTake);
+    InsertIntoHashTable(&CommandTable, "drop",     CommandDrop);
+    InsertIntoHashTable(&CommandTable, "leave",    CommandDrop);
+    InsertIntoHashTable(&CommandTable, "buy",      CommandBuy);
+    InsertIntoHashTable(&CommandTable, "purchase", CommandBuy);
+    InsertIntoHashTable(&CommandTable, "eat",      CommandEat);
+    InsertIntoHashTable(&CommandTable, "consume",  CommandEat);
+    InsertIntoHashTable(&CommandTable, "ingest",   CommandEat);
+    InsertIntoHashTable(&CommandTable, "swallow",  CommandEat);
+    InsertIntoHashTable(&CommandTable, "bite",     CommandEat);
+    InsertIntoHashTable(&CommandTable, "munch",    CommandEat);
+    InsertIntoHashTable(&CommandTable, "play",     CommandPlay);
+    InsertIntoHashTable(&CommandTable, "examine",  CommandExamine);
+    InsertIntoHashTable(&CommandTable, "inspect",  CommandExamine);
+    InsertIntoHashTable(&CommandTable, "observe",  CommandExamine);
+    InsertIntoHashTable(&CommandTable, "look",     CommandExamine);
     
-    InsertIntoHashTable(&CommandTable, "testrepair", CommandTestRepair);
+    InsertIntoHashTable(&CommandTable, "testrepair",   CommandTestRepair);
+    InsertIntoHashTable(&CommandTable, "testaddmoney", CommandTestAddMoney);
+    InsertIntoHashTable(&CommandTable, "testsubmoney", CommandTestSubMoney);
     
     DirectionTable = PushHashTable<const char *, direction>(Arena, 2*Direction_TOTAL);
     InsertIntoHashTable(&DirectionTable, "north",     Direction_North);
@@ -396,6 +480,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     if(!TextAdventure.CurrentRoom){
         OSInput.BeginTextInput();
         TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Plaza SE"));
+        TextAdventure.Money = 10;
     }
     
     //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);
@@ -478,6 +563,12 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         f32 InventoryWidth = 100;
         v2 InventoryP = V2(WindowSize.X-InventoryWidth, WindowSize.Y-15);
         InventoryP.Y -= FontRenderFancyString(BoldFont, &BasicFancy, 1, InventoryP, "Inventory:");
+        
+        {
+            char Buffer[DEFAULT_BUFFER_SIZE];
+            stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%u coins", TextAdventure.Money);
+            InventoryP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, InventoryP, Buffer);
+        }
         
         for(u32 I=0; I<TextAdventure.Inventory.Count; I++){
             const char *Item = Strings.GetString(TextAdventure.Inventory[I]);

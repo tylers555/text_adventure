@@ -339,23 +339,29 @@
 : SoundEffect item_dropped
     path "asset_sound_effects/drop_00.wav"
 
+: SoundEffect item_eaten
+    path "asset_sound_effects/osj/PowUpFX.wav"
+
 # //////////////////////////////////////////////////////////////////////////
 #                                    Items
 # //////////////////////////////////////////////////////////////////////////
 
 : TAItem "A town map" Tag("map")
     Array("map" "maps")
+    cost 5
     description Tag("examine")
         "This map appears very old and very weathered, however its detail is unparalleled. "
         "You can make out just about every aspect of this town on the map. "
 
 : TAItem "An umbrella" 
     Array("umbrella" "umbrellas")
+    cost 7
     description Tag("examine")
         "A bit dusty, but in exquisite condition"
 
 : TAItem "A lantern" Tag("light")
     Array("lantern" "lanterns")
+    cost 10
     description Tag("examine")
         "A bit rusty, but in otherwise perfect working condition. "
         "This will work nicely to light dark areas. "
@@ -364,6 +370,7 @@
 
 : TAItem "carrot cake muffins" 
     Array("muffin" "muffins" "cake" "cakes")
+    cost 2
     description Tag("examine")
         "It is a grainy orange color with smooth cream cheese frosting on top."
     description Tag("eat")
@@ -371,6 +378,7 @@
 
 : TAItem "honeyed almond pastries" 
     Array("pastry" "pastries")
+    cost 3
     description Tag("examine")
         "This many-layered shortened pastry is covered in thin slices of almond and glazed over with a thin coating of honey."
     description Tag("eat")
@@ -378,6 +386,7 @@
 
 : TAItem "cinnamon sugar churros" 
     Array("churro" "churros")
+    cost 1
     description Tag("examine")
         "A long, ridged, dark-brown churro with a generous sprinkling of cinnamon sugar."
     description Tag("eat")
@@ -385,6 +394,7 @@
 
 : TAItem "chocolate croissants" 
     Array("croissant" "croissants")
+    cost 2
     description Tag("examine")
         "A classic delectable. You can see the chocolate filling slightly spilling out the ends of this light croissant."
     description Tag("eat")
@@ -392,6 +402,7 @@
 
 : TAItem "large loaves of wheat bread" Tag("bread")
     Array("bread" "loaf" "loafs" "loaves")
+    cost 4
     description Tag("examine")
         "The bread is warm, with a light brown crust."
     description Tag("eat")

@@ -41,6 +41,7 @@ struct ta_string {
 
 struct ta_item {
     string Tag;
+    u32 Cost;
     array<const char *> Aliases;
     array<ta_string *> Descriptions;
 };
@@ -70,6 +71,7 @@ struct ta_system {
     
     //~ Game specific data
     string OrganState;
+    u32 Money;
 };
 
 #endif //GAME_H
