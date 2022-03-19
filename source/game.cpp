@@ -102,6 +102,14 @@ TARoomFindDescription(ta_room *Room, string Tag){
     return Result;
 }
 
+// TODO(Tyler): This is a drawback of the current tag system, there cannot be multiple tags.
+internal inline b8
+TAIsItemStatic(string Tag){
+    b8 Result = ((Tag == String("static")) ||
+                 (Tag == String("organ")));
+    return Result;
+}
+
 //~ Commands
 void CommandMove(char **Words, u32 WordCount){
     ta_system *TA = &TextAdventure;
@@ -149,6 +157,10 @@ void CommandTake(char **Words, u32 WordCount){
            CompareStrings(Word, "everything")){
             for(u32 J=0; J<Room->Items.Count; J++){
                 ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
+                if(TAIsItemStatic(Item->Tag)){
+                    TA->Respond("You couldn't possible hope to take that!");
+                    continue;
+                }
                 if(Item->Cost > 0) continue;
                 if(TA->AddItem(Room->Items[J])) ArrayOrderedRemove(&Room->Items, J);
                 else break;
@@ -162,6 +174,10 @@ void CommandTake(char **Words, u32 WordCount){
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
         Assert(Item);
+        if(TAIsItemStatic(Item->Tag)){
+            TA->Respond("You couldn't possible hope to take that!");
+            continue;
+        }
         
         if(Item->Cost > 0){
             TA->Respond("You're going to have to \002\002buy\002\001 for that!");
@@ -174,7 +190,6 @@ void CommandTake(char **Words, u32 WordCount){
         
         if(TA->AddItem(Room->Items[Index])) ArrayOrderedRemove(&Room->Items, Index);
         TookSomething = true;
-        
     }
     
     if(!TookSomething){
@@ -235,6 +250,10 @@ void CommandBuy(char **Words, u32 WordCount){
            CompareStrings(Word, "everything")){
             for(u32 J=0; J<Room->Items.Count; J++){
                 ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
+                if(TAIsItemStatic(Item->Tag)){
+                    TA->Respond("You couldn't possible hope to buy that!");
+                    continue;
+                }
                 if(TA->Money >= Item->Cost){
                     TA->Money -= Item->Cost;
                     Item->Cost = 0;
@@ -253,6 +272,10 @@ void CommandBuy(char **Words, u32 WordCount){
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
         Assert(Item);
+        if(TAIsItemStatic(Item->Tag)){
+            TA->Respond("You couldn't possible hope to buy that!");
+            continue;
+        }
         TookSomething = true;
         
         if(TA->Money >= Item->Cost){
@@ -309,38 +332,22 @@ void CommandEat(char **Words, u32 WordCount){
 void CommandPlay(char **Words, u32 WordCount){
     ta_system *TA = &TextAdventure;
     
-    if(TA->CurrentRoom->Tag == String("organ")){
-        string Tag = (TA->OrganState == String("broken")) ? String("play-broken") : String("play-repaired");
-        ta_string *Description = TARoomFindDescription(TA->CurrentRoom, Tag);
-        if(!Description) return;
-        TA->Respond(Description->Data);
-    }
-}
-
-void CommandExamine(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
-    // TODO(Tyler): This is a bit hacky right now
-    if(TA->CurrentRoom->Tag == String("organ")){
-        string Tag = (TA->OrganState == String("broken")) ? String("examine-broken") : String("examine-repaired");
-        ta_string *Description = TARoomFindDescription(TA->CurrentRoom, Tag);
-        if(!Description) return;
-        TA->Respond(Description->Data);
-        return; 
-    }
-    
     b8 FoundSomething = false;
     for(u32 I=0; I<WordCount; I++){
         const char *Word = Words[I];
         
         s32 Index = TAFindItem(TA, &TA->Inventory, Word);
         if(Index < 0) continue;
+        FoundSomething = true;
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
-        if(!Description) continue;
+        ta_string *Description = TAFindDescription(&Item->Descriptions, String("play"));
+        if(!Description){
+            TA->Respond("You can't play that!");
+            continue;
+        }
         TA->Respond(Description->Data);
-        FoundSomething = true;
+        
     }
     if(FoundSomething) return;
     
@@ -350,9 +357,64 @@ void CommandExamine(char **Words, u32 WordCount){
         
         s32 Index = TAFindItem(TA, &Room->Items, Word);
         if(Index < 0) continue;
+        FoundSomething = true;
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
+        Assert(Item);
+        
+        string Tag;
+        if(Item->Tag == String("organ")){
+            Tag = (TA->OrganState == String("broken")) ? String("play-broken") : String("play-repaired");
+        }else{
+            Tag = String("play");
+        }
+        
+        ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
+        if(!Description) continue;
+        TA->Respond(Description->Data);
+    }
+    if(FoundSomething) return;
+    
+    TA->Respond("I have no idea what you want to play!");
+}
+
+void CommandExamine(char **Words, u32 WordCount){
+    ta_system *TA = &TextAdventure;
+    
+    b8 FoundSomething = false;
+    for(u32 I=0; I<WordCount; I++){
+        const char *Word = Words[I];
+        
+        s32 Index = TAFindItem(TA, &TA->Inventory, Word);
+        if(Index < 0) continue;
+        FoundSomething = true;
+        
+        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
         ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
+        if(!Description) continue;
+        TA->Respond(Description->Data);
+    }
+    if(FoundSomething) return;
+    
+    ta_room *Room = TA->CurrentRoom;
+    for(u32 I=0; I<WordCount; I++){
+        const char *Word = Words[I];
+        
+        s32 Index = TAFindItem(TA, &Room->Items, Word);
+        if(Index < 0) continue;
+        FoundSomething = true;
+        
+        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
+        Assert(Item);
+        
+        string Tag;
+        if(Item->Tag == String("organ")){
+            Tag = (TA->OrganState == String("broken")) ? String("examine-broken") : String("examine-repaired");
+        }else{
+            Tag = String("examine");
+        }
+        
+        ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
         if(!Description) continue;
         TA->Respond(Description->Data);
     }
@@ -502,6 +564,8 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         RoomP.Y -= DoDescription(&TextAdventure, Room, Font, RoomP, DescriptionWidth);
         
         for(u32 I=0; I<Room->Items.Count; I++){
+            ta_item *Item = FindInHashTablePtr(&TextAdventure.ItemTable, Room->Items[I]);
+            if(TAIsItemStatic(Item->Tag)) continue;
             RoomP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, 
                                              RoomP, Strings.GetString(Room->Items[I]), DescriptionWidth);
         }

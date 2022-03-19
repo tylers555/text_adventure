@@ -417,6 +417,41 @@
     description Tag("eat")
         "You must be really desperate or really don’t like wasting food."
 
+: TAItem "organ console" Tag("organ")
+    Array("organ" "organs" "console" "consoles")
+    description Tag("examine-broken")
+        "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
+        "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
+    description Tag("examine-repaired")
+        "You're a little biased, but the organ almost looks brand new, whilst simultaneously boasting its grand old age! "
+        "The keys and new stops shine, even though you never dusted them..."
+    description Tag("play-broken")
+        "Not all the notes sound properly, and you hear the breathy sound of leaking air."
+    description Tag("play-repaired")
+        "All the notes sound with renewed strength."
+
+: TAItem "organ bellows" Tag("organ")
+    Array("bellow" "bellows")
+    description Tag("examine-broken")
+        "From a swift glance at the multitude of bellows, "
+        "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
+    description Tag("examine-repaired")
+        "They are in peachy keen condition!"
+
+: TAItem "organ pipes" Tag("organ")
+    Array("pipe" "pipes")
+    description Tag("examine-broken")
+        "You observe that several pipes seem to be absent."
+    description Tag("examine-repaired")
+        "They are in fantastic condition. "
+
+# //////////////////////////////////////////////////////////////////////////
+#                                    NPCs
+# //////////////////////////////////////////////////////////////////////////
+
+: Ignore "name"
+
+
 # //////////////////////////////////////////////////////////////////////////
 #                                 Plaza rooms
 # //////////////////////////////////////////////////////////////////////////
@@ -556,19 +591,25 @@
     description Tag("repaired")
         "A great pipe organ stands tall. It looks to be getting regular use."
     description Tag("adjacents")
-        "this room connects to \2the altar\0 in the \1west\0 "
-        "\nand \2the nave\0 in the \1southwest\0"
-    description Tag("examine-broken")
-        "The organ appears to be in poor condition. "
-        "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
-    description Tag("examine-repaired")
-        "You're a little biased, but the organ almost looks brand new, whilst simultaneously boasting its grand old age!"
-        "The keys and new stops shine, even though you never dusted them..."
-    description Tag("play-broken")
-        "Not all the notes sound properly, and you hear the breathy sound of leaking air."
-    description Tag("play-repaired")
-        "All the notes sound with renewed strength."
+        "this room connects to \2the altar\0 in the \1west\0, "
+        "\n\2the nave\0 in the \1southwest\0, "
+        "\nand \2the maintance room\0 lies beyond a door in the \1north\0."
     adjacents
         west      "Cathedral altar"
         southwest "Cathedral nave"
+        north     "Cathedral maintenance room"
+    items Array("organ console")
 
+: TARoom "Cathedral maintenance room" Tag("organ")
+    description Tag("broken")
+        "This small room is crammed full of the vital components of the organ. "
+        "There are a bountiful number of bellows to breathe air and life into the marvelous machine. "
+        "Alongside these bellows, are vast isles of these pipes, separated only by narrow paths for you to walk and repair the pipes. "
+        "You are deeply unsure as to the condition of these vital components. "
+    description Tag("repaired")
+        "Everything is perfect!"
+    description Tag("adjacents")
+        "The only exit is a door in the \1south\0 that leads to \2the organ console\0."
+    adjacents
+        south "Cathedral organ console"
+    items Array("organ bellows" "organ pipes")
