@@ -364,11 +364,13 @@ void CommandPlay(char **Words, u32 WordCount){
         
         string Tag;
         if(Item->Tag == String("organ")){
-            Tag = (TA->OrganState == String("broken")) ? String("play-broken") : String("play-repaired");
-            if(TA->OrganState == String("broken"))
+            if(TA->OrganState == String("broken")){
+                Tag = String("play-broken");
                 AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_broken")));
-            else
+            }else{
+                Tag = String("play-repaired");
                 AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_repaired")));
+            }
         }else{
             Tag = String("play");
         }
@@ -543,6 +545,8 @@ DoDescription(ta_system *TA, ta_room *Room, asset_font *Font, v2 P, f32 Descript
 
 internal void
 UpdateAndRenderMainGame(game_renderer *Renderer){
+    u64 UpdateAndRenderMainGame_Start = __rdtsc();
+    
     if(!TextAdventure.CurrentRoom){
         OSInput.BeginTextInput();
         TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Plaza SE"));
@@ -577,7 +581,6 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     
     //~ Text input rendering
     {
-        
         fancy_font_format ResponseFancy = MakeFancyFormat(GREEN,  0.0,  0.0, 0.0);
         fancy_font_format EmphasisFancy = MakeFancyFormat(PURPLE, 1.0, 13.0, 3.0);
         
@@ -627,7 +630,6 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     
     //~ Inventory
     {
-        
         f32 InventoryWidth = 100;
         v2 InventoryP = V2(WindowSize.X-InventoryWidth, WindowSize.Y-15);
         InventoryP.Y -= FontRenderFancyString(BoldFont, &BasicFancy, 1, InventoryP, "Inventory:");
@@ -641,6 +643,18 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         for(u32 I=0; I<TextAdventure.Inventory.Count; I++){
             const char *Item = Strings.GetString(TextAdventure.Inventory[I]);
             InventoryP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, InventoryP, Item);
+        }
+    }
+    
+    //~ Debug
+    {
+        v2 DebugP = V2(100, 200);
+        u64 UpdateAndRenderMainGame_Elapsed = __rdtsc()-UpdateAndRenderMainGame_Start;
+        {
+            char Buffer[DEFAULT_BUFFER_SIZE];
+            stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%08llu | FPS: %.2f", 
+                           UpdateAndRenderMainGame_Elapsed, 1.0/OSInput.dTime);
+            DebugP.Y -= FontRenderFancyString(Font, &BasicFancy, 1, DebugP, Buffer);
         }
     }
 }
