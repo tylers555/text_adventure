@@ -22,25 +22,13 @@ global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 
 typedef void command_func(char **Words, u32 WordCount);
 
-enum ta_tag_id {
-    TATag_None = 0,
-    TATag_Play,
-    TATag_Examine,
-    TATag_Eat,
-    TATag_Organ,
-    TATag_Broken,
-    TATag_Repaired,
-    
-    TATag_Count
-};
-
 struct ta_string {
-    string Tag;
+    asset_tag Tag;
     const char Data[];
 };
 
 struct ta_item {
-    string Tag;
+    asset_tag Tag;
     u32 Cost;
     array<const char *> Aliases;
     array<ta_string *> Descriptions;
@@ -48,7 +36,7 @@ struct ta_item {
 
 struct ta_room {
     const char *Name;
-    string Tag;
+    asset_tag Tag;
     array<ta_string *> Descriptions;
     string Adjacents[Direction_TOTAL];
     array<string> Items;
@@ -70,7 +58,7 @@ struct ta_system {
     inline void Respond(const char *Response);
     
     //~ Game specific data
-    string OrganState;
+    asset_tag_id OrganState;
     u32 Money;
 };
 

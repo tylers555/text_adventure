@@ -423,33 +423,38 @@
     description Tag("eat")
         "You must be really desperate or really don’t like wasting food."
 
-: TAItem "organ console" Tag("organ")
+: TAItem "organ console" Tag("organ" "static")
     Array("organ" "organs" "console" "consoles")
-    description Tag("examine-broken")
+    description Tag("examine" "broken")
         "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
         "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
-    description Tag("examine-repaired")
+    description Tag("examine" "repaired")
         "You're a little biased, but the organ almost looks brand new, whilst simultaneously boasting its grand old age! "
         "The keys and new stops shine, even though you never dusted them..."
-    description Tag("play-broken")
+    description Tag("play" "broken")
         "Not all the notes sound properly, and you hear the breathy sound of leaking air."
-    description Tag("play-repaired")
+    description Tag("play" "repaired")
         "All the notes sound with renewed strength."
 
-: TAItem "organ bellows" Tag("organ")
+: TAItem "organ bellows" Tag("organ" "static")
     Array("bellow" "bellows")
-    description Tag("examine-broken")
+    description Tag("examine" "broken")
         "From a swift glance at the multitude of bellows, "
         "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
-    description Tag("examine-repaired")
+    description Tag("examine" "repaired")
         "They are in peachy keen condition!"
 
-: TAItem "organ pipes" Tag("organ")
+: TAItem "organ pipes" Tag("organ" "static")
     Array("pipe" "pipes")
-    description Tag("examine-broken")
+    description Tag("examine" "broken")
         "You observe that several pipes seem to be absent."
-    description Tag("examine-repaired")
+    description Tag("examine" "repaired")
         "They are in fantastic condition. "
+
+: TAItem "small silver key" Tag("organ" "key")
+    Array("key" "keys")
+    description Tag("examine")
+        "The handle of the key is shaped like a music note."
 
 # //////////////////////////////////////////////////////////////////////////
 #                                    NPCs
@@ -480,23 +485,110 @@
 
 : TARoom "Plaza SW"
     description
-        ""
+        "Plaza SW"
     description Tag("adjacents")
-        "\2The plaza\0 extends both further \1east\0 and \1north\0 for a great distance. "
+        "\2The plaza\0 extends both further \1east\0 and \1north\0 for a great distance, "
+        "\nwhile \2the bar\0 lies to the \1south\0. "
     adjacents
         north "Plaza NW"
         east  "Plaza SE"
+        south "Bar front"
+        west  "Thorn lane E"
 
 : TARoom "Plaza NW"
     description
-        ""
+        "Plaza NW"
     description Tag("adjacents")
         "\2The plaza\0 extends  further \south\0 for a great distance. "
     adjacents
         south "Plaza SW"
 
 # //////////////////////////////////////////////////////////////////////////
-#                                Shop rooms
+#                              Thorn lane rooms
+# //////////////////////////////////////////////////////////////////////////
+
+: TARoom "Thorn lane E"
+    description
+        "Thorn lane E"
+    description Tag("adjacents")
+    adjacents
+        north "Inn front"
+        east  "Plaza SW"
+        south "Bank front"
+        west  "Thorn lane"
+
+: TARoom "Thorn lane"
+    description
+        "Thorn lane"
+    description Tag("adjacents")
+    adjacents
+        north "Plant shop front"
+        east  "Thorn lane E"
+        south "Tailor shop"
+        west  "Thorn lane W"
+
+: TARoom "Thorn lane W"
+    description
+        "Thorn lane W"
+    description Tag("adjacents")
+    adjacents
+        north "Restaurant front"
+        east  "Thorn lane"
+        south "Concert hall front"
+        west  "Bridge"
+
+# //////////////////////////////////////////////////////////////////////////
+#                                 Inn rooms
+# //////////////////////////////////////////////////////////////////////////
+
+: TARoom "Inn front"
+    description
+        "Inn front"
+    description Tag("adjacents")
+    adjacents
+        north "Inn"
+        east  "Plaza SW"
+        south "Thorn lane E"
+        west  "Thorn lane"
+
+: TARoom "Inn"
+    description
+        "Inn"
+    description Tag("adjacents")
+    adjacents
+        south "Inn front"
+        up "Inn hallway"
+
+: TARoom "Inn hallway"
+    description
+        "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
+    description Tag("adjacents")
+    adjacents
+        down "Inn"
+
+: TARoom "Inn room 1"
+    description
+        "The room is smaller than you expected."
+    description Tag("adjacents")
+    adjacents
+        south "Inn hallway"
+
+: TARoom "Inn room 2"
+    description
+        "The room is darker than you expected."
+    description Tag("adjacents")
+    adjacents
+        south "Inn hallway"
+
+: TARoom "Inn room 3"
+    description
+        "The room is colder than you expected."
+    description Tag("adjacents")
+    adjacents
+        south "Inn hallway"
+
+# //////////////////////////////////////////////////////////////////////////
+#                                 Shop rooms
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Shop front"
@@ -505,8 +597,9 @@
         "Above the door is a large sign that reads: \2'Susan's Shop'"
     adjacents
         north "Plaza SE"
-        south "Shop"
         east  "Bakery front"
+        south "Shop"
+        west  "Bar front"
 
 : TARoom "Shop"
     description
@@ -545,6 +638,42 @@
         east "Bakery kitchen"
     items Array("carrot cake muffins" "honeyed almond pastries" "cinnamon sugar churros" "chocolate croissants" "large loaves of wheat bread")
 
+: TARoom "Bar front"
+    description
+        "The front of the bar. "
+    description Tag("adjacents")
+        "\2The plaza\0 extends \1northward\0, "
+        "\nand beyond the door in \1south\0 is \2the bar\0"
+    adjacents
+        north "Plaza SW"
+        east  "Shop front"
+        south "Bar"
+        west  "Thorn lane E"
+ 
+: TARoom "Bar"
+    description
+        "A bar."        
+    description Tag("adjacents")
+        "There is a door to the \1north\0 that leads towards \2the front\0."
+    adjacents
+        north "Bar front"
+        up    "Bar billiard room"
+        down  "Bar cellar"
+
+: TARoom "Bar cellar"
+    description
+        "Bar cellar"        
+    description Tag("adjacents")
+    adjacents
+        up "Bar"
+
+: TARoom "Bar billiard room"
+    description
+        "Bar billiard room"        
+    description Tag("adjacents")
+    adjacents
+        down "Bar"
+
 # //////////////////////////////////////////////////////////////////////////
  #                              Cathedral rooms
 # //////////////////////////////////////////////////////////////////////////
@@ -575,6 +704,7 @@
         north     "Cathedral altar"
         northeast "Cathedral organ console"
         south     "Cathedral front"
+        northwest "Cathedral vestry"
 
 : TARoom "Cathedral altar"
     description
@@ -584,15 +714,26 @@
         "\n\2the organ console\0 to the \1east\0, "
         "\nand another door leads \1west\0"
     adjacents
-        south "Cathedral nave"
         east  "Cathedral organ console"
+        south "Cathedral nave"
         west  "Cathedral vestry"
+
+: TARoom "Cathedral vestry"
+    description
+        
+    description Tag("adjacents")
+        "Behind you in the \1south\0 is \2the nave\0, "
+        "\nand a door connects to the \2the altar\0 in the \1east\0"
+    adjacents
+        east "Cathedral altar"
+        south "Cathedral nave"
+    items Array("small silver key")
 
 : TARoom "Cathedral organ console" Tag("organ")
     description Tag("broken")
-        "A once-great pipe organ sits in neglected despair. "
+        "A once-great \3pipe organ\0 sits in neglected despair. "
         "It looks to be missing some parts. "
-        "There is a small scrap of paper sitting on the manual."
+        "There is a small scrap of paper sitting on the manual. "
         "The paper reads: 'Please fix the organ' "
     description Tag("repaired")
         "A great pipe organ stands tall. It looks to be getting regular use."
@@ -609,8 +750,8 @@
 : TARoom "Cathedral maintenance room" Tag("organ")
     description Tag("broken")
         "This small room is crammed full of the vital components of the organ. "
-        "There are a bountiful number of bellows to breathe air and life into the marvelous machine. "
-        "Alongside these bellows, are vast isles of these pipes, separated only by narrow paths for you to walk and repair the pipes. "
+        "There are a bountiful number of \3bellows\0 to breathe air and life into the marvelous machine. "
+        "Alongside these bellows, are vast isles of these \3pipes\0, separated only by narrow paths for you to walk and repair the pipes. "
         "You are deeply unsure as to the condition of these vital components. "
     description Tag("repaired")
         "Everything is perfect!"

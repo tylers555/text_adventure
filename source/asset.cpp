@@ -14,6 +14,45 @@ asset_system::Initialize(memory_arena *Arena){
     LoadAssetFile(ASSET_FILE_PATH);
 }
 
+//~ Asset tags
+
+internal inline constexpr b8
+operator==(asset_tag A, asset_tag B){
+    b8 Result = A.All == B.All;
+    return Result;
+}
+
+internal constexpr inline asset_tag
+MakeAssetTag(asset_tag_id A = AssetTag_None, 
+             asset_tag_id B = AssetTag_None, 
+             asset_tag_id C = AssetTag_None,  
+             asset_tag_id D = AssetTag_None){
+    asset_tag Result = {};
+    Result.A = (u8)A;
+    Result.B = (u8)B;
+    Result.C = (u8)C;
+    Result.D = (u8)D;
+    return Result;
+}
+
+internal constexpr inline asset_tag
+AssetTag(asset_tag_id A = AssetTag_None, 
+         asset_tag_id B = AssetTag_None, 
+         asset_tag_id C = AssetTag_None,  
+         asset_tag_id D = AssetTag_None){
+    asset_tag Result = MakeAssetTag(A, B, C, D);
+    return Result;
+}
+
+internal inline b8 
+HasTag(asset_tag Tag, asset_tag_id ID){
+    b8 Result = ((Tag.A == ID) ||
+                 (Tag.B == ID) ||
+                 (Tag.C == ID) ||
+                 (Tag.D == ID));
+    return Result;
+}
+
 //~ Sound effects
 
 asset_sound_effect *

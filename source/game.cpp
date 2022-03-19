@@ -83,7 +83,7 @@ TARoomAddItem(ta_system *TA, ta_room *Room, string Item){
 }
 
 internal inline ta_string *
-TAFindDescription(array<ta_string *> *Descriptions, string Tag){
+TAFindDescription(array<ta_string *> *Descriptions, asset_tag Tag){
     ta_string *Result = 0;
     for(u32 I=0; I<Descriptions->Count; I++){
         ta_string *Description = ArrayGet(Descriptions, I);
@@ -97,16 +97,8 @@ TAFindDescription(array<ta_string *> *Descriptions, string Tag){
 }
 
 internal inline ta_string *
-TARoomFindDescription(ta_room *Room, string Tag){
+TARoomFindDescription(ta_room *Room, asset_tag Tag){
     ta_string *Result = TAFindDescription(&Room->Descriptions, Tag);
-    return Result;
-}
-
-// TODO(Tyler): This is a drawback of the current tag system, there cannot be multiple tags.
-internal inline b8
-TAIsItemStatic(string Tag){
-    b8 Result = ((Tag == String("static")) ||
-                 (Tag == String("organ")));
     return Result;
 }
 
@@ -157,7 +149,7 @@ void CommandTake(char **Words, u32 WordCount){
            CompareStrings(Word, "everything")){
             for(u32 J=0; J<Room->Items.Count; J++){
                 ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
-                if(TAIsItemStatic(Item->Tag)){
+                if(HasTag(Item->Tag, AssetTag_Static)){
                     TA->Respond("You couldn't possible hope to take that!");
                     continue;
                 }
@@ -174,7 +166,7 @@ void CommandTake(char **Words, u32 WordCount){
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
         Assert(Item);
-        if(TAIsItemStatic(Item->Tag)){
+        if(HasTag(Item->Tag, AssetTag_Static)){
             TA->Respond("You couldn't possible hope to take that!");
             continue;
         }
@@ -185,7 +177,7 @@ void CommandTake(char **Words, u32 WordCount){
             continue;
         }
         
-        ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
+        ta_string *Description = TAFindDescription(&Item->Descriptions, MakeAssetTag(AssetTag_Examine));
         TA->Respond(Description->Data);
         
         if(TA->AddItem(Room->Items[Index])) ArrayOrderedRemove(&Room->Items, Index);
@@ -250,7 +242,7 @@ void CommandBuy(char **Words, u32 WordCount){
            CompareStrings(Word, "everything")){
             for(u32 J=0; J<Room->Items.Count; J++){
                 ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
-                if(TAIsItemStatic(Item->Tag)){
+                if(HasTag(Item->Tag, AssetTag_Static)){
                     TA->Respond("You couldn't possible hope to buy that!");
                     continue;
                 }
@@ -272,7 +264,7 @@ void CommandBuy(char **Words, u32 WordCount){
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
         Assert(Item);
-        if(TAIsItemStatic(Item->Tag)){
+        if(HasTag(Item->Tag, AssetTag_Static)){
             TA->Respond("You couldn't possible hope to buy that!");
             continue;
         }
@@ -286,7 +278,7 @@ void CommandBuy(char **Words, u32 WordCount){
             continue;
         }
         
-        ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
+        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
         TA->Respond(Description->Data);
         
         if(TA->AddItem(Room->Items[Index])) ArrayOrderedRemove(&Room->Items, Index);
@@ -310,14 +302,14 @@ void CommandEat(char **Words, u32 WordCount){
         if(Index < 0) continue;
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, String("eat"));
+        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Eat));
         if(!Description){
             TA->Respond("You can't eat \002\002that\002\001!");
             // TODO(Tyler): We need a better response system, because thing will get overwritten
         }
         TA->Respond(Description->Data);
         
-        if(Item->Tag == String("bread")){
+        if(HasTag(Item->Tag, AssetTag_Bread)){
             TA->AddItem(String("bread crumbs"));
         }
         
@@ -341,7 +333,7 @@ void CommandPlay(char **Words, u32 WordCount){
         FoundSomething = true;
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, String("play"));
+        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Play));
         if(!Description){
             TA->Respond("You can't play that!");
             continue;
@@ -362,17 +354,14 @@ void CommandPlay(char **Words, u32 WordCount){
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
         Assert(Item);
         
-        string Tag;
-        if(Item->Tag == String("organ")){
-            if(TA->OrganState == String("broken")){
-                Tag = String("play-broken");
+        asset_tag Tag = AssetTag(AssetTag_Play);;
+        if(HasTag(Item->Tag, AssetTag_Organ)){
+            if(TA->OrganState == AssetTag_Broken){
                 AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_broken")));
             }else{
-                Tag = String("play-repaired");
                 AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_repaired")));
             }
-        }else{
-            Tag = String("play");
+            Tag = AssetTag(AssetTag_Play, TA->OrganState);
         }
         
         ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
@@ -396,7 +385,7 @@ void CommandExamine(char **Words, u32 WordCount){
         FoundSomething = true;
         
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, String("examine"));
+        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
         if(!Description) continue;
         TA->Respond(Description->Data);
     }
@@ -413,11 +402,9 @@ void CommandExamine(char **Words, u32 WordCount){
         ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
         Assert(Item);
         
-        string Tag;
-        if(Item->Tag == String("organ")){
-            Tag = (TA->OrganState == String("broken")) ? String("examine-broken") : String("examine-repaired");
-        }else{
-            Tag = String("examine");
+        asset_tag Tag = AssetTag(AssetTag_Examine);
+        if(HasTag(Item->Tag, AssetTag_Organ)){
+            Tag = AssetTag(AssetTag_Examine, TA->OrganState);
         }
         
         ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
@@ -433,8 +420,8 @@ void CommandExamine(char **Words, u32 WordCount){
 void CommandTestRepair(char **Words, u32 WordCount){
     ta_system *TA = &TextAdventure;
     
-    if(TA->OrganState == String("broken"))        TA->OrganState = String("repaired");
-    else if(TA->OrganState == String("repaired")) TA->OrganState = String("broken");
+    if(TA->OrganState == AssetTag_Broken)        TA->OrganState = AssetTag_Repaired;
+    else if(TA->OrganState == AssetTag_Repaired) TA->OrganState = AssetTag_Broken;
 }
 
 void CommandTestAddMoney(char **Words, u32 WordCount){
@@ -485,6 +472,8 @@ ta_system::Initialize(memory_arena *Arena){
     InsertIntoHashTable(&DirectionTable, "southwest", Direction_SouthWest);
     InsertIntoHashTable(&DirectionTable, "west",      Direction_West);
     InsertIntoHashTable(&DirectionTable, "northwest", Direction_NorthWest);
+    InsertIntoHashTable(&DirectionTable, "up",        Direction_Up);
+    InsertIntoHashTable(&DirectionTable, "down",      Direction_Down);
     InsertIntoHashTable(&DirectionTable, "n",  Direction_North);
     InsertIntoHashTable(&DirectionTable, "ne", Direction_NorthEast);
     InsertIntoHashTable(&DirectionTable, "e",  Direction_East);
@@ -493,13 +482,15 @@ ta_system::Initialize(memory_arena *Arena){
     InsertIntoHashTable(&DirectionTable, "sw", Direction_SouthWest);
     InsertIntoHashTable(&DirectionTable, "w",  Direction_West);
     InsertIntoHashTable(&DirectionTable, "nw", Direction_NorthWest);
+    InsertIntoHashTable(&DirectionTable, "u",  Direction_Up);
+    InsertIntoHashTable(&DirectionTable, "d",  Direction_Down);
     
     RoomTable = PushHashTable<string, ta_room>(Arena, 64);
     ItemTable = PushHashTable<string, ta_item>(Arena, 128);
     Inventory = MakeArray<string>(Arena, 10);
     
     //~ Game specific data
-    OrganState = String("broken");
+    OrganState = AssetTag_Broken;
 }
 
 inline b8
@@ -520,21 +511,21 @@ ta_system::Respond(const char *Response){
 internal inline f32
 DoDescription(ta_system *TA, ta_room *Room, asset_font *Font, v2 P, f32 DescriptionWidth){
     ta_string *Description = Room->Descriptions[0];
-    if(Room->Tag == String("organ")){
-        ta_string *New = TARoomFindDescription(Room, TA->OrganState);
+    if(HasTag(Room->Tag, AssetTag_Organ)){
+        ta_string *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
         if(New) Description = New;
     }
     
     f32 Result = FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
                                        P, Description->Data, DescriptionWidth);
     
-    ta_string *Adjacents = TARoomFindDescription(Room, String("adjacents"));
+    ta_string *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
     if(Adjacents){
         Result += FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
                                         V2(P.X, P.Y-Result), Adjacents->Data, DescriptionWidth);
     }
     
-    ta_string *Items = TARoomFindDescription(Room, String("items"));
+    ta_string *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
     if(Items){
         Result += FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
                                         V2(P.X, P.Y-Result), Items->Data, DescriptionWidth);
@@ -573,7 +564,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         
         for(u32 I=0; I<Room->Items.Count; I++){
             ta_item *Item = FindInHashTablePtr(&TextAdventure.ItemTable, Room->Items[I]);
-            if(TAIsItemStatic(Item->Tag)) continue;
+            if(HasTag(Item->Tag, AssetTag_Static)) continue;
             RoomP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, 
                                              RoomP, Strings.GetString(Room->Items[I]), DescriptionWidth);
         }
@@ -648,7 +639,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     
     //~ Debug
     {
-        v2 DebugP = V2(100, 200);
+        v2 DebugP = V2(150, 10);
         u64 UpdateAndRenderMainGame_Elapsed = __rdtsc()-UpdateAndRenderMainGame_Start;
         {
             char Buffer[DEFAULT_BUFFER_SIZE];

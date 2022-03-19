@@ -72,6 +72,11 @@ typedef double f64;
 #define F64_POSITIVE_INFINITY 0x7FF0000000000000 
 #define F64_NEGATIVE_INFINITY 0xFFF0000000000000 
 
+#define enum8(Enum)  u8
+#define enum16(Enum) u16
+#define enum32(Enum) u32
+#define enum64(Enum) u64
+
 //~ String functions
 
 internal constexpr b8

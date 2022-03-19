@@ -88,6 +88,7 @@ ArrayInsert(array<T> *Array, u32 Index, T Item){
 
 template<typename T> internal inline T *
 ArrayInsertAlloc(array<T> *Array, u32 Index){
+    Assert(Index <= Array->Count);
     MoveMemory(&Array->Items[Index+1], 
                &Array->Items[Index], 
                (Array->Count-Index)*sizeof(T));

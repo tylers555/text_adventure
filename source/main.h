@@ -41,12 +41,10 @@ enum direction {
     Direction_West,
     Direction_NorthWest,
     
-    Direction_TOTAL,
+    Direction_Up,
+    Direction_Down,
     
-    Direction_Up    = Direction_North,
-    Direction_Down  = Direction_South,
-    Direction_Left  = Direction_West,
-    Direction_Right = Direction_East,
+    Direction_TOTAL,
 };
 
 //~ Enum to string tables
@@ -65,18 +63,8 @@ local_constant char *DIRECTION_TABLE[Direction_TOTAL] = {
     "Direction southwest",
     "Direction west",
     "Direction northwest",
-};
-
-local_constant char *SIMPLE_DIRECTION_TABLE[Direction_TOTAL] = {
-    "Direction none",
     "Direction up",
-    "Direction up right",
-    "Direction right",
-    "Direction down right",
-    "Direction down",
-    "Direction down left",
-    "Direction left",
-    "Direction up left",
+    "Direction down"
 };
 
 //~ Miscallaneous

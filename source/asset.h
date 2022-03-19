@@ -18,6 +18,40 @@ struct image {
 global_constant u32 SJA_MAX_ARRAY_ITEM_COUNT = 256;
 global_constant u32 MAX_ASSETS_PER_TYPE = 128;
 
+enum asset_tag_id {
+    AssetTag_None = 0,
+    AssetTag_Play,
+    AssetTag_Examine,
+    AssetTag_Eat,
+    AssetTag_Activate,
+    
+    AssetTag_Organ,
+    AssetTag_Broken,
+    AssetTag_Repaired,
+    
+    AssetTag_Items,
+    AssetTag_Adjacents,
+    
+    AssetTag_Static,
+    AssetTag_Bread,
+    AssetTag_Key,
+    AssetTag_Map,
+    AssetTag_Light,
+    
+    AssetTag_TOTAL
+};
+
+union asset_tag {
+    struct {
+        enum8(asset_tag_id) A;
+        enum8(asset_tag_id) B;
+        enum8(asset_tag_id) C;
+        enum8(asset_tag_id) D;
+    };
+    enum8(asset_tag_id) E[4];
+    u32 All;
+};
+
 //~ Sound effects
 struct sound_data {
     s16 *Samples;
@@ -81,7 +115,8 @@ struct asset_system {
     
     //~ SJA reading and parsing
     u64 LastFileWriteTime;
-    hash_table<const char *, char> ASCIITable;
+    hash_table<const char *, char>         ASCIITable;
+    hash_table<const char *, asset_tag_id> TagTable;
     
     file_reader Reader;
     file_token ExpectToken(file_token_type Type);
@@ -89,7 +124,7 @@ struct asset_system {
     
     array<s32>          ExpectTypeArrayS32();
     array<const char *> ExpectTypeArrayCString();
-    string              MaybeExpectTag();
+    asset_tag           MaybeExpectTag();
     
     void InitializeLoader(memory_arena *Arena);
     

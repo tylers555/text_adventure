@@ -175,10 +175,11 @@ StringBuilderAdd(string_builder *Builder, char C){
 }
 
 internal inline void
-StringBuilderAdd(string_builder *Builder, string S){
-    u32 Size = sizeof(S);
-    Assert(Builder->BufferSize+Size < Builder->BufferCapacity-1);
-    CopyMemory(&Builder->Buffer[Builder->BufferSize], &S, Size);
-    Builder->BufferSize += Size;
+StringBuilderAdd(string_builder *Builder, void *Data, u32 DataSize){
+    Assert(Builder->BufferSize+DataSize < Builder->BufferCapacity-1);
+    CopyMemory(&Builder->Buffer[Builder->BufferSize], Data, DataSize);
+    Builder->BufferSize += DataSize;
     Builder->Buffer[Builder->BufferSize] = 0;
 }
+
+#define StringBuilderAddVar(Builder, Data) StringBuilderAdd(Builder, &Data, sizeof(Data))

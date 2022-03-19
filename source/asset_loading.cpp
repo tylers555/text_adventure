@@ -72,6 +72,22 @@ asset_system::InitializeLoader(memory_arena *Arena){
     InsertIntoHashTable(&ASCIITable, "DOLLAR_SIGN",          '$');
     InsertIntoHashTable(&ASCIITable, "AMPERSAND",            '&');
     InsertIntoHashTable(&ASCIITable, "AT_SIGN",              '@');
+    
+    TagTable = PushHashTable<const char *, asset_tag_id>(Arena, AssetTag_TOTAL);
+    InsertIntoHashTable(&TagTable, "play",      AssetTag_Play);
+    InsertIntoHashTable(&TagTable, "examine",   AssetTag_Examine);
+    InsertIntoHashTable(&TagTable, "eat",       AssetTag_Eat);
+    InsertIntoHashTable(&TagTable, "activate",  AssetTag_Activate);
+    InsertIntoHashTable(&TagTable, "organ",     AssetTag_Organ);
+    InsertIntoHashTable(&TagTable, "broken",    AssetTag_Broken);
+    InsertIntoHashTable(&TagTable, "repaired",  AssetTag_Repaired);
+    InsertIntoHashTable(&TagTable, "items",     AssetTag_Items);
+    InsertIntoHashTable(&TagTable, "adjacents", AssetTag_Adjacents);
+    InsertIntoHashTable(&TagTable, "static",    AssetTag_Static);
+    InsertIntoHashTable(&TagTable, "bread",     AssetTag_Bread);
+    InsertIntoHashTable(&TagTable, "key",       AssetTag_Key);
+    InsertIntoHashTable(&TagTable, "map",       AssetTag_Map);
+    InsertIntoHashTable(&TagTable, "light",     AssetTag_Light);
 }
 
 //~ Base
@@ -211,9 +227,9 @@ asset_system::ExpectTypeArrayCString(){
     return(Result);
 }
 
-string
+asset_tag
 asset_system::MaybeExpectTag(){
-    string Result = {};
+    asset_tag Result = {};
     
     file_token Token = Reader.PeekToken();
     if(Token.Type != FileTokenType_Identifier) return Result;
@@ -223,8 +239,20 @@ asset_system::MaybeExpectTag(){
         ExpectToken(FileTokenType_BeginArguments);
         HandleError();
         
-        const char *S = Expect(String);
-        Result = Strings.GetString(S);
+        for(u32 I=0; I<ArrayCount(Result.E); I++){
+            Token = Reader.PeekToken();
+            if(Token.Type != FileTokenType_String) break;
+            const char *S = Expect(String);
+            
+            enum8(asset_tag_id) ID = (u8)FindInHashTable(&TagTable, S);
+            if(!ID){ 
+                LogError("'%s' is not a valid tag!", S);
+                //Assert(0);
+                continue;
+            }
+            
+            Result.E[I] = ID;
+        }
         
         ExpectToken(FileTokenType_EndArguments);
         HandleError();
@@ -468,11 +496,11 @@ b8
 asset_system::ProcessTADescription(dynamic_array<ta_string *> *Descriptions){
     b8 Result = false;
     
-    string Tag = MaybeExpectTag();
+    asset_tag Tag = MaybeExpectTag();
     HandleError();
     
     string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
-    StringBuilderAdd(&Builder, Tag);
+    StringBuilderAddVar(&Builder, Tag);
     while(true){
         file_token Token = Reader.PeekToken();
         if(Token.Type != FileTokenType_String) break;
