@@ -411,15 +411,10 @@ Win32AudioThreadProc(void *Parameter){
                 if(PaddingSamplesCount == 0) break;
                 _mm_pause();
             }
-            OSInput.dTime = TargetSecondsPerFrame;
         }
         else
         {
-            LogMessage("Missed FPS");
-            OSInput.dTime = SecondsElapsed;
-            if(OSInput.dTime > (MAXIMUM_SECONDS_PER_FRAME)){
-                OSInput.dTime = MAXIMUM_SECONDS_PER_FRAME;
-            }
+            LogMessage("Audio mixer: missed FPS");
         }
 #endif
         
@@ -504,7 +499,7 @@ WinMain(HINSTANCE Instance,
         if(MainWindow){
             Win32InitOpenGl(Instance, &MainWindow);
             ToggleFullscreen(MainWindow);
-            wglSwapIntervalEXT(1);
+            wglSwapIntervalEXT(0);
             
             HDC DeviceContext = GetDC(MainWindow);
             Running = true;
@@ -514,7 +509,7 @@ WinMain(HINSTANCE Instance,
             b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
             
             LARGE_INTEGER PerformanceCounterFrequencyResult;
-            QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
+            Assert(QueryPerformanceFrequency(&PerformanceCounterFrequencyResult));
             GlobalPerfCounterFrequency = (f32)PerformanceCounterFrequencyResult.QuadPart;
             
             s32 MonitorRefreshHz = 60;
@@ -528,8 +523,9 @@ WinMain(HINSTANCE Instance,
             }else if(TargetSecondsPerFrame > MAXIMUM_SECONDS_PER_FRAME){
                 TargetSecondsPerFrame = MAXIMUM_SECONDS_PER_FRAME;
             }
-            LARGE_INTEGER LastTime = Win32GetWallClock();
+            LogMessage("Timing calculated %u %d %d %f %f", SleepIsGranular, MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame);
             
+            LARGE_INTEGER LastTime = Win32GetWallClock();
             //~ Audio
             s32 SamplesPerSecond = 48000;
             u32 SamplesPerAudioFrame = (u32)((f32)SamplesPerSecond / (f32)MonitorRefreshHz);
@@ -545,6 +541,7 @@ WinMain(HINSTANCE Instance,
             OSSoundBuffer.Samples = (s16 *)AllocateVirtualMemory(BufferSize);
             
             CreateThread(0, 0, Win32AudioThreadProc, DeviceContext, 0, 0);
+            LogMessage("Audio initialized");
             
             //~
             RECT ClientRect;
@@ -555,34 +552,36 @@ WinMain(HINSTANCE Instance,
             
             //~ 
             InitializeGame();
-            
+            LogMessage("Game initialized");
             
             //~ Main loop
+            OSInput.dTime = TargetSecondsPerFrame;
             while(Running){
-                OSInput.dTime = TargetSecondsPerFrame;
                 GameUpdateAndRender();
                 
                 //~ Timing
                 SwapBuffers(DeviceContext);
                 
+                // TODO(Tyler): I still have no idea how to reliably do this
 #if 1
                 f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
                 if(SecondsElapsed < TargetSecondsPerFrame)
                 {
                     if(SleepIsGranular){
                         DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame-SecondsElapsed));
-                        if(SleepMS > 0){
+                        if(SleepMS > 1){
+                            SleepMS -= 1;
                             Sleep(SleepMS);
                         }
                     }
                     
                     SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                    
-                    while(SecondsElapsed < TargetSecondsPerFrame)
-                    {
-                        SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
+                    s64 Delta = (s64)(TargetSecondsPerFrame * (f32)GlobalPerfCounterFrequency);
+                    s64 EndTime = LastTime.QuadPart + Delta;;
+                    while((f32)Win32GetWallClock().QuadPart < EndTime){
                     }
-                    OSInput.dTime = TargetSecondsPerFrame;
+                    OSInput.dTime = SecondsElapsed;
+                    //OSInput.dTime = TargetSecondsPerFrame;
                 }else{
                     LogMessage("Missed FPS");
                     OSInput.dTime = SecondsElapsed;
