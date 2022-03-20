@@ -47,26 +47,91 @@ CompareWords(const char *A, const char *B){
     return true;
 }
 
-internal inline s32
-TAFindItem(ta_system *TA, array<string> *Items, const char *Word){
-    for(u32 J=0; J<Items->Count; J++){
-        const char *ItemName = Strings.GetString(ArrayGet(Items, J));
-        if(CompareWords(ItemName, Word)){
-            return J;
+struct ta_found_item {
+    ta_item *Item;
+    s32 Weight;
+    u32 Index;
+    b8 IsAmbiguous;
+};
+
+internal void
+TAContinueFindItem(ta_system *TA, array<string> *Items, char **Words, u32 WordCount, ta_found_item *Found){
+    for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
+        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
+        if(!Item) continue;
+        
+        b8 HasFoundAlias = false;
+        s32 Weight = 0;
+        for(u32 WordIndex=0; WordIndex<WordCount; WordIndex++){
+            const char *Word = Words[WordIndex];
+            
+            b8 JustFoundAdjective = false;
+            for(u32 AdjectiveIndex=0; AdjectiveIndex<Item->Adjectives.Count; AdjectiveIndex++){
+                const char *Adjective = Item->Adjectives[AdjectiveIndex];
+                if(CompareWords(Word, Adjective)){
+                    JustFoundAdjective = true;
+                    break;
+                }
+            }
+            
+            b8 JustFoundAlias = false;
+            for(u32 AliasIndex=0; AliasIndex<Item->Aliases.Count; AliasIndex++){
+                const char *Alias = Item->Aliases[AliasIndex];
+                if(CompareWords(Word, Alias)){
+                    HasFoundAlias = true;
+                    JustFoundAlias = true;
+                    break;
+                }
+            }
+            
+            if(JustFoundAlias  || JustFoundAdjective) Weight++;
+            if(!JustFoundAlias && HasFoundAlias) break;
         }
         
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(Items, J));
-        if(!Item) continue;
-        for(u32 K=0; K<Item->Aliases.Count; K++){
-            const char *Alias = ArrayGet(&Item->Aliases, K);
-            if(CompareWords(Alias, Word)){
-                return J;
+        if(HasFoundAlias){
+            if(Weight > Found->Weight){
+                Found->Item = Item;
+                Found->Index = ItemIndex;
+                Found->Weight = Weight;
+                Found->IsAmbiguous = false;
+            }else if(Weight == Found->Weight){
+                Found->IsAmbiguous = true;
             }
         }
+    }
+}
+
+internal ta_found_item
+TAFindItem(ta_system *TA, array<string> *Items, char **Words, u32 WordCount){
+    b8 IsAmbiguous = false;
+    ta_item *CandidateItem = 0;
+    u32 CandidateIndex     = 0;
+    s32 CandidateWeight    = -1;
+    
+    ta_found_item Result = {};
+    Result.Weight = -1;
+    TAContinueFindItem(TA, Items, Words, WordCount, &Result);
+    
+    return Result;
+}
+
+internal inline s32
+TAFindItemByTag(ta_system *TA, array<string> *Items, asset_tag Tag){
+    for(u32 J=0; J<Items->Count; J++){
+        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(Items, J));
+        if(!Item) continue;
+        if(Item->Tag == Tag) return J;
     }
     
     return -1;
 }
+
+internal inline s32
+TACalculateItemChoiceWeight(ta_item *Item, char **Words, u32 WordEnd){
+    s32 Weight = 0;
+    return Weight;
+}
+
 
 //~
 internal inline b8
@@ -78,8 +143,15 @@ TARoomAddItem(ta_system *TA, ta_room *Room, string Item){
     
     b8 Result = ArrayMaybeAdd(&Room->Items, Item);
     if(!Result) TA->Respond("This room is much too \002\002small\002\001!");
+    Room->Dirty = true;
     return Result;
     
+}
+
+internal inline void
+TARoomRemoveItem(ta_system *TA, ta_room *Room, u32 Index){
+    Room->Dirty = true;
+    ArrayOrderedRemove(&Room->Items, Index);
 }
 
 internal inline ta_string *
@@ -102,26 +174,70 @@ TARoomFindDescription(ta_room *Room, asset_tag Tag){
     return Result;
 }
 
-//~ Commands
-void CommandMove(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
+internal b8
+TAAttemptToUnlock(ta_system *TA, ta_room *Room, asset_tag *Locked){
+    for(u32 J=0; J<TA->Inventory.Count; J++){
+        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(&TA->Inventory, J));
+        if(!Item) continue;
+        if(HasTag(Item->Tag, AssetTag_Key)){
+            if(HasTag(*Locked, AssetTag_Organ) && HasTag(Item->Tag, AssetTag_Organ)){
+                Room->Dirty = true;
+                *Locked = AssetTag();
+                return true;
+            }
+        }
+    }
     
+    return false;
+}
+
+internal b8
+TAIsClosed(ta_system *TA, asset_tag Tag){
+    if(HasTag(Tag, AssetTag_OpenDawn)){
+        
+    }else if(HasTag(Tag, AssetTag_OpenNoon)){
+        
+    }else if(HasTag(Tag, AssetTag_OpenDusk)){
+        
+    }else if(HasTag(Tag, AssetTag_OpenNight)){
+        
+    }
+    
+    
+    return false;
+}
+
+//~ Commands
+void CommandMove(ta_system *TA, char **Words, u32 WordCount){
     ta_room *CurrentRoom = TA->CurrentRoom;
     ta_room *NextRoom = 0;
     
     for(u32 I=0; I < WordCount; I++){
         char *Word = Words[I];
         direction Direction = FindInHashTable(&TA->DirectionTable, (const char *)Word);
-        if(Direction){
-            string NextRoomString = CurrentRoom->Adjacents[Direction];
-            NextRoom = FindInHashTablePtr(&TA->RoomTable, NextRoomString);
-            if(NextRoom){
+        if(!Direction) continue;
+        
+        string NextRoomString = CurrentRoom->Adjacents[Direction];
+        NextRoom = FindInHashTablePtr(&TA->RoomTable, NextRoomString);
+        if(!NextRoom){
+            TA->Respond("Why would you want move that way!?\nDoing so would be quite \002\002foolish\002\001!");
+            return;
+        }
+        
+        asset_tag Tag = CurrentRoom->AdjacentTags[Direction];
+        if(HasTag(Tag, AssetTag_Locked)){
+            if(TAAttemptToUnlock(TA, CurrentRoom, &Tag)){
+                TA->Respond("(unlocked)");
                 break;
             }else{
-                TA->Respond("Why would you want move that way!?\nDoing so would be quite \002\002foolish\002\001!");
+                TA->Respond("That way is locked, \002\002buddy-o\002\001!");
                 return;
             }
+        }else if(TAIsClosed(TA, Tag)){
+            return;
         }
+        
+        break;
     }
     
     if(!NextRoom){
@@ -134,303 +250,232 @@ void CommandMove(char **Words, u32 WordCount){
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("room_change")));
 }
 
-// TODO(Tyler): This is an incredibly crude way of doing this
-void CommandTake(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
+void CommandTake(ta_system *TA, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
-    b8 TookSomething = false;
-    for(u32 I=0; I<WordCount; I++){
-        CStringMakeLower(Words[I]);
-        char *Word = Words[I];
-        
-        if(CompareStrings(Word, "all") ||
-           CompareStrings(Word, "everything")){
-            for(u32 J=0; J<Room->Items.Count; J++){
-                ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
-                if(HasTag(Item->Tag, AssetTag_Static)){
-                    TA->Respond("You couldn't possible hope to take that!");
-                    continue;
-                }
-                if(Item->Cost > 0) continue;
-                if(TA->AddItem(Room->Items[J])) ArrayOrderedRemove(&Room->Items, J);
-                else break;
-                TookSomething = true;
-            }
-            break;
-        }
-        
-        s32 Index = TAFindItem(TA, &Room->Items, Word);
-        if(Index < 0) continue;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
-        Assert(Item);
-        if(HasTag(Item->Tag, AssetTag_Static)){
-            TA->Respond("You couldn't possible hope to take that!");
-            continue;
-        }
-        
-        if(Item->Cost > 0){
-            TA->Respond("You're going to have to \002\002buy\002\001 for that!");
-            TookSomething = true;
-            continue;
-        }
-        
-        ta_string *Description = TAFindDescription(&Item->Descriptions, MakeAssetTag(AssetTag_Examine));
-        TA->Respond(Description->Data);
-        
-        if(TA->AddItem(Room->Items[Index])) ArrayOrderedRemove(&Room->Items, Index);
-        TookSomething = true;
+    ta_found_item FoundItem = TAFindItem(TA, &Room->Items, Words, WordCount);
+    if(FoundItem.IsAmbiguous){
+        TA->Respond("You will have to be more specific, what item do you want to take?\nEnter the item: ");
+        TA->Callback = CommandTake;
+        return;
     }
     
-    if(!TookSomething){
+    if(!FoundItem.Item){
         TA->Respond("I have no idea what you want to take!");
         return;
     }
+    
+    ta_item *Item = FoundItem.Item;
+    u32 Index = FoundItem.Index;
+    
+    if(HasTag(Item->Tag, AssetTag_Static)){
+        TA->Respond("You couldn't possible hope to take that!");
+        return;
+    }else if(Item->Cost > 0){
+        TA->Respond("You're going to have to \002\002buy\002\001 for that!");
+        return;
+    }
+    
+    if(TA->AddItem(Room->Items[Index])) TARoomRemoveItem(TA, Room, Index);
+    
+    ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
+    if(!Description) return;
+    TA->Respond(Description->Data);
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_taken")));
 }
 
 // TODO(Tyler): This is an incredibly crude way of doing this
-void CommandDrop(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
+void CommandDrop(ta_system *TA, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
-    b8 DroppedSomething = false;
-    for(u32 I=0; I<WordCount; I++){
-        CStringMakeLower(Words[I]);
-        char *Word = Words[I];
-        
-        if(CompareStrings(Word, "all") ||
-           CompareStrings(Word, "everything")){
-            for(u32 J=0; J<TA->Inventory.Count; J++){
-                if(TARoomAddItem(TA, Room, TA->Inventory[J])) ArrayOrderedRemove(&TA->Inventory, J);
-                else break;
-                DroppedSomething = true;
-            }
-            
-            break;
-        }
-        
-        s32 Index = TAFindItem(TA, &TA->Inventory, Word);
-        if(Index < 0) continue;
-        if(TARoomAddItem(TA, Room, TA->Inventory[Index])) ArrayOrderedRemove(&TA->Inventory, Index);
-        DroppedSomething = true;
+    ta_found_item FoundItem = TAFindItem(TA, &Room->Items, Words, WordCount);
+    if(FoundItem.IsAmbiguous){
+        TA->Respond("You will have to be more specific, what item do you want to drop?\nEnter the item: ");
+        TA->Callback = CommandDrop;
+        return;
     }
     
-    if(!DroppedSomething){
+    ta_item *Item = FoundItem.Item;
+    u32 Index = FoundItem.Index;
+    
+    if(!Item){
         TA->Respond("I have no idea what you want to drop!");
         return;
     }
+    
+    if(TARoomAddItem(TA, Room, TA->Inventory[Index])) ArrayOrderedRemove(&TA->Inventory, Index);
     
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_dropped")));
     TextAdventure.ResponseBuffer[0] = 0;
 }
 
-void CommandBuy(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
+void CallbackConfirmBuy(ta_system *TA, char **Words, u32 WordCount){
+    Assert(0);
+}
+
+void CommandBuy(ta_system *TA, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
-    b8 TookSomething = false;
-    for(u32 I=0; I<WordCount; I++){
-        CStringMakeLower(Words[I]);
-        char *Word = Words[I];
-        
-        if(CompareStrings(Word, "all") ||
-           CompareStrings(Word, "everything")){
-            for(u32 J=0; J<Room->Items.Count; J++){
-                ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[J]);
-                if(HasTag(Item->Tag, AssetTag_Static)){
-                    TA->Respond("You couldn't possible hope to buy that!");
-                    continue;
-                }
-                if(TA->Money >= Item->Cost){
-                    TA->Money -= Item->Cost;
-                    Item->Cost = 0;
-                }else{
-                    continue;
-                }
-                if(TA->AddItem(Room->Items[J])) ArrayOrderedRemove(&Room->Items, J);
-                else break;
-                TookSomething = true;
-            }
-            break;
-        }
-        
-        s32 Index = TAFindItem(TA, &Room->Items, Word);
-        if(Index < 0) continue;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
-        Assert(Item);
-        if(HasTag(Item->Tag, AssetTag_Static)){
-            TA->Respond("You couldn't possible hope to buy that!");
-            continue;
-        }
-        TookSomething = true;
-        
-        if(TA->Money >= Item->Cost){
-            TA->Money -= Item->Cost;
-            Item->Cost = 0;
-        }else{
-            TA->Respond("You don't have enough \002\002money\002\001 for that!");
-            continue;
-        }
-        
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
-        TA->Respond(Description->Data);
-        
-        if(TA->AddItem(Room->Items[Index])) ArrayOrderedRemove(&Room->Items, Index);
-    }
-    
-    if(!TookSomething){
-        TA->Respond("I have no idea what you want to take!");
+    ta_found_item FoundItem = TAFindItem(TA, &Room->Items, Words, WordCount);
+    if(FoundItem.IsAmbiguous){
+        TA->Respond("You will have to be more specific, what item do you want to buy?\nEnter the item: ");
+        TA->Callback = CommandBuy;
         return;
     }
+    
+    if(!FoundItem.Item){
+        TA->Respond("I have no idea what you want to buy!");
+        return;
+    }
+    
+    ta_item *Item = FoundItem.Item;
+    u32 Index = FoundItem.Index;
+    
+    if(HasTag(Item->Tag, AssetTag_Static)){
+        TA->Respond("You couldn't possible hope to buy that!");
+        return;
+    }
+    if(TA->Money >= Item->Cost){
+        if(TA->AddItem(Room->Items[Index])) TARoomRemoveItem(TA, Room, Index);
+        else return;
+        TA->Money -= Item->Cost;
+        Item->Dirty = true;
+        Item->Cost = 0;
+    }else{
+        TA->Respond("You don't have enough \002\002money\002\001 for that!");
+        return;
+    }
+    
+    ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
+    if(!Description) return;
+    TA->Respond(Description->Data);
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_taken")));
 }
 
-void CommandEat(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
+void CommandEat(ta_system *TA, char **Words, u32 WordCount){
+    ta_found_item FoundItem = TAFindItem(TA, &TA->Inventory, Words, WordCount);
     
-    b8 AteSomething = false;
-    for(u32 I=0; I<WordCount; I++){
-        char *Word = Words[I];
-        
-        s32 Index = TAFindItem(TA, &TA->Inventory, Word);
-        if(Index < 0) continue;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Eat));
-        if(!Description){
-            TA->Respond("You can't eat \002\002that\002\001!");
-            // TODO(Tyler): We need a better response system, because thing will get overwritten
-        }
-        TA->Respond(Description->Data);
-        
-        if(HasTag(Item->Tag, AssetTag_Bread)){
-            TA->AddItem(String("bread crumbs"));
-        }
-        
-        ArrayOrderedRemove(&TA->Inventory, Index);
-        AteSomething = true;
+    if(FoundItem.IsAmbiguous){
+        TA->Respond("You will have to be more specific, what item do you want to eat?\nEnter the item: ");
+        TA->Callback = CommandEat;
+        return;
     }
     
-    if(!AteSomething) return;
+    ta_item *Item = FoundItem.Item;
+    u32 Index = FoundItem.Index;
+    if(!Item){
+        TA->Respond("I have no idea what you want to eat!");
+        return;
+    }
+    
+    ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Eat));
+    if(!Description){
+        // TODO(Tyler): We need a better response system, because thing will get overwritten
+        TA->Respond("You can't eat \002\002that\002\001!");
+        return;
+    }
+    TA->Respond(Description->Data);
+    
+    if(HasTag(Item->Tag, AssetTag_Bread)){
+        TA->AddItem(String("bread crumbs"));
+    }
+    
+    ArrayOrderedRemove(&TA->Inventory, Index);
+    
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_eaten")));
 }
 
-void CommandPlay(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
-    b8 FoundSomething = false;
-    for(u32 I=0; I<WordCount; I++){
-        const char *Word = Words[I];
-        
-        s32 Index = TAFindItem(TA, &TA->Inventory, Word);
-        if(Index < 0) continue;
-        FoundSomething = true;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Play));
-        if(!Description){
-            TA->Respond("You can't play that!");
-            continue;
-        }
-        TA->Respond(Description->Data);
-        
-    }
-    if(FoundSomething) return;
-    
+void CommandPlay(ta_system *TA, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
-    for(u32 I=0; I<WordCount; I++){
-        const char *Word = Words[I];
-        
-        s32 Index = TAFindItem(TA, &Room->Items, Word);
-        if(Index < 0) continue;
-        FoundSomething = true;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
-        Assert(Item);
-        
-        asset_tag Tag = AssetTag(AssetTag_Play);;
-        if(HasTag(Item->Tag, AssetTag_Organ)){
-            if(TA->OrganState == AssetTag_Broken){
-                AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_broken")));
-            }else{
-                AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("organ_play_repaired")));
-            }
-            Tag = AssetTag(AssetTag_Play, TA->OrganState);
-        }
-        
-        ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
-        if(!Description) continue;
-        TA->Respond(Description->Data);
-    }
-    if(FoundSomething) return;
     
-    TA->Respond("I have no idea what you want to play!");
+    ta_found_item FoundItem = TAFindItem(TA, &TA->Inventory, Words, WordCount);
+    TAContinueFindItem(TA, &Room->Items, Words, WordCount, &FoundItem);
+    
+    if(FoundItem.IsAmbiguous){
+        TA->Respond("You will have to be more specific, what item do you want to play?\nEnter the item: ");
+        TA->Callback = CommandPlay;
+        return;
+    }
+    
+    ta_item *Item = FoundItem.Item;
+    
+    if(!Item){
+        TA->Respond("I have no idea what you want to play!");
+        return;
+    }
+    
+    asset_tag Tag = AssetTag(AssetTag_Play);
+    if(HasTag(Item->Tag, AssetTag_Organ)){
+        string Sound;
+        if(TA->OrganState == AssetTag_Broken) Sound = String("organ_play_broken");
+        else                                  Sound = String("organ_play_repaired");
+        AudioMixer.PlaySound(AssetSystem.GetSoundEffect(Sound));
+        Tag = AssetTag(AssetTag_Play, TA->OrganState);
+    }
+    
+    ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
+    if(!Description) return;
+    TA->Respond(Description->Data);
 }
 
-void CommandExamine(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
-    b8 FoundSomething = false;
-    for(u32 I=0; I<WordCount; I++){
-        const char *Word = Words[I];
-        
-        s32 Index = TAFindItem(TA, &TA->Inventory, Word);
-        if(Index < 0) continue;
-        FoundSomething = true;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, TA->Inventory[Index]);
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
-        if(!Description) continue;
-        TA->Respond(Description->Data);
-    }
-    if(FoundSomething) return;
-    
+void CommandExamine(ta_system *TA, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
-    for(u32 I=0; I<WordCount; I++){
-        const char *Word = Words[I];
-        
-        s32 Index = TAFindItem(TA, &Room->Items, Word);
-        if(Index < 0) continue;
-        FoundSomething = true;
-        
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[Index]);
-        Assert(Item);
-        
-        asset_tag Tag = AssetTag(AssetTag_Examine);
-        if(HasTag(Item->Tag, AssetTag_Organ)){
-            Tag = AssetTag(AssetTag_Examine, TA->OrganState);
-        }
-        
-        ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
-        if(!Description) continue;
-        TA->Respond(Description->Data);
-    }
-    if(FoundSomething) return;
     
-    TA->Respond("I have no idea what you want to examine!");
+    ta_found_item FoundItem = TAFindItem(TA, &TA->Inventory, Words, WordCount);
+    TAContinueFindItem(TA, &Room->Items, Words, WordCount, &FoundItem);
+    
+    if(FoundItem.IsAmbiguous){
+        TA->Respond("You will have to be more specific, what item do you want to examine?\nEnter the item: ");
+        TA->Callback = CommandExamine;
+        return;
+    }
+    
+    ta_item *Item = FoundItem.Item;
+    
+    if(!Item){
+        TA->Respond("I have no idea what you want to examine!");
+        return;
+    }
+    
+    asset_tag Tag = AssetTag(AssetTag_Examine);
+    if(HasTag(Item->Tag, AssetTag_Organ)){
+        Tag = AssetTag(AssetTag_Examine, TA->OrganState);
+    }
+    
+    ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
+    if(!Description) return;
+    TA->Respond(Description->Data);
+}
+
+void CommandMap(ta_system *TA, char **Words, u32 WordCount){
+    TA->Respond("Not implemented yet!");
+    Assert(0);
+}
+
+void CommandUnlock(ta_system *TA, char **Words, u32 WordCount){
+    ta_room *CurrentRoom = TA->CurrentRoom;
+    for(u32 I=0; I<Direction_TOTAL; I++){
+        asset_tag Tag = CurrentRoom->AdjacentTags[I];
+        if(!HasTag(Tag, AssetTag_Locked)) continue;
+        if(TAAttemptToUnlock(TA, CurrentRoom, &Tag)){
+            TA->Respond("Unlocked!");
+        }else{
+            TA->Respond("you can't unlock that!");
+        }
+    }
 }
 
 //~ Testing commands
-void CommandTestRepair(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
-    
+void CommandTestRepair(ta_system *TA, char **Words, u32 WordCount){
     if(TA->OrganState == AssetTag_Broken)        TA->OrganState = AssetTag_Repaired;
     else if(TA->OrganState == AssetTag_Repaired) TA->OrganState = AssetTag_Broken;
 }
 
-void CommandTestAddMoney(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
+void CommandTestAddMoney(ta_system *TA, char **Words, u32 WordCount){
     TA->Money += 10;
 }
 
-void CommandTestSubMoney(char **Words, u32 WordCount){
-    ta_system *TA = &TextAdventure;
+void CommandTestSubMoney(ta_system *TA, char **Words, u32 WordCount){
     if(TA->Money >= 10) TA->Money -= 10;
 }
 
@@ -458,6 +503,8 @@ ta_system::Initialize(memory_arena *Arena){
     InsertIntoHashTable(&CommandTable, "inspect",  CommandExamine);
     InsertIntoHashTable(&CommandTable, "observe",  CommandExamine);
     InsertIntoHashTable(&CommandTable, "look",     CommandExamine);
+    InsertIntoHashTable(&CommandTable, "map",      CommandMap);
+    InsertIntoHashTable(&CommandTable, "unlock",   CommandUnlock);
     
     InsertIntoHashTable(&CommandTable, "testrepair",   CommandTestRepair);
     InsertIntoHashTable(&CommandTable, "testaddmoney", CommandTestAddMoney);
@@ -487,7 +534,7 @@ ta_system::Initialize(memory_arena *Arena){
     
     RoomTable = PushHashTable<string, ta_room>(Arena, 64);
     ItemTable = PushHashTable<string, ta_item>(Arena, 128);
-    Inventory = MakeArray<string>(Arena, 10);
+    Inventory = MakeArray<string>(Arena, INVENTORY_ITEM_COUNT);
     
     //~ Game specific data
     OrganState = AssetTag_Broken;
@@ -509,7 +556,7 @@ ta_system::Respond(const char *Response){
 
 //~ 
 internal inline f32
-DoDescription(ta_system *TA, ta_room *Room, asset_font *Font, v2 P, f32 DescriptionWidth){
+DoRoomDescription(ta_system *TA, ta_room *Room, asset_font *Font, v2 P, f32 DescriptionWidth){
     ta_string *Description = Room->Descriptions[0];
     if(HasTag(Room->Tag, AssetTag_Organ)){
         ta_string *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
@@ -536,7 +583,7 @@ DoDescription(ta_system *TA, ta_room *Room, asset_font *Font, v2 P, f32 Descript
 
 internal void
 UpdateAndRenderMainGame(game_renderer *Renderer){
-    u64 UpdateAndRenderMainGame_Start = __rdtsc();
+    u64 Start = __rdtsc();
     
     if(!TextAdventure.CurrentRoom){
         OSInput.BeginTextInput();
@@ -560,7 +607,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         
         RoomP.Y -= FontRenderFancyString(BoldFont, &RoomNameFancy, 1, RoomP, Room->Name);
         
-        RoomP.Y -= DoDescription(&TextAdventure, Room, Font, RoomP, DescriptionWidth);
+        RoomP.Y -= DoRoomDescription(&TextAdventure, Room, Font, RoomP, DescriptionWidth);
         
         for(u32 I=0; I<Room->Items.Count; I++){
             ta_item *Item = FindInHashTablePtr(&TextAdventure.ItemTable, Room->Items[I]);
@@ -568,6 +615,8 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
             RoomP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, 
                                              RoomP, Strings.GetString(Room->Items[I]), DescriptionWidth);
         }
+        
+        
     }
     
     //~ Text input rendering
@@ -600,21 +649,28 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         
         //~ Command processing
         if(OSInput.MaybeEndTextInput()){
-            command_func *Func = 0;
             u32 TokenCount;
             char **Tokens = TokenizeCommand(&TransientStorageArena, OSInput.Buffer, &TokenCount);
-            for(u32 I=0; I < TokenCount; I++){
-                char *Word = Tokens[I];
-                CStringMakeLower(Word);
-                Func = FindInHashTable(&TextAdventure.CommandTable, (const char *)Word);
-                if(Func) break;
-            }
-            if(Func){
-                (*Func)(&Tokens[1], TokenCount-1);
+            if(TextAdventure.Callback){
+                // NOTE(Tyler): Weird dance, so that the callback can set another callback.
+                command_func *Callback = TextAdventure.Callback;
+                TextAdventure.Callback = 0;
+                (*Callback)(&TextAdventure, Tokens, TokenCount);
+                
             }else{
-                TextAdventure.Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
+                command_func *Func = 0;
+                for(u32 I=0; I < TokenCount; I++){
+                    char *Word = Tokens[I];
+                    CStringMakeLower(Word);
+                    Func = FindInHashTable(&TextAdventure.CommandTable, (const char *)Word);
+                    if(Func) break;
+                }
+                if(Func){
+                    (*Func)(&TextAdventure, &Tokens[1], TokenCount-1);
+                }else{
+                    TextAdventure.Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
+                }
             }
-            
             OSInput.BeginTextInput();
         }
     }
@@ -640,11 +696,11 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     //~ Debug
     {
         v2 DebugP = V2(150, 10);
-        u64 UpdateAndRenderMainGame_Elapsed = __rdtsc()-UpdateAndRenderMainGame_Start;
         {
+            u64 Elapsed = __rdtsc() - Start;
             char Buffer[DEFAULT_BUFFER_SIZE];
             stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%08llu | FPS: %.2f", 
-                           UpdateAndRenderMainGame_Elapsed, 1.0/OSInput.dTime);
+                           Elapsed, 1.0/OSInput.dTime);
             DebugP.Y -= FontRenderFancyString(Font, &BasicFancy, 1, DebugP, Buffer);
         }
     }

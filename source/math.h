@@ -723,14 +723,33 @@ operator*(f32 X, color Color)
     Result.G = X*Color.G;
     Result.B = X*Color.B;
     Result.A = X*Color.A;
-    return(Result);
+    return Result;
 }
 
 internal inline color
 operator*(color Color, f32 X)
 {
     color Result = X*Color;
-    return(Result);
+    return Result;
+}
+
+internal inline color
+operator*=(color &Color, f32 X)
+{
+    Color = X*Color;
+    return Color;
+}
+
+typedef u32 color_u32;
+internal inline color_u32
+ColorU32(color C){
+    C*=255.0f;
+    
+    color_u32 Result = ((((u32)C.R) << 24) |
+                        (((u32)C.G) << 16) |
+                        (((u32)C.B) << 8) |
+                        (((u32)C.A) << 0));
+    return Result;
 }
 
 //~ HSB color

@@ -74,20 +74,25 @@ asset_system::InitializeLoader(memory_arena *Arena){
     InsertIntoHashTable(&ASCIITable, "AT_SIGN",              '@');
     
     TagTable = PushHashTable<const char *, asset_tag_id>(Arena, AssetTag_TOTAL);
-    InsertIntoHashTable(&TagTable, "play",      AssetTag_Play);
-    InsertIntoHashTable(&TagTable, "examine",   AssetTag_Examine);
-    InsertIntoHashTable(&TagTable, "eat",       AssetTag_Eat);
-    InsertIntoHashTable(&TagTable, "activate",  AssetTag_Activate);
-    InsertIntoHashTable(&TagTable, "organ",     AssetTag_Organ);
-    InsertIntoHashTable(&TagTable, "broken",    AssetTag_Broken);
-    InsertIntoHashTable(&TagTable, "repaired",  AssetTag_Repaired);
-    InsertIntoHashTable(&TagTable, "items",     AssetTag_Items);
-    InsertIntoHashTable(&TagTable, "adjacents", AssetTag_Adjacents);
-    InsertIntoHashTable(&TagTable, "static",    AssetTag_Static);
-    InsertIntoHashTable(&TagTable, "bread",     AssetTag_Bread);
-    InsertIntoHashTable(&TagTable, "key",       AssetTag_Key);
-    InsertIntoHashTable(&TagTable, "map",       AssetTag_Map);
-    InsertIntoHashTable(&TagTable, "light",     AssetTag_Light);
+    InsertIntoHashTable(&TagTable, "play",       AssetTag_Play);
+    InsertIntoHashTable(&TagTable, "examine",    AssetTag_Examine);
+    InsertIntoHashTable(&TagTable, "eat",        AssetTag_Eat);
+    InsertIntoHashTable(&TagTable, "activate",   AssetTag_Activate);
+    InsertIntoHashTable(&TagTable, "organ",      AssetTag_Organ);
+    InsertIntoHashTable(&TagTable, "broken",     AssetTag_Broken);
+    InsertIntoHashTable(&TagTable, "repaired",   AssetTag_Repaired);
+    InsertIntoHashTable(&TagTable, "locked",     AssetTag_Locked);
+    InsertIntoHashTable(&TagTable, "open-dawn",  AssetTag_OpenDawn);
+    InsertIntoHashTable(&TagTable, "open-noon",  AssetTag_OpenNoon);
+    InsertIntoHashTable(&TagTable, "open-dusk",  AssetTag_OpenDusk);
+    InsertIntoHashTable(&TagTable, "open-night", AssetTag_OpenNight);
+    InsertIntoHashTable(&TagTable, "items",      AssetTag_Items);
+    InsertIntoHashTable(&TagTable, "adjacents",  AssetTag_Adjacents);
+    InsertIntoHashTable(&TagTable, "static",     AssetTag_Static);
+    InsertIntoHashTable(&TagTable, "bread",      AssetTag_Bread);
+    InsertIntoHashTable(&TagTable, "key",        AssetTag_Key);
+    InsertIntoHashTable(&TagTable, "map",        AssetTag_Map);
+    InsertIntoHashTable(&TagTable, "light",      AssetTag_Light);
 }
 
 //~ Base
@@ -366,7 +371,7 @@ asset_system::ProcessSoundEffect(){
     asset_sound_effect *Sound = Strings.GetInHashTablePtr(&SoundEffects, Name);
     if(Sound->Sound.Samples){
         ProcessIgnore();
-        LogError("Cannot change a sound after game has started");
+        //LogError("Cannot change a sound after game has started");
         return true;
     }
     
@@ -544,8 +549,7 @@ asset_system::ProcessTARoom(){
     
     const char *Name = Expect(String);
     ta_room *Room = Strings.GetInHashTablePtr(&TA->RoomTable, Name);
-    *Room = {};
-    Room->Name = Name;
+    Room->Name = Strings.GetPermanentString(Name);
     Room->Tag = MaybeExpectTag();
     
     dynamic_array<ta_string *> Descriptions = MakeDynamicArray<ta_string *>(8, &TransientStorageArena);
@@ -572,6 +576,8 @@ asset_system::ProcessTARoom(){
                 
                 const char *NextRoomName = Expect(String);
                 Room->Adjacents[Direction] = Strings.GetString(NextRoomName);
+                asset_tag Tag = MaybeExpectTag();
+                if(!Room->Dirty) Room->AdjacentTags[Direction] = Tag;
             }
         }else if(DoAttribute(Attribute, "item_count")){
             MaxItemCount = ExpectPositiveInteger();
@@ -581,7 +587,17 @@ asset_system::ProcessTARoom(){
             u32 Count = Maximum(CStringItems.Count, MaxItemCount);
             Room->Items = MakeArray<string>(&Memory, Count);
             for(u32 I=0; I<CStringItems.Count; I++){
-                ArrayAdd(&Room->Items, Strings.GetString(CStringItems[I]));
+                string S = Strings.GetString(CStringItems[I]);
+                // TODO(Tyler): I'm not sure how this should be done. 
+                // This will not work if an item is present in multiple locations
+                if(Room->Dirty){
+                    for(u32 J=0; J<TA->Inventory.Count; J++){
+                        if(TA->Inventory[J] == S) goto repeat_loop;
+                    }
+                }
+                ArrayAdd(&Room->Items, S);
+                
+                repeat_loop:;
             }
             
         }else{ LogInvalidAttribute(Attribute); return false; }
@@ -611,7 +627,7 @@ asset_system::ProcessTAItem(){
     HandleError();
     Item->Aliases = MakeArray<const char *>(&Memory, Array.Count);
     for(u32 I=0; I<Array.Count; I++){
-        ArrayAdd(&Item->Aliases, Array[I]);
+        ArrayAdd(&Item->Aliases, Strings.GetPermanentString(Array[I]));
     }
     
     // Attributes
@@ -622,8 +638,14 @@ asset_system::ProcessTAItem(){
         const char *Attribute = Expect(Identifier);
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "adjectives")){
+            array<const char *> Adjectives = ExpectTypeArrayCString();
+            Item->Adjectives = MakeArray<const char *>(&Memory, Adjectives.Count);
+            for(u32 I=0; I<Adjectives.Count; I++){
+                ArrayAdd(&Item->Adjectives, Strings.GetPermanentString(Adjectives[I]));
+            }
         }else if(DoAttribute(Attribute, "cost")){
-            Item->Cost = ExpectPositiveInteger();
+            if(!Item->Dirty) Item->Cost = ExpectPositiveInteger();
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     

@@ -97,7 +97,10 @@ DoDefaultHotkeys(){
 
 internal void
 GameUpdateAndRender(){
+    
+    
     ArenaClear(&TransientStorageArena);
+    
     GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, MakeColor(0.0f, 0.0f, 0.0f));
     
     OSProcessInput(&OSInput);
@@ -116,7 +119,6 @@ GameUpdateAndRender(){
     AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
     Counter += OSInput.dTime;
     FrameCounter++;
-    
     //~ Other
     if(StateChangeData.DidChange){
         switch(StateChangeData.NewMode){

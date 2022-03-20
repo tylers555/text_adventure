@@ -34,10 +34,8 @@ struct item_shader {
 
 struct item_vertex {
     v2 P;
-    f32 Z;
     v2 PixelUV;
     color Color;
-    s8 Layer;
 };
 
 struct screen_shader {

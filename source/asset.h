@@ -29,6 +29,12 @@ enum asset_tag_id {
     AssetTag_Broken,
     AssetTag_Repaired,
     
+    AssetTag_Locked,
+    AssetTag_OpenDawn,
+    AssetTag_OpenNoon,
+    AssetTag_OpenDusk,
+    AssetTag_OpenNight,
+    
     AssetTag_Items,
     AssetTag_Adjacents,
     

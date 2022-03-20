@@ -34,7 +34,7 @@ MakeFullArray(memory_arena *Arena, u32 Count, umw Alignment=4){
 template<typename T> internal inline T
 ArrayGet(array<T> *Array, s64 Index){
     Assert(Index < Array->Count);
-    return(Array->Items[Index]);
+    return Array->Items[Index];
 }
 
 template<typename T> internal inline void

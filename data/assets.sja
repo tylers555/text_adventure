@@ -354,6 +354,7 @@
 
 : TAItem "A town map" Tag("map")
     Array("map" "maps")
+    adjectives Array("town")
     cost 5
     description Tag("examine")
         "This map appears very old and very weathered, however its detail is unparalleled. "
@@ -376,6 +377,7 @@
 
 : TAItem "carrot cake muffins" 
     Array("muffin" "muffins" "cake" "cakes")
+    adjectives Array("carrot" "cake")
     cost 2
     description Tag("examine")
         "It is a grainy orange color with smooth cream cheese frosting on top."
@@ -384,6 +386,7 @@
 
 : TAItem "honeyed almond pastries" 
     Array("pastry" "pastries")
+    adjectives Array("honeyed" "almond")
     cost 3
     description Tag("examine")
         "This many-layered shortened pastry is covered in thin slices of almond and glazed over with a thin coating of honey."
@@ -392,6 +395,7 @@
 
 : TAItem "cinnamon sugar churros" 
     Array("churro" "churros")
+    adjectives Array("cinnamon" "sugar")
     cost 1
     description Tag("examine")
         "A long, ridged, dark-brown churro with a generous sprinkling of cinnamon sugar."
@@ -400,6 +404,7 @@
 
 : TAItem "chocolate croissants" 
     Array("croissant" "croissants")
+    adjectives Array("chocolate")
     cost 2
     description Tag("examine")
         "A classic delectable. You can see the chocolate filling slightly spilling out the ends of this light croissant."
@@ -408,6 +413,7 @@
 
 : TAItem "large loaves of wheat bread" Tag("bread")
     Array("bread" "loaf" "loafs" "loaves")
+    adjectives Array("large" "wheat")
     cost 4
     description Tag("examine")
         "The bread is warm, with a light brown crust."
@@ -418,6 +424,7 @@
 
 : TAItem "bread crumbs" 
     Array("crumb" "crumb")
+    adjectives Array("bread")
     description Tag("examine")
         "It’s literally just a handful of crumbs... from bread."
     description Tag("eat")
@@ -425,6 +432,7 @@
 
 : TAItem "organ console" Tag("organ" "static")
     Array("organ" "organs" "console" "consoles")
+    adjectives Array("organ")
     description Tag("examine" "broken")
         "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
         "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
@@ -438,6 +446,7 @@
 
 : TAItem "organ bellows" Tag("organ" "static")
     Array("bellow" "bellows")
+    adjectives Array("organ")
     description Tag("examine" "broken")
         "From a swift glance at the multitude of bellows, "
         "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
@@ -446,6 +455,7 @@
 
 : TAItem "organ pipes" Tag("organ" "static")
     Array("pipe" "pipes")
+    adjectives Array("organ")    
     description Tag("examine" "broken")
         "You observe that several pipes seem to be absent."
     description Tag("examine" "repaired")
@@ -453,6 +463,7 @@
 
 : TAItem "small silver key" Tag("organ" "key")
     Array("key" "keys")
+    adjectives Array("small" "silver")
     description Tag("examine")
         "The handle of the key is shaped like a music note."
 
@@ -469,7 +480,8 @@
 
 : TARoom "Plaza SE"
     description
-#        "A BCDEFGHIJKLMNOPQRSTUVWXYZ\n"
+#        "\2A\0 BCDEFGHIJKLMNOPQRSTUVWXYZ\n"
+#        "0123456789\n"
         "There is very little here, aside from several tall and looming oak trees. "
         "The ground is damp from the rainy weather, and the blowing breeze brings a crisp chill. "
     description Tag("adjacents")
@@ -704,7 +716,6 @@
         north     "Cathedral altar"
         northeast "Cathedral organ console"
         south     "Cathedral front"
-        northwest "Cathedral vestry"
 
 : TARoom "Cathedral altar"
     description
@@ -712,7 +723,7 @@
     description Tag("adjacents")
         "Behind you in the \1south\0 is \2the nave\0, "
         "\n\2the organ console\0 to the \1east\0, "
-        "\nand another door leads \1west\0"
+        "\nand another door leads \1west\0 towards \2the vestry\0"
     adjacents
         east  "Cathedral organ console"
         south "Cathedral nave"
@@ -744,7 +755,7 @@
     adjacents
         west      "Cathedral altar"
         southwest "Cathedral nave"
-        north     "Cathedral maintenance room"
+        north     "Cathedral maintenance room" Tag("organ" "locked")
     items Array("organ console")
 
 : TARoom "Cathedral maintenance room" Tag("organ")

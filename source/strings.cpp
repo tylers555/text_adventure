@@ -47,6 +47,7 @@ struct string_manager {
     
     string GetString(const char *String);
     const char *GetString(string String);
+    const char *GetPermanentString(const char *String);
     char *MakeBuffer();
     void  RemoveBuffer(char *Buffer);
     template<typename T> T *GetInHashTablePtr(hash_table<string, T> *Table, const char *Key);
@@ -90,6 +91,12 @@ string_manager::GetString(string String){
     const char *Result = (const char *)String.ID;
     
     return(Result);
+}
+
+const char *
+string_manager::GetPermanentString(const char *String){
+    const char *Result = GetString(GetString(String));
+    return Result;
 }
 
 char *
