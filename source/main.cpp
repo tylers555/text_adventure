@@ -26,8 +26,6 @@ global audio_mixer AudioMixer;
 
 global game_settings GameSettings;
 
-global f32 Accumulator;
-
 global ta_system TextAdventure;
 
 //~ Hotloaded variables file!

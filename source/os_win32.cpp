@@ -23,7 +23,7 @@
 #include "opengl_renderer.cpp"
 
 global b32 Running;
-global f32 GlobalPerfCounterFrequency;
+global s64 GlobalPerfCounterFrequency;
 global HWND MainWindow;
 global WINDOWPLACEMENT GlobalWindowPlacement = {sizeof(GlobalWindowPlacement)};
 
@@ -156,6 +156,7 @@ Win32MainWindowProc(HWND Window,
     return(Result);
 }
 
+// NOTE(Tyler): This has a reason for staying as an interger, floats do not have enough accuracy
 internal LARGE_INTEGER
 Win32GetWallClock()
 {
@@ -166,8 +167,9 @@ Win32GetWallClock()
 
 internal f32
 Win32SecondsElapsed(LARGE_INTEGER Begin, LARGE_INTEGER End){
-    f32 Result = ((f32)End.QuadPart - (f32)Begin.QuadPart)/GlobalPerfCounterFrequency;
-    return(Result);
+    // NOTE(Tyler): The (f32) cast must be done after the subtraction, because of precision
+    f32 Result = (f32)(End.QuadPart-Begin.QuadPart)/GlobalPerfCounterFrequency;
+    return Result;
 }
 
 internal b32
@@ -317,10 +319,6 @@ Win32DefaultHandlerRoutine(DWORD ControlSignal){
         case CTRL_SHUTDOWN_EVENT: {
             // TODO(Tyler): I don't know if this is correct, but this is the only way I can
             // get it to close without crashing.
-            
-#if defined(SNAIL_JUMPY_DO_AUTO_SAVE_ON_EXIT)
-            WorldManager.WriteWorldsToFiles();
-#endif
             
             ExitProcess(0);
         }break;
@@ -509,8 +507,8 @@ WinMain(HINSTANCE Instance,
             b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
             
             LARGE_INTEGER PerformanceCounterFrequencyResult;
-            Assert(QueryPerformanceFrequency(&PerformanceCounterFrequencyResult));
-            GlobalPerfCounterFrequency = (f32)PerformanceCounterFrequencyResult.QuadPart;
+            QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
+            GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
             
             s32 MonitorRefreshHz = 60;
             s32 RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
@@ -560,13 +558,11 @@ WinMain(HINSTANCE Instance,
             while(Running){
                 GameUpdateAndRender();
                 
-                //~ Timing
                 SwapBuffers(DeviceContext);
                 
-                // TODO(Tyler): I still have no idea how to reliably do this
 #if 1
                 f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                if(SecondsElapsed < TargetSecondsPerFrame){
+                if(SecondsElapsed <= TargetSecondsPerFrame){
                     if(SleepIsGranular){
                         DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame-SecondsElapsed));
                         if(SleepMS > 1){
@@ -575,8 +571,14 @@ WinMain(HINSTANCE Instance,
                         }
                     }
                     
-                    while(SecondsElapsed < TargetSecondsPerFrame){
+                    f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
+                    while(SecondsElapsed <= TargetSecondsPerFrame){
                         SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
+                    }
+                    
+                    f32 Epsilon = 0.00001f;
+                    if(SecondsElapsed >= TargetSecondsPerFrame+Epsilon){
+                        LogMessage("Went past target time | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
                     }
                     
                     OSInput.dTime = SecondsElapsed;
@@ -595,9 +597,7 @@ WinMain(HINSTANCE Instance,
                 
 #endif
                 
-                LARGE_INTEGER EndTime = Win32GetWallClock();
-                
-                LastTime = EndTime;
+                LastTime = Win32GetWallClock();
             }
         }else{
             // TODO(Tyler): Error logging!
@@ -607,13 +607,8 @@ WinMain(HINSTANCE Instance,
     }else{
         // TODO(Tyler): Error logging!
         OutputDebugString("Failed to register window class!");
-        LogMessage("Win32: Failed to register window class!!");
+        LogMessage("Win32: Failed to register window class!");
     }
-    
-#if defined(SNAIL_JUMPY_DO_AUTO_SAVE_ON_EXIT)
-    WorldManager.WriteWorldsToFiles();
-#endif
-    FreeConsole();
     
     return(0);
 }
