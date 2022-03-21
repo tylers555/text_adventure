@@ -499,7 +499,7 @@ WinMain(HINSTANCE Instance,
         if(MainWindow){
             Win32InitOpenGl(Instance, &MainWindow);
             ToggleFullscreen(MainWindow);
-            wglSwapIntervalEXT(0);
+            wglSwapIntervalEXT(1);
             
             HDC DeviceContext = GetDC(MainWindow);
             Running = true;
@@ -523,9 +523,10 @@ WinMain(HINSTANCE Instance,
             }else if(TargetSecondsPerFrame > MAXIMUM_SECONDS_PER_FRAME){
                 TargetSecondsPerFrame = MAXIMUM_SECONDS_PER_FRAME;
             }
+            LARGE_INTEGER LastTime = Win32GetWallClock();
+            
             LogMessage("Timing calculated %u %d %d %f %f", SleepIsGranular, MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame);
             
-            LARGE_INTEGER LastTime = Win32GetWallClock();
             //~ Audio
             s32 SamplesPerSecond = 48000;
             u32 SamplesPerAudioFrame = (u32)((f32)SamplesPerSecond / (f32)MonitorRefreshHz);
@@ -565,8 +566,7 @@ WinMain(HINSTANCE Instance,
                 // TODO(Tyler): I still have no idea how to reliably do this
 #if 1
                 f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                if(SecondsElapsed < TargetSecondsPerFrame)
-                {
+                if(SecondsElapsed < TargetSecondsPerFrame){
                     if(SleepIsGranular){
                         DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame-SecondsElapsed));
                         if(SleepMS > 1){
@@ -575,13 +575,11 @@ WinMain(HINSTANCE Instance,
                         }
                     }
                     
-                    SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                    s64 Delta = (s64)(TargetSecondsPerFrame * (f32)GlobalPerfCounterFrequency);
-                    s64 EndTime = LastTime.QuadPart + Delta;;
-                    while((f32)Win32GetWallClock().QuadPart < EndTime){
+                    while(SecondsElapsed < TargetSecondsPerFrame){
+                        SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
                     }
+                    
                     OSInput.dTime = SecondsElapsed;
-                    //OSInput.dTime = TargetSecondsPerFrame;
                 }else{
                     LogMessage("Missed FPS");
                     OSInput.dTime = SecondsElapsed;
@@ -589,11 +587,12 @@ WinMain(HINSTANCE Instance,
                         OSInput.dTime = MAXIMUM_SECONDS_PER_FRAME;
                     }
                 }
-#endif
                 
-#if 0   
-                f32 TimeElapsedForFrame = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                TargetSecondsPerFrame = TimeElapsedForFrame;
+                if(OSInput.dTime <= 0.0){
+                    LogMessage("dTime is not valid! | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
+                    OSInput.dTime = MINIMUM_SECONDS_PER_FRAME;
+                }
+                
 #endif
                 
                 LARGE_INTEGER EndTime = Win32GetWallClock();

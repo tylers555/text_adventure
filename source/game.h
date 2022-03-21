@@ -57,13 +57,14 @@ struct ta_system {
     ta_room *CurrentRoom;
     
     command_func *Callback;
-    char ResponseBuffer[DEFAULT_BUFFER_SIZE];
+    string_builder ResponseBuilder;
     
     array<string> Inventory;
     
     void Initialize(memory_arena *Arena);
     inline b8 AddItem(string Item);
-    inline void Respond(const char *Response);
+    inline void ClearResponse();
+    inline void Respond(const char *Format, ...);
     
     //~ Game specific data
     asset_tag_id OrganState;

@@ -190,3 +190,18 @@ StringBuilderAdd(string_builder *Builder, void *Data, u32 DataSize){
 }
 
 #define StringBuilderAddVar(Builder, Data) StringBuilderAdd(Builder, &Data, sizeof(Data))
+
+internal inline void
+StringBuilderVAdd(string_builder *Builder, const char *Format, va_list VarArgs){
+    char Buffer[DEFAULT_BUFFER_SIZE];
+    stbsp_vsnprintf(Buffer, DEFAULT_BUFFER_SIZE, Format, VarArgs);
+    StringBuilderAdd(Builder, Buffer);
+}
+
+internal inline void
+StringBuilderAdd(string_builder *Builder, const char *Format, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Format);
+    StringBuilderVAdd(Builder, Format, VarArgs);
+    va_end(VarArgs);
+}

@@ -47,10 +47,26 @@ CompareWords(const char *A, const char *B){
     return true;
 }
 
+internal inline b8
+TAItemsHaveSameAliases(ta_item *A, ta_item *B){
+    for(u32 I=0; I<A->Aliases.Count; I++){
+        for(u32 J=0; J<B->Aliases.Count; J++){
+            if(CompareWords(A->Aliases[I], B->Aliases[J])) return true;
+        }
+    }
+    
+    return false;
+}
+
 struct ta_found_item {
     ta_item *Item;
     s32 Weight;
     u32 Index;
+    b8 IsAmbiguous;
+};
+
+struct ta_found_items {
+    dynamic_array<ta_found_item> Items;
     b8 IsAmbiguous;
 };
 
@@ -103,11 +119,6 @@ TAContinueFindItem(ta_system *TA, array<string> *Items, char **Words, u32 WordCo
 
 internal ta_found_item
 TAFindItem(ta_system *TA, array<string> *Items, char **Words, u32 WordCount){
-    b8 IsAmbiguous = false;
-    ta_item *CandidateItem = 0;
-    u32 CandidateIndex     = 0;
-    s32 CandidateWeight    = -1;
-    
     ta_found_item Result = {};
     Result.Weight = -1;
     TAContinueFindItem(TA, Items, Words, WordCount, &Result);
@@ -245,7 +256,6 @@ void CommandMove(ta_system *TA, char **Words, u32 WordCount){
         return;
     }
     TA->CurrentRoom = NextRoom;
-    TA->ResponseBuffer[0] = 0;
     
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("room_change")));
 }
@@ -306,7 +316,6 @@ void CommandDrop(ta_system *TA, char **Words, u32 WordCount){
     if(TARoomAddItem(TA, Room, TA->Inventory[Index])) ArrayOrderedRemove(&TA->Inventory, Index);
     
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_dropped")));
-    TextAdventure.ResponseBuffer[0] = 0;
 }
 
 void CallbackConfirmBuy(ta_system *TA, char **Words, u32 WordCount){
@@ -370,7 +379,6 @@ void CommandEat(ta_system *TA, char **Words, u32 WordCount){
     
     ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Eat));
     if(!Description){
-        // TODO(Tyler): We need a better response system, because thing will get overwritten
         TA->Respond("You can't eat \002\002that\002\001!");
         return;
     }
@@ -535,6 +543,7 @@ ta_system::Initialize(memory_arena *Arena){
     RoomTable = PushHashTable<string, ta_room>(Arena, 64);
     ItemTable = PushHashTable<string, ta_item>(Arena, 128);
     Inventory = MakeArray<string>(Arena, INVENTORY_ITEM_COUNT);
+    ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
     
     //~ Game specific data
     OrganState = AssetTag_Broken;
@@ -547,11 +556,19 @@ ta_system::AddItem(string Item){
     return Result;
 }
 
+inline void
+ta_system::ClearResponse(){
+    ResponseBuilder.Buffer[0] = 0;
+    ResponseBuilder.BufferSize = 0;
+}
+
 inline void 
-ta_system::Respond(const char *Response){
-    if(!Response) return;
-    if((size_t)Response == offsetof(ta_string, Data)) return; // TODO(Tyler): Hacky solution
-    CopyCString(ResponseBuffer, Response, DEFAULT_BUFFER_SIZE);
+ta_system::Respond(const char *Format, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Format);
+    StringBuilderVAdd(&ResponseBuilder, Format, VarArgs);
+    StringBuilderAdd(&ResponseBuilder, '\n');
+    va_end(VarArgs);
 }
 
 //~ 
@@ -629,7 +646,9 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         v2 InputP = V2(10, InputHeight);
         
         fancy_font_format ResponseFancies[2] = {ResponseFancy, EmphasisFancy};
-        InputP.Y -= FontRenderFancyString(Font, ResponseFancies, ArrayCount(ResponseFancies), InputP, TextAdventure.ResponseBuffer, ResponseWidth);
+        const char *Response = TextAdventure.ResponseBuilder.Buffer;
+        InputP.Y -= FontRenderFancyString(Font, ResponseFancies, ArrayCount(ResponseFancies), InputP, 
+                                          Response, ResponseWidth);
         
         char *Text = OSInput.Buffer;
         FontRenderFancyString(Font, &BasicFancy, 1, InputP, Text);
@@ -649,6 +668,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         
         //~ Command processing
         if(OSInput.MaybeEndTextInput()){
+            TextAdventure.ClearResponse();
             u32 TokenCount;
             char **Tokens = TokenizeCommand(&TransientStorageArena, OSInput.Buffer, &TokenCount);
             if(TextAdventure.Callback){
