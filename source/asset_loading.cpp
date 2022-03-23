@@ -376,6 +376,7 @@ asset_system::ProcessSoundEffect(){
     }
     
     *Sound = {};
+    Sound->VolumeMultiplier = 1.0f;
     
     while(true){
         file_token Token = Reader.PeekToken();
@@ -390,6 +391,8 @@ asset_system::ProcessSoundEffect(){
             }
             Sound->Sound = Data;
             
+        }else if(DoAttribute(Attribute, "volume")){
+            Sound->VolumeMultiplier = Expect(Float);
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     

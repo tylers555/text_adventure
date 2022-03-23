@@ -34,6 +34,7 @@ struct item_shader {
 
 struct item_vertex {
     v2 P;
+    f32 Z;
     v2 PixelUV;
     color Color;
 };

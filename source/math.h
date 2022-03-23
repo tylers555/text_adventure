@@ -687,16 +687,6 @@ MakeColor(f32 R, f32 G, f32 B, f32 A=1.0f){
 }
 
 internal inline color
-MakeColor(u32 C){
-    color Result = {};
-    Result.R = (f32)((C >> 24) & 0xff) / 255.0f;
-    Result.G = (f32)((C >> 16) & 0xff) / 255.0f;
-    Result.B = (f32)((C >> 8)  & 0xff) / 255.0f;
-    Result.A = (f32)((C >> 0)  & 0xff) / 255.0f;
-    return Result;
-}
-
-internal inline color
 MixColor(color A, color B, f32 Value){
     Value = Clamp(Value, 0.0f, 1.0f);
     color Result;
@@ -740,6 +730,24 @@ operator*=(color &Color, f32 X)
     return Color;
 }
 
+internal inline color
+operator/(color Color, f32 X)
+{
+    color Result;
+    Result.R = Color.R/X;
+    Result.G = Color.G/X;
+    Result.B = Color.B/X;
+    Result.A = Color.A/X;
+    return Result;
+}
+
+internal inline color
+operator/=(color &Color, f32 X)
+{
+    Color = Color/X;
+    return Color;
+}
+
 typedef u32 color_u32;
 internal inline color_u32
 ColorU32(color C){
@@ -749,6 +757,17 @@ ColorU32(color C){
                         (((u32)C.G) << 16) |
                         (((u32)C.B) << 8) |
                         (((u32)C.A) << 0));
+    return Result;
+}
+
+internal inline color
+MakeColor(color_u32 C){
+    color Result = {};
+    Result.R = (f32)((C >> 24) & 0xff);
+    Result.G = (f32)((C >> 16) & 0xff);
+    Result.B = (f32)((C >> 8)  & 0xff);
+    Result.A = (f32)((C >> 0)  & 0xff);
+    Result /= 255.0f;
     return Result;
 }
 

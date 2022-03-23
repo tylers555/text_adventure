@@ -168,7 +168,7 @@ Win32GetWallClock()
 internal f32
 Win32SecondsElapsed(LARGE_INTEGER Begin, LARGE_INTEGER End){
     // NOTE(Tyler): The (f32) cast must be done after the subtraction, because of precision
-    f32 Result = (f32)(End.QuadPart-Begin.QuadPart)/GlobalPerfCounterFrequency;
+    f32 Result = (f32)(End.QuadPart-Begin.QuadPart)/(f32)GlobalPerfCounterFrequency;
     return Result;
 }
 
@@ -523,7 +523,8 @@ WinMain(HINSTANCE Instance,
             }
             LARGE_INTEGER LastTime = Win32GetWallClock();
             
-            LogMessage("Timing calculated %u %d %d %f %f", SleepIsGranular, MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame);
+            LogMessage("Timing calculated %u %d %d %f %f %'llu", SleepIsGranular, 
+                       MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, GlobalPerfCounterFrequency);
             
             //~ Audio
             s32 SamplesPerSecond = 48000;
@@ -576,7 +577,8 @@ WinMain(HINSTANCE Instance,
                         SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
                     }
                     
-                    f32 Epsilon = 0.00001f;
+                    //f32 Epsilon = 0.00001f;
+                    f32 Epsilon = 0.001f;
                     if(SecondsElapsed >= TargetSecondsPerFrame+Epsilon){
                         LogMessage("Went past target time | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
                     }
@@ -594,7 +596,6 @@ WinMain(HINSTANCE Instance,
                     LogMessage("dTime is not valid! | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
                     OSInput.dTime = MINIMUM_SECONDS_PER_FRAME;
                 }
-                
 #endif
                 
                 LastTime = Win32GetWallClock();

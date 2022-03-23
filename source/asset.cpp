@@ -76,16 +76,6 @@ asset_system::GetFont(string Name){
     return(Result);
 }
 
-internal inline fancy_font_format
-MakeFancyFormat(color Color, f32 Amplitude, f32 Speed, f32 dT){
-    fancy_font_format Result = {};
-    Result.Color = Color;
-    Result.Amplitude = Amplitude;
-    Result.Speed = Speed;
-    Result.dT = dT;
-    return Result;
-}
-
 internal f32
 VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, va_list VarArgs){
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
@@ -131,25 +121,6 @@ FontRenderString(asset_font *Font, v2 P, color Color, const char *Format, ...){
     
     va_end(VarArgs);
     return Result;
-}
-
-internal inline f32
-FontRenderFancyGlyph(asset_font *Font, const fancy_font_format *Fancy, v2 P, f32 T, char C){
-    v2 CharP = P;
-    CharP.Y += Fancy->Amplitude*Sin(T);
-    
-    asset_font_glyph Glyph = Font->Table[C];
-    rect R = SizeRect(CharP, V2((f32)Glyph.Width, (f32)Font->Height));
-    rect TextureR = SizeRect(V2((f32)Glyph.Offset.X, (f32)Glyph.Offset.Y),
-                             V2((f32)Glyph.Width, Font->Height));
-    TextureR.Min.X /= Font->Size.Width;
-    TextureR.Max.X /= Font->Size.Width;
-    TextureR.Min.Y /= Font->Size.Height;
-    TextureR.Max.Y /= Font->Size.Height;
-    RenderTexture(&GameRenderer, R, 0.0, Font->Texture, TextureR, false, Fancy->Color);
-    //RenderRect(&GameRenderer, R, 0.0, MakeColor(1.0, 1.0, 0.0, 0.0));
-    
-    return (f32)Glyph.Width;
 }
 
 #if 0
@@ -256,6 +227,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
     if(!S[0]) return 0;
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
     
+    
     Assert(FancyCount > 0);
     const u32 MAX_FANCY_COUNT = 10;
     
@@ -276,6 +248,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
     
     item_vertex *Vertices = Renderer->AddVertices(RenderItem, Length*4);
     u32 *Indices = Renderer->AddIndices(RenderItem, Length*6);
+    f32 Z = 0.0f;
     
     u32 J = 0;
     for(u32 I=0; I<Length; I++){
@@ -317,7 +290,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
         {
             v2 CharP = P;
             if(Ts[CurrentFancyIndex] != 0.0f)
-                CharP.Y += Fancy->Amplitude*Sin(Ts[CurrentFancyIndex]);
+                CharP.Y += Fancy->Amplitude*Sin(0.5f*PI*Ts[CurrentFancyIndex]);
             
             f32 X0 = CharP.X;
             f32 Y0 = CharP.Y;
@@ -329,10 +302,10 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
             f32 TX1 = (f32)(Glyph.Offset.X+Glyph.Width)  / Font->Size.Width;
             f32 TY1 = (f32)(Glyph.Offset.Y+Font->Height) / Font->Size.Height;
             
-            Vertices[4*J+0] = {V2(X0, Y0), V2(TX0, TY0), Fancy->Color};
-            Vertices[4*J+1] = {V2(X0, Y1), V2(TX0, TY1), Fancy->Color};
-            Vertices[4*J+2] = {V2(X1, Y1), V2(TX1, TY1), Fancy->Color};
-            Vertices[4*J+3] = {V2(X1, Y0), V2(TX1, TY0), Fancy->Color};
+            Vertices[4*J+0] = {V2(X0, Y0), Z, V2(TX0, TY0), Fancy->Color};
+            Vertices[4*J+1] = {V2(X0, Y1), Z, V2(TX0, TY1), Fancy->Color};
+            Vertices[4*J+2] = {V2(X1, Y1), Z, V2(TX1, TY1), Fancy->Color};
+            Vertices[4*J+3] = {V2(X1, Y0), Z, V2(TX1, TY0), Fancy->Color};
             
             Indices[6*J+0] = 4*J+0;
             Indices[6*J+1] = 4*J+1;
@@ -353,6 +326,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
 }
 
 #else
+
 // NOTE(Tyler): This does not seem to have too significant of a speedup
 internal f32
 FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
@@ -380,9 +354,11 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
     
     item_vertex *Vertices = Renderer->AddVertices(RenderItem, Length*4);
     u32 *Indices = Renderer->AddIndices(RenderItem, Length*6);
+    f32 Z = 0.0f;
     
+    b8 NextCharIsSpecial = false;;
     u32 K=0;
-    for(u32 I=0; I<Length/8; I++){
+    for(u32 I=0; I<Length/16; I++){
         u64 C8 = ((u64 *)S)[I];
         
         for(u32 J=I*8; J<I*8+8; J++){
@@ -390,7 +366,14 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
             C8 >>= 8;
             asset_font_glyph Glyph = Font->Table[C];
             
-            if(C == ' '){
+            if(NextCharIsSpecial){
+                CurrentFancyIndex = C;
+                Assert(CurrentFancyIndex <= FancyCount);
+                CurrentFancyIndex--;
+                Fancy = &Fancies[CurrentFancyIndex];
+                NextCharIsSpecial = false;
+                continue;
+            }else if(C == ' '){
                 f32 WordAdvance = FontWordAdvance(Font, S, J);
                 if(P.X-StartP.X+WordAdvance >= MaxWidth){
                     P.X = StartP.X;
@@ -409,13 +392,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
             }else if(C == '\r'){
                 continue;
             }else if(C == '\x02'){
-                J++;
-                C8 >>= 8;
-                Assert(J < Length);
-                CurrentFancyIndex = S[J];
-                Assert(CurrentFancyIndex <= FancyCount);
-                CurrentFancyIndex--;
-                Fancy = &Fancies[CurrentFancyIndex];
+                NextCharIsSpecial = true;
                 continue;
             }else if(P.X-StartP.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
                 P.X = StartP.X;
@@ -438,10 +415,10 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
                 f32 TX1 = (f32)(Glyph.Offset.X+Glyph.Width)  / Font->Size.Width;
                 f32 TY1 = (f32)(Glyph.Offset.Y+Font->Height) / Font->Size.Height;
                 
-                Vertices[4*K+0] = {V2(X0, Y0), V2(TX0, TY0), Fancy->Color};
-                Vertices[4*K+1] = {V2(X0, Y1), V2(TX0, TY1), Fancy->Color};
-                Vertices[4*K+2] = {V2(X1, Y1), V2(TX1, TY1), Fancy->Color};
-                Vertices[4*K+3] = {V2(X1, Y0), V2(TX1, TY0), Fancy->Color};
+                Vertices[4*K+0] = {V2(X0, Y0), Z, V2(TX0, TY0), Fancy->Color};
+                Vertices[4*K+1] = {V2(X0, Y1), Z, V2(TX0, TY1), Fancy->Color};
+                Vertices[4*K+2] = {V2(X1, Y1), Z, V2(TX1, TY1), Fancy->Color};
+                Vertices[4*K+3] = {V2(X1, Y0), Z, V2(TX1, TY0), Fancy->Color};
                 
                 Indices[6*K+0] = 4*K+0;
                 Indices[6*K+1] = 4*K+1;
@@ -459,7 +436,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
         
     }
     
-    for(u32 I=8*(Length/8); I<Length; I++){
+    for(u32 I=8*(Length/16); I<Length; I++){
         char C = S[I];
         asset_font_glyph &Glyph = Font->Table[C];
         
@@ -511,10 +488,10 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
             f32 TX1 = (f32)(Glyph.Offset.X+Glyph.Width)  / Font->Size.Width;
             f32 TY1 = (f32)(Glyph.Offset.Y+Font->Height) / Font->Size.Height;
             
-            Vertices[4*K+0] = {V2(X0, Y0), V2(TX0, TY0), Fancy->Color};
-            Vertices[4*K+1] = {V2(X0, Y1), V2(TX0, TY1), Fancy->Color};
-            Vertices[4*K+2] = {V2(X1, Y1), V2(TX1, TY1), Fancy->Color};
-            Vertices[4*K+3] = {V2(X1, Y0), V2(TX1, TY0), Fancy->Color};
+            Vertices[4*K+0] = {V2(X0, Y0), Z, V2(TX0, TY0), Fancy->Color};
+            Vertices[4*K+1] = {V2(X0, Y1), Z, V2(TX0, TY1), Fancy->Color};
+            Vertices[4*K+2] = {V2(X1, Y1), Z, V2(TX1, TY1), Fancy->Color};
+            Vertices[4*K+3] = {V2(X1, Y0), Z, V2(TX1, TY0), Fancy->Color};
             
             Indices[6*K+0] = 4*K+0;
             Indices[6*K+1] = 4*K+1;
@@ -525,6 +502,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
             
             K++;
             P.X += (f32)Glyph.Width+FONT_LETTER_SPACE;
+            Ts[CurrentFancyIndex] += Fancy->dT;
         }
     }
     RenderItem->IndexCount = 6*K;

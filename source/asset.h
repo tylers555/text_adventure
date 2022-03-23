@@ -68,6 +68,7 @@ struct sound_data {
 
 struct asset_sound_effect {
     sound_data Sound;
+    f32 VolumeMultiplier;
 };
 
 //~ Fonts
@@ -94,6 +95,16 @@ struct asset_font {
     
     asset_font_glyph Table[128];
 };
+
+internal inline fancy_font_format
+MakeFancyFormat(color Color, f32 Amplitude, f32 Speed, f32 dT){
+    fancy_font_format Result = {};
+    Result.Color = Color;
+    Result.Amplitude = Amplitude;
+    Result.Speed = Speed;
+    Result.dT = dT;
+    return Result;
+}
 
 //~
 struct ta_string;

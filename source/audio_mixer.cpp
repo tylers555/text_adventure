@@ -7,6 +7,8 @@ audio_mixer::Initialize(memory_arena *Arena){
 
 void
 audio_mixer::PlaySound(asset_sound_effect *Asset, mixer_sound_flags Flags, f32 PlaybackSpeed, f32 Volume0, f32 Volume1){
+    if(!Asset) return;
+    
     TicketMutexBegin(&FreeSoundMutex);
     
     if(!FirstFreeSound){
@@ -22,8 +24,8 @@ audio_mixer::PlaySound(asset_sound_effect *Asset, mixer_sound_flags Flags, f32 P
     
     Sound->Speed = PlaybackSpeed;
     Sound->Flags = Flags;
-    Sound->Volume0 = Volume0;
-    Sound->Volume1 = Volume1;
+    Sound->Volume0 = Volume0*Asset->VolumeMultiplier;
+    Sound->Volume1 = Volume1*Asset->VolumeMultiplier;
     
     Sound->Next = FirstSound;
     FirstSound = Sound;

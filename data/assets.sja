@@ -71,12 +71,12 @@
     BACKSLASH 3
     SQUARE_BRACKET_RIGHT 2
     CARET 3
-    BACK_TICK 2
     UNDERSCORE 4
     CURLY_BRACKET_LEFT 3
     PIPE 1
     CURLY_BRACKET_RIGHT 3
     TILDE 4
+    BACK_TICK 2
     char "a" 3
     char "b" 3
     char "c" 3 
@@ -180,11 +180,10 @@
     AT_SIGN 5
 
 : Font basic_lowercase
-    path "asset_fonts/basic_lowercase_2.png"
-    height 7
+    path "asset_fonts/basic_lowercase_3.png"
+    height 5
     padding 1
     descent 2
-    SPACE 2
     A 3
     B 3
     C 3 
@@ -211,6 +210,7 @@
     X 3
     Y 3
     Z 2
+    SPACE 2
 
 : Font font_bold
     path "asset_fonts/bold_font.png"
@@ -324,23 +324,29 @@
 # //////////////////////////////////////////////////////////////////////////
 
 : SoundEffect menu_move
-    path "asset_sound_effects/puhp_01.wav"
+    path "asset_sound_effects/testing/puhp_01.wav"
 
 : SoundEffect test_music
-    # path "asset_sound_effects/osj/Music.wav"
-    path "asset_sound_effects/osj_music.wav"
+    path "asset_sound_effects/osj/Music.wav"
+    # path "asset_sound_effects/osj_music.wav"
 
 : SoundEffect room_change 
-    path "asset_sound_effects/osj/JumpFX.wav"
+    path "asset_sound_effects/sf_wood_walk.wav"
+ 
+: SoundEffect open_door
+    path "asset_sound_effects/sf_open_door_1.wav"
 
 : SoundEffect item_taken
-    path "asset_sound_effects/crack_00.wav"
+    path "asset_sound_effects/sf_take.wav"
+
+: SoundEffect item_bought
+    path "asset_sound_effects/sf_coin_1.wav"
 
 : SoundEffect item_dropped
-    path "asset_sound_effects/drop_00.wav"
+    path "asset_sound_effects/sf_drop.wav"
 
 : SoundEffect item_eaten
-    path "asset_sound_effects/osj/PowUpFX.wav"
+    path "asset_sound_effects/sf_eat_1.wav"
 
 : SoundEffect organ_play_broken
     path "asset_sound_effects/osj/LoseFX.wav"

@@ -24,8 +24,6 @@ global game_renderer GameRenderer;
 
 global audio_mixer AudioMixer;
 
-global game_settings GameSettings;
-
 global ta_system TextAdventure;
 
 //~ Hotloaded variables file!
@@ -58,12 +56,12 @@ InitializeGame(){
     stbi_set_flip_vertically_on_load(true);
     
     {
-        umw Size = Megabytes(500);
+        umw Size = Megabytes(256);
         void *Memory = AllocateVirtualMemory(Size);
         Assert(Memory);
         InitializeArena(&PermanentStorageArena, Memory, Size);
     }{
-        umw Size = Gigabytes(1);
+        umw Size = Megabytes(512);
         void *Memory = AllocateVirtualMemory(Size);
         Assert(Memory);
         InitializeArena(&TransientStorageArena, Memory, Size);
@@ -95,11 +93,9 @@ DoDefaultHotkeys(){
 
 internal void
 GameUpdateAndRender(){
-    
-    
     ArenaClear(&TransientStorageArena);
     
-    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, MakeColor(0.0f, 0.0f, 0.0f));
+    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, BASE_BACKGROUND_COLOR);
     
     OSProcessInput(&OSInput);
     
@@ -247,6 +243,8 @@ os_input::AddToBuffer(os_key_code Key){
         CursorPosition = BufferLength;
     }else if(Key == KeyCode_Return){
         InputFlags |= OSInputFlag_EndTextInput;
+    }else if(Key == KeyCode_Escape){
+        SelectionMark = -1;
     }
     
     BufferLength = CStringLength(Buffer);

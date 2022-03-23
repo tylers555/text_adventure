@@ -25,10 +25,10 @@ RenderQuad(game_renderer *Renderer, render_texture Texture, f32 Z,
     if(!RenderItem) return;
     
     item_vertex *Vertices = Renderer->AddVertices(RenderItem, 4);
-    Vertices[0] = {P0, T0, C0};
-    Vertices[1] = {P1, T1, C1};
-    Vertices[2] = {P2, T2, C2};
-    Vertices[3] = {P3, T3, C3};
+    Vertices[0] = {P0, Z, T0, C0};
+    Vertices[1] = {P1, Z, T1, C1};
+    Vertices[2] = {P2, Z, T2, C2};
+    Vertices[3] = {P3, Z, T3, C3};
     
     u32 *Indices = Renderer->AddIndices(RenderItem, 6);
     Indices[0] = 0;
@@ -167,8 +167,9 @@ game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
     
     if(OSInput.WasWindowResized()){
         f32 Aspect = OutputSize.X/OutputSize.Y;
-        f32 Factor = 216.0f;
+        f32 Factor = 270.0f;
         f32 NewScale = Minimum(OutputSize.X, OutputSize.Y)/Factor;
+        //NewScale = Clamp(NewScale, 1.0f, 0.0f);
         NewScale = Maximum(NewScale, 1.0f);
         ChangeScale(Round(NewScale));
     }

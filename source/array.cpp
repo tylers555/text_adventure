@@ -11,7 +11,7 @@ struct array {
         return(Items[Index]);
     }
     
-    inline operator b8(){  return(Items != 0); }
+    inline operator b8(){  return (Items != 0) || (Count == 0); }
 };
 
 template<typename T> internal inline array<T>
@@ -157,6 +157,11 @@ MakeDynamicArray(s32 InitialCapacity, memory_arena *Arena=0){
     Result.Capacity = InitialCapacity;
     
     return Result;
+}
+
+template <typename T> internal inline dynamic_array<T>
+MakeDynamicArray(memory_arena *Arena, s32 InitialCapacity){
+    return MakeDynamicArray<T>(InitialCapacity, Arena);
 }
 
 template <typename T> void 

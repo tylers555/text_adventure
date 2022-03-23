@@ -1,22 +1,34 @@
 #ifndef GAME_H
 #define GAME_H
 
-struct game_settings {
-    os_key_code Jump        = KeyCode_Space;
-    os_key_code Select      = (os_key_code)'X';
-    os_key_code PlayerLeft  = KeyCode_Left;
-    os_key_code PlayerRight = KeyCode_Right;
-    
-    os_key_code BoardUp    = KeyCode_Up;
-    os_key_code BoardDown  = KeyCode_Down;
-    os_key_code BoardLeft  = KeyCode_Left;
-    os_key_code BoardRight = KeyCode_Right;
-    os_key_code BoardPlace = KeyCode_Space;
-};
-
 global_constant os_key_code PAUSE_KEY = KeyCode_Escape;
 
+//~ Theme
+global_constant color BASE_BACKGROUND_COLOR = MakeColor(0x0a0d4aff);
+global_constant color BASIC_COLOR      = MakeColor(0xf2f2f2ff);
+global_constant color ROOM_TITLE_COLOR = MakeColor(0xff6969ff);
+global_constant color ROOM_COLOR       = MakeColor(0xffe369ff);
+global_constant color DIRECTION_COLOR  = MakeColor(0x84d197ff);
+global_constant color ITEM_COLOR       = MakeColor(0x24e3e3ff);
+
+global_constant color RESPONSE_COLOR = MakeColor(0x9063ffff);
+global_constant color EMPHASIS_COLOR = MakeColor(0xe06ecdff);
+
+global_constant fancy_font_format BasicFancy     = MakeFancyFormat(BASIC_COLOR, 0.0, 0.0, 0.0);
+global_constant fancy_font_format RoomTitleFancy = MakeFancyFormat(ROOM_TITLE_COLOR, 1.0,  4.0, 2.0);
+global_constant fancy_font_format ItemFancy      = MakeFancyFormat(ITEM_COLOR, 0.0,  0.0, 0.0);
+global_constant fancy_font_format RoomFancy      = MakeFancyFormat(ROOM_COLOR, 1.0,  3.0, .125);
+global_constant fancy_font_format DirectionFancy = MakeFancyFormat(DIRECTION_COLOR, 0.0,  0.0, 0.0);
+global_constant fancy_font_format DescriptionFancies[] = {BasicFancy, DirectionFancy, RoomFancy, ItemFancy};
+
+
+
+global_constant fancy_font_format ResponseFancy = MakeFancyFormat(RESPONSE_COLOR, 0.0,  0.0, 0.0);
+global_constant fancy_font_format EmphasisFancy = MakeFancyFormat(EMPHASIS_COLOR, 1.0, 5.0, 3.0);
+
+
 //~ Text adventure stuff
+
 global_constant u32 MAX_COMMAND_TOKENS = 64;
 global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 global_constant u32 INVENTORY_ITEM_COUNT = 10;
