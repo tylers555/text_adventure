@@ -27,6 +27,8 @@
     response   Fancy(Color(0x9063ffff))
     emphasis   Fancy(Color(0xe06ecdff) 1.0 5.0 3.0)
 
+# I don't like this having to be after the themes, this is currently required.
+# As such, this is a current limitation of the SJA system, and will be changed.
 : Variables
     start_game_mode "main game"
     start_room      "Plaza SE"
