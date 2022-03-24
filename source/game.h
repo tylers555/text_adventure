@@ -14,27 +14,27 @@ global_constant color ITEM_COLOR       = MakeColor(0x24e3e3ff);
 global_constant color RESPONSE_COLOR = MakeColor(0x9063ffff);
 global_constant color EMPHASIS_COLOR = MakeColor(0xe06ecdff);
 
-global_constant fancy_font_format BasicFancy     = MakeFancyFormat(BASIC_COLOR, 0.0, 0.0, 0.0);
-global_constant fancy_font_format RoomTitleFancy = MakeFancyFormat(ROOM_TITLE_COLOR, 1.0,  4.0, 2.0);
-global_constant fancy_font_format ItemFancy      = MakeFancyFormat(ITEM_COLOR, 0.0,  0.0, 0.0);
-global_constant fancy_font_format RoomFancy      = MakeFancyFormat(ROOM_COLOR, 1.0,  3.0, .125);
-global_constant fancy_font_format DirectionFancy = MakeFancyFormat(DIRECTION_COLOR, 0.0,  0.0, 0.0);
-global_constant fancy_font_format DescriptionFancies[] = {BasicFancy, DirectionFancy, RoomFancy, ItemFancy};
-
-
-
-global_constant fancy_font_format ResponseFancy = MakeFancyFormat(RESPONSE_COLOR, 0.0,  0.0, 0.0);
-global_constant fancy_font_format EmphasisFancy = MakeFancyFormat(EMPHASIS_COLOR, 1.0, 5.0, 3.0);
-
+struct console_theme {
+    string BasicFont;
+    string TitleFont;
+    
+    color BackgroundColor;
+    
+    fancy_font_format BasicFancy;
+    fancy_font_format RoomTitleFancy;
+    fancy_font_format ItemFancy;
+    fancy_font_format RoomFancy;
+    fancy_font_format DirectionFancy;
+    fancy_font_format DescriptionFancies[4];
+    fancy_font_format ResponseFancies[2];
+};
+internal inline console_theme MakeDefaultConsoleTheme();
 
 //~ Text adventure stuff
 
 global_constant u32 MAX_COMMAND_TOKENS = 64;
 global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 global_constant u32 INVENTORY_ITEM_COUNT = 10;
-
-struct ta_system;
-typedef void command_func(ta_system *TA, char **Words, u32 WordCount);
 
 struct ta_string {
     asset_tag Tag;
@@ -60,18 +60,26 @@ struct ta_room {
     asset_tag AdjacentTags[Direction_TOTAL];
 };
 
+struct ta_system;
+typedef void command_func(ta_system *TA, char **Words, u32 WordCount);
+
 struct ta_system {
+    hash_table<string, console_theme> ThemeTable;
+    console_theme Theme;
+    
     hash_table<const char *, command_func *> CommandTable;
-    hash_table<const char *, direction> DirectionTable;
+    hash_table<const char *, direction>      DirectionTable;
     
     hash_table<string, ta_room> RoomTable;
     hash_table<string, ta_item> ItemTable;
+    
+    array<string> Inventory;
+    
+    string StartRoom;
     ta_room *CurrentRoom;
     
     command_func *Callback;
     string_builder ResponseBuilder;
-    
-    array<string> Inventory;
     
     void Initialize(memory_arena *Arena);
     inline b8 AddItem(string Item);

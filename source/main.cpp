@@ -26,9 +26,9 @@ global audio_mixer AudioMixer;
 
 global ta_system TextAdventure;
 
-//~ Hotloaded variables file!
-// TODO(Tyler): Load this from a variables file at startup
-global game_mode GameMode = GameMode_MainGame;
+global u64 DebugInitTime;
+
+global game_mode GameMode = GameMode_None;
 
 //~ Helpers
 internal inline string
@@ -53,6 +53,8 @@ String(const char *S){
 
 internal void
 InitializeGame(){
+    u64 Start = OSGetMicroseconds();
+    
     stbi_set_flip_vertically_on_load(true);
     
     {
@@ -82,6 +84,10 @@ InitializeGame(){
     
     AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
     //AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("test_music")), MixerSoundFlag_Music|MixerSoundFlag_Loop, 1.0f);
+    
+    DebugInitTime = OSGetMicroseconds()-Start;
+    
+    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, PINK);
 }
 
 //~
@@ -93,9 +99,12 @@ DoDefaultHotkeys(){
 
 internal void
 GameUpdateAndRender(){
-    ArenaClear(&TransientStorageArena);
+    if(GameMode == GameMode_None){
+        GameMode = GameMode_MainGame;
+    }
     
-    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, BASE_BACKGROUND_COLOR);
+    u64 Start = OSGetMicroseconds();
+    ArenaClear(&TransientStorageArena);
     
     OSProcessInput(&OSInput);
     
@@ -125,6 +134,12 @@ GameUpdateAndRender(){
         }
         
         StateChangeData = {};
+    }
+    
+    if(FrameCounter == 1){
+        DebugInitTime += OSGetMicroseconds()-Start;
+        f32 Time = (f32)DebugInitTime/1000000.0f;
+        LogMessage("Time to initialize: %f\n", Time);
     }
 }
 

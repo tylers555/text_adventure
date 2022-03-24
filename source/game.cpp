@@ -51,66 +51,6 @@ TAItemsHaveSameAliases(ta_item *A, ta_item *B){
     return false;
 }
 
-#if 0
-
-internal void
-TAContinueFindItem(ta_system *TA, array<string> *Items, char **Words, u32 WordCount, ta_found_item *Found){
-    for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
-        if(!Item) continue;
-        
-        s32 FoundAliasIndex = -1;
-        s32 Weight = 0;
-        for(u32 WordIndex=0; WordIndex<WordCount; WordIndex++){
-            const char *Word = Words[WordIndex];
-            
-            b8 JustFoundAdjective = false;
-            for(u32 AdjectiveIndex=0; AdjectiveIndex<Item->Adjectives.Count; AdjectiveIndex++){
-                const char *Adjective = Item->Adjectives[AdjectiveIndex];
-                if(CompareWords(Word, Adjective)){
-                    JustFoundAdjective = true;
-                    break;
-                }
-            }
-            
-            b8 JustFoundAlias = false;
-            for(u32 AliasIndex=0; AliasIndex<Item->Aliases.Count; AliasIndex++){
-                const char *Alias = Item->Aliases[AliasIndex];
-                if(CompareWords(Word, Alias)){
-                    FoundAliasIndex = AliasIndex;
-                    JustFoundAlias = true;
-                    break;
-                }
-            }
-            
-            if(JustFoundAlias  || JustFoundAdjective) Weight++;
-            if(!JustFoundAlias && (FoundAliasIndex >= 0)) break;
-        }
-        
-        if(FoundAliasIndex >= 0){
-            if(Weight > Found->Weight){
-                Found->Item = Item;
-                Found->ItemIndex = ItemIndex;
-                Found->WordIndex = FoundAliasIndex;
-                Found->Weight = Weight;
-                Found->IsAmbiguous = false;
-            }else if(Weight == Found->Weight){
-                Found->IsAmbiguous = true;
-            }
-        }
-    }
-}
-
-internal ta_found_item
-TAFindItem(ta_system *TA, array<string> *Items, char **Words, u32 WordCount){
-    ta_found_item Result = {};
-    Result.Weight = -1;
-    TAContinueFindItem(TA, Items, Words, WordCount, &Result);
-    
-    return Result;
-}
-#endif
-
 struct ta_found_item {
     ta_item *Item;
     u32 ItemIndex;
@@ -340,10 +280,11 @@ void CommandTake(ta_system *TA, char **Words, u32 WordCount){
     }
     
     if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to buy!");
+        TA->Respond("I have no idea what you want to take!");
         return;
     }
     
+    u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
         
@@ -358,7 +299,9 @@ void CommandTake(ta_system *TA, char **Words, u32 WordCount){
             continue;
         }
         
-        if(TA->AddItem(Room->Items[Index])) TARoomRemoveItem(TA, Room, Index);
+        if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
+        else return;
+        RemovedItems++;
         
         ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
         if(!Description) return;
@@ -370,7 +313,7 @@ void CommandTake(ta_system *TA, char **Words, u32 WordCount){
 void CommandDrop(ta_system *TA, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words, WordCount);
+    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
     if(FoundItems.IsAmbiguous){
         TA->Respond("You will have to be more specific, what item do you want to drop?\nEnter the item: ");
         TA->Callback = CommandDrop;
@@ -378,20 +321,21 @@ void CommandDrop(ta_system *TA, char **Words, u32 WordCount){
     }
     
     if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to buy!");
+        TA->Respond("I have no idea what you want to drop!");
         return;
     }
     
+    u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
         
         ta_item *Item = FoundItem->Item;
         u32 Index = FoundItem->ItemIndex;
         
-        if(TARoomAddItem(TA, Room, TA->Inventory[Index])) ArrayOrderedRemove(&TA->Inventory, Index);
-        
+        if(TARoomAddItem(TA, Room, TA->Inventory[Index-RemovedItems])) ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
+        RemovedItems++;
+        AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_dropped")));
     }
-    AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_dropped")));
 }
 
 void CallbackConfirmBuy(ta_system *TA, char **Words, u32 WordCount){
@@ -413,6 +357,7 @@ void CommandBuy(ta_system *TA, char **Words, u32 WordCount){
         return;
     }
     
+    u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
         
@@ -424,8 +369,9 @@ void CommandBuy(ta_system *TA, char **Words, u32 WordCount){
             continue;
         }
         if(TA->Money >= Item->Cost){
-            if(TA->AddItem(Room->Items[Index])) TARoomRemoveItem(TA, Room, Index);
+            if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
             else return;
+            RemovedItems++;
             TA->Money -= Item->Cost;
             Item->Dirty = true;
             Item->Cost = 0;
@@ -437,9 +383,8 @@ void CommandBuy(ta_system *TA, char **Words, u32 WordCount){
         ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
         if(!Description) continue;
         TA->Respond(Description->Data);
+        AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_bought")));
     }
-    
-    AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_bought")));
 }
 
 void CommandEat(ta_system *TA, char **Words, u32 WordCount){
@@ -452,10 +397,11 @@ void CommandEat(ta_system *TA, char **Words, u32 WordCount){
     }
     
     if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to buy!");
+        TA->Respond("I have no idea what you want to eat!");
         return;
     }
     
+    u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
         
@@ -473,7 +419,8 @@ void CommandEat(ta_system *TA, char **Words, u32 WordCount){
             TA->AddItem(String("bread crumbs"));
         }
         
-        ArrayOrderedRemove(&TA->Inventory, Index);
+        ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
+        RemovedItems++;
     }
     
     AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("item_eaten")));
@@ -492,7 +439,7 @@ void CommandPlay(ta_system *TA, char **Words, u32 WordCount){
     }
     
     if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to buy!");
+        TA->Respond("I have no idea what you want to play!");
         return;
     }
     
@@ -529,7 +476,7 @@ void CommandExamine(ta_system *TA, char **Words, u32 WordCount){
     }
     
     if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to buy!");
+        TA->Respond("I have no idea what you want to examine!");
         return;
     }
     
@@ -579,6 +526,30 @@ void CommandTestAddMoney(ta_system *TA, char **Words, u32 WordCount){
 
 void CommandTestSubMoney(ta_system *TA, char **Words, u32 WordCount){
     if(TA->Money >= 10) TA->Money -= 10;
+}
+
+//~ Theme
+internal inline console_theme
+MakeDefaultConsoleTheme(){
+    console_theme Result = {};
+    Result.BasicFont = String("basic");
+    Result.TitleFont = String("basic_bold");
+    
+    Result.BackgroundColor = BASE_BACKGROUND_COLOR;
+    
+    Result.BasicFancy     = MakeFancyFormat(BASIC_COLOR, 0.0, 0.0, 0.0);
+    Result.RoomTitleFancy = MakeFancyFormat(ROOM_TITLE_COLOR, 1.0,  4.0, 2.0);
+    Result.ItemFancy      = MakeFancyFormat(ITEM_COLOR, 0.0,  0.0, 0.0);
+    Result.RoomFancy      = MakeFancyFormat(ROOM_COLOR, 1.0,  3.0, .125);
+    Result.DirectionFancy = MakeFancyFormat(DIRECTION_COLOR, 0.0,  0.0, 0.0);
+    Result.DescriptionFancies[0] = Result.BasicFancy;
+    Result.DescriptionFancies[1] = Result.DirectionFancy;
+    Result.DescriptionFancies[2] = Result.RoomFancy; 
+    Result.DescriptionFancies[3] = Result.ItemFancy;
+    Result.ResponseFancies[0] = MakeFancyFormat(RESPONSE_COLOR, 0.0,  0.0, 0.0);
+    Result.ResponseFancies[1] = MakeFancyFormat(EMPHASIS_COLOR, 1.0, 5.0, 3.0);
+    
+    return Result;
 }
 
 //~ Text adventure system
@@ -639,6 +610,9 @@ ta_system::Initialize(memory_arena *Arena){
     Inventory = MakeArray<string>(Arena, INVENTORY_ITEM_COUNT);
     ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
     
+    ThemeTable = PushHashTable<string, console_theme>(Arena, 8);
+    Theme = MakeDefaultConsoleTheme();
+    
     //~ Game specific data
     OrganState = AssetTag_Broken;
 }
@@ -670,19 +644,29 @@ ta_system::Respond(const char *Format, ...){
 internal void
 UpdateAndRenderMainGame(game_renderer *Renderer){
     u64 Start = __rdtsc();
+    ta_system *TA = &TextAdventure;
+    console_theme *Theme = &TA->Theme;
+    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, Theme->BackgroundColor);
     
-    if(!TextAdventure.CurrentRoom){
+    if(!TA->CurrentRoom){
         OSInput.BeginTextInput();
-        //TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Plaza SE"));
-        TextAdventure.CurrentRoom = FindInHashTablePtr(&TextAdventure.RoomTable, String("Bakery"));
+        TA->CurrentRoom = FindInHashTablePtr(&TA->RoomTable, TA->StartRoom);
+        if(!TA->CurrentRoom){
+            TA->CurrentRoom = FindInHashTablePtr(&TA->RoomTable, String("Plaza SE"));
+            if(!TA->CurrentRoom){
+                LogMessage("CurrentRoom is not set!");
+                return;
+            }else{
+                LogMessage("Room: '%s' does not exist!", Strings.GetString(TA->StartRoom));
+            }
+        }
         TextAdventure.Money = 10;
     }
     
     //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);
-    asset_font *BoldFont = AssetSystem.GetFont(String("font_bold"));
-    asset_font *Font = AssetSystem.GetFont(String("basic"));
+    asset_font *BoldFont = AssetSystem.GetFont(Theme->TitleFont);
+    asset_font *Font = AssetSystem.GetFont(Theme->BasicFont);
     Assert(Font);
-    ta_system *TA = &TextAdventure;
     
     v2 WindowSize = GameRenderer.ScreenToWorld(OSInput.WindowSize);
     
@@ -691,14 +675,14 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
     v2 StartRoomP = V2(10, WindowSize.Y-15);
     f32 RoomDescriptionWidth = WindowSize.X-150;
     v2 StartItemP = V2(StartRoomP.X+RoomDescriptionWidth+10, StartRoomP.Y);
-    f32 ItemDescriptionWidth = WindowSize.X-20-RoomDescriptionWidth;
-    f32 InventoryWidth = 100;
+    f32 ItemDescriptionWidth = WindowSize.X-25-RoomDescriptionWidth;
+    f32 InventoryWidth = ItemDescriptionWidth;
     f32 RoomTitleHeight = 0;
     
     {
         v2 RoomP = StartRoomP;
         
-        RoomTitleHeight = FontRenderFancyString(BoldFont, &RoomTitleFancy, 1, RoomP, Room->Name);
+        RoomTitleHeight = FontRenderFancyString(BoldFont, &Theme->RoomTitleFancy, 1, RoomP, Room->Name);
         RoomP.Y -= RoomTitleHeight;
         
         ta_string *Description = Room->Descriptions[0];
@@ -707,12 +691,12 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
             if(New) Description = New;
         }
         
-        RoomP.Y -= FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
+        RoomP.Y -= FontRenderFancyString(Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                                          RoomP, Description->Data, RoomDescriptionWidth);
         
         ta_string *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
         if(Adjacents){
-            RoomP.Y -= FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
+            RoomP.Y -= FontRenderFancyString(Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                                              RoomP, Adjacents->Data, RoomDescriptionWidth);
         }
         
@@ -737,17 +721,17 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
                 
                 ta_string *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
                 if(Items){
-                    ItemP.Y -= FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
+                    ItemP.Y -= FontRenderFancyString(Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                                                      ItemP, Items->Data, ItemDescriptionWidth);
                 }else{
-                    ItemP.Y -= FontRenderFancyString(Font, DescriptionFancies, ArrayCount(DescriptionFancies), 
+                    ItemP.Y -= FontRenderFancyString(Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                                                      ItemP, "Items:", ItemDescriptionWidth);
                 }
                 
                 for(u32 I=0; I<Room->Items.Count; I++){
                     ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[I]);
                     if(HasTag(Item->Tag, AssetTag_Static)) continue;
-                    ItemP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, 
+                    ItemP.Y -= FontRenderFancyString(Font, &Theme->ItemFancy, 1, 
                                                      ItemP, Strings.GetString(Room->Items[I]), ItemDescriptionWidth);
                 }
                 ItemP.Y -= 10;
@@ -755,34 +739,33 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         }
         
         v2 InventoryP = ItemP;
-        InventoryP.Y -= FontRenderFancyString(BoldFont, &BasicFancy, 1, InventoryP, "Inventory:");
+        InventoryP.Y -= FontRenderFancyString(BoldFont, &Theme->BasicFancy, 1, InventoryP, "Inventory:");
         
         {
             char Buffer[DEFAULT_BUFFER_SIZE];
             stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%u coins", TA->Money);
-            InventoryP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, InventoryP, Buffer);
+            InventoryP.Y -= FontRenderFancyString(Font, &Theme->ItemFancy, 1, InventoryP, Buffer);
         }
         
         for(u32 I=0; I<TA->Inventory.Count; I++){
             const char *Item = Strings.GetString(TA->Inventory[I]);
-            InventoryP.Y -= FontRenderFancyString(Font, &ItemFancy, 1, InventoryP, Item);
+            InventoryP.Y -= FontRenderFancyString(Font, &Theme->ItemFancy, 1, InventoryP, Item);
         }
     }
     
     //~ Text input rendering
     {
         
-        f32 InputHeight = 50;
-        f32 ResponseWidth = WindowSize.X-20;
+        f32 InputHeight = 100;
+        f32 ResponseWidth = RoomDescriptionWidth;
         v2 InputP = V2(10, InputHeight);
         
-        fancy_font_format ResponseFancies[2] = {ResponseFancy, EmphasisFancy};
         const char *Response = TA->ResponseBuilder.Buffer;
-        InputP.Y -= FontRenderFancyString(Font, ResponseFancies, ArrayCount(ResponseFancies), InputP, 
+        InputP.Y -= FontRenderFancyString(Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies), InputP, 
                                           Response, ResponseWidth);
         
         char *Text = OSInput.Buffer;
-        FontRenderFancyString(Font, &BasicFancy, 1, InputP, Text);
+        FontRenderFancyString(Font, &Theme->BasicFancy, 1, InputP, Text);
         
         f32 CursorHeight = Font->Height-Font->Descent;
         v2 CursorP = InputP+FontStringAdvance(Font, OSInput.CursorPosition, Text);
@@ -832,9 +815,9 @@ UpdateAndRenderMainGame(game_renderer *Renderer){
         {
             u64 Elapsed = __rdtsc() - Start;
             char Buffer[DEFAULT_BUFFER_SIZE];
-            stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%08llu | FPS: %.2f |", 
-                           Elapsed, 1.0/OSInput.dTime);
-            DebugP.Y -= FontRenderFancyString(Font, &BasicFancy, 1, DebugP, Buffer);
+            stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%08llu | FPS: %.2f | Scale: %.1f", 
+                           Elapsed, 1.0/OSInput.dTime, GameRenderer.CameraScale);
+            DebugP.Y -= FontRenderFancyString(Font, &Theme->BasicFancy, 1, DebugP, Buffer);
         }
     }
 }

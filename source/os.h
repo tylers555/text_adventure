@@ -494,5 +494,6 @@ internal void  DefaultFree(void *Pointer);
 internal void OSProcessInput(os_input *Input);
 internal void OSSleep(u32 Milliseconds);
 internal void OSEndGame();
+internal u64  OSGetMicroseconds();
 
 #endif // SNAIL_JUMPY_OS_H

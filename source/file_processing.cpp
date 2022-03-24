@@ -306,6 +306,29 @@ MakeFileReader(const char *Path){
     return(Result);
 }
 
+internal inline u32
+ConumeHexNumber(stream *Stream){
+    u32 Result = 0;
+    
+    for(u32 I=0; I<8; I++){
+        u8 *B = PeekBytes(Stream, 1);
+        if(!B) break;
+        if(IsANumber(*B)){
+            Result <<= 4;
+            Result |= *B-'0';
+        }else if (('A' <= *B) && (*B <= 'F')){
+            Result <<= 4;
+            Result |= *B-'A'+10;
+        }else if(('a' <= *B) && (*B <= 'f')){
+            Result <<= 4;
+            Result |= *B-'a'+10;
+        }else break;
+        ConsumeBytes(Stream, 1);
+    }
+    
+    return Result;
+}
+
 file_token
 file_reader::NextToken(){
     file_token Result = {};
@@ -342,6 +365,12 @@ file_reader::NextToken(){
             if(*B == '-'){
                 IsNegative = true;
                 ConsumeBytes(&Stream, 1);
+            }else if(*B == '0'){
+                u8 B1 = PeekBytes(&Stream, 2)[1];
+                if(B1 == 'x'){
+                    ConsumeBytes(&Stream, 2);
+                    FirstPart = ConumeHexNumber(&Stream);
+                }
             }
             
             while(true){

@@ -879,3 +879,15 @@ internal void
 OSEndGame(){
     Running = false;
 }
+
+internal u64
+OSGetMicroseconds(){
+    LARGE_INTEGER PerformanceCounter;
+    QueryPerformanceCounter(&PerformanceCounter);
+    
+    u64 Result = PerformanceCounter.QuadPart;
+    Result *= 1000000;
+    Result /= GlobalPerfCounterFrequency;
+    
+    return Result;
+}

@@ -1,9 +1,42 @@
 
 # //////////////////////////////////////////////////////////////////////////
+#                                 Variables
+# //////////////////////////////////////////////////////////////////////////
+
+: Theme "default"
+    basic_font "basic"
+    title_font "basic_bold"
+    background_color Color(0x0a0d4aff)
+    basic      Fancy(Color(0xf2f2f2ff))
+    room_title Fancy(Color(0xff6969ff)1.0 4.0 2.0)
+    item       Fancy(Color(0x24e3e3ff))
+    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
+    direction  Fancy(Color(0x84d197ff))
+    response   Fancy(Color(0x9063ffff))
+    emphasis   Fancy(Color(0xe06ecdff) 1.0 5.0 3.0)
+
+: Theme "planty"
+    basic_font "basic"
+    title_font "basic_bold"
+    background_color Color(0x09360aff)
+    basic      Fancy(Color(0xf2f2f2ff))
+    room_title Fancy(Color(0xff6969ff)1.0 4.0 2.0)
+    item       Fancy(Color(0x24e3e3ff))
+    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
+    direction  Fancy(Color(0x6c38ffff))
+    response   Fancy(Color(0x9063ffff))
+    emphasis   Fancy(Color(0xe06ecdff) 1.0 5.0 3.0)
+
+: Variables
+    start_game_mode "main game"
+    start_room      "Plaza SE"
+    theme           "default"
+
+# //////////////////////////////////////////////////////////////////////////
 #                                  Fonts
 # //////////////////////////////////////////////////////////////////////////
 
-: Font basic
+: Font "basic"
     path "asset_fonts/basic.png"
     height 7
     padding 1
@@ -104,115 +137,7 @@
     char "y" 3
     char "z" 2
 
-
-: Font basic2
-    path "asset_fonts/font2.png"
-    height 5
-    padding 1
-    SPACE 2
-    EXCLAMATION 1
-    QUOTATION 3
-    POUND 5
-    APOSTROPHE 1
-    PARENTHESIS_LEFT 2
-    PARENTHESIS_RIGHT 2
-    ASTERISK 1
-    PLUS 3
-    COMMA 2
-    DASH 2
-    PERIOD 1
-    SLASH 3
-    ZERO 3
-    ONE 3
-    TWO 3
-    THREE 3
-    FOUR 3
-    FIVE 3
-    SIX 3
-    SEVEN 3
-    EIGHT 3
-    NINE 3
-    COLON 1
-    SEMICOLON 2
-    ANGLE_BRACKET_LEFT 3
-    EQUAL 3
-    ANGLE_BRACKET_RIGHT 3
-    QUESTION 3
-    A 3
-    B 3
-    C 3
-    D 3
-    E 3
-    F 3
-    G 3 
-    H 3
-    I 3
-    J 3
-    K 3
-    L 3
-    M 5
-    N 4
-    O 4
-    P 3
-    Q 4
-    R 3
-    S 3
-    T 3
-    U 3 
-    V 3
-    W 5
-    X 3
-    Y 3
-    Z 3
-    SQUARE_BRACKET_LEFT 2
-    BACKSLASH 3
-    SQUARE_BRACKET_RIGHT 2
-    CARET 3
-    BACK_TICK 2
-    UNDERSCORE 4
-    CURLY_BRACKET_LEFT 3
-    PIPE 1
-    CURLY_BRACKET_RIGHT 3
-    TILDE 4
-    PERCENT 5
-    DOLLAR_SIGN 3
-    AMPERSAND 4
-    AT_SIGN 5
-
-: Font basic_lowercase
-    path "asset_fonts/basic_lowercase_3.png"
-    height 5
-    padding 1
-    descent 2
-    A 3
-    B 3
-    C 3 
-    D 3
-    E 3
-    F 3
-    G 3
-    H 3
-    I 1
-    J 2
-    K 3
-    L 1
-    M 5
-    N 3
-    O 3
-    P 3
-    Q 3
-    R 2
-    S 2
-    T 3
-    U 3
-    V 3
-    W 5
-    X 3
-    Y 3
-    Z 2
-    SPACE 2
-
-: Font font_bold
+: Font "basic_bold"
     path "asset_fonts/bold_font.png"
     height 5
     padding 1
@@ -286,7 +211,114 @@
     AMPERSAND 4
     AT_SIGN 5
 
-: Font font_fancy
+: Font "basic2"
+    path "asset_fonts/font2.png"
+    height 5
+    padding 1
+    SPACE 2
+    EXCLAMATION 1
+    QUOTATION 3
+    POUND 5
+    APOSTROPHE 1
+    PARENTHESIS_LEFT 2
+    PARENTHESIS_RIGHT 2
+    ASTERISK 1
+    PLUS 3
+    COMMA 2
+    DASH 2
+    PERIOD 1
+    SLASH 3
+    ZERO 3
+    ONE 3
+    TWO 3
+    THREE 3
+    FOUR 3
+    FIVE 3
+    SIX 3
+    SEVEN 3
+    EIGHT 3
+    NINE 3
+    COLON 1
+    SEMICOLON 2
+    ANGLE_BRACKET_LEFT 3
+    EQUAL 3
+    ANGLE_BRACKET_RIGHT 3
+    QUESTION 3
+    A 3
+    B 3
+    C 3
+    D 3
+    E 3
+    F 3
+    G 3 
+    H 3
+    I 3
+    J 3
+    K 3
+    L 3
+    M 5
+    N 4
+    O 4
+    P 3
+    Q 4
+    R 3
+    S 3
+    T 3
+    U 3 
+    V 3
+    W 5
+    X 3
+    Y 3
+    Z 3
+    SQUARE_BRACKET_LEFT 2
+    BACKSLASH 3
+    SQUARE_BRACKET_RIGHT 2
+    CARET 3
+    BACK_TICK 2
+    UNDERSCORE 4
+    CURLY_BRACKET_LEFT 3
+    PIPE 1
+    CURLY_BRACKET_RIGHT 3
+    TILDE 4
+    PERCENT 5
+    DOLLAR_SIGN 3
+    AMPERSAND 4
+    AT_SIGN 5
+
+: Font "basic_lowercase"
+    path "asset_fonts/basic_lowercase_3.png"
+    height 5
+    padding 1
+    descent 2
+    A 3
+    B 3
+    C 3 
+    D 3
+    E 3
+    F 3
+    G 3
+    H 3
+    I 1
+    J 2
+    K 3
+    L 1
+    M 5
+    N 3
+    O 3
+    P 3
+    Q 3
+    R 2
+    S 2
+    T 3
+    U 3
+    V 3
+    W 5
+    X 3
+    Y 3
+    Z 2
+    SPACE 2
+
+: Font "fancy"
 	path  "asset_fonts/fancy_font.png"
 	height 15
 	padding 1
@@ -323,35 +355,35 @@
 #                               Sound effects
 # //////////////////////////////////////////////////////////////////////////
 
-: SoundEffect menu_move
+: SoundEffect "menu_move"
     path "asset_sound_effects/testing/puhp_01.wav"
 
-: SoundEffect test_music
+: SoundEffect "test_music"
     path "asset_sound_effects/osj/Music.wav"
     # path "asset_sound_effects/osj_music.wav"
 
-: SoundEffect room_change 
-    path "asset_sound_effects/sf_wood_walk.wav"
+: SoundEffect "room_change"
+    path "asset_sound_effects/sf_wood_walk_3.wav"
  
-: SoundEffect open_door
+: SoundEffect "open_door"
     path "asset_sound_effects/sf_open_door_1.wav"
 
-: SoundEffect item_taken
+: SoundEffect "item_taken"
     path "asset_sound_effects/sf_take.wav"
 
-: SoundEffect item_bought
+: SoundEffect "item_bought"
     path "asset_sound_effects/sf_coin_1.wav"
 
-: SoundEffect item_dropped
+: SoundEffect "item_dropped"
     path "asset_sound_effects/sf_drop.wav"
 
-: SoundEffect item_eaten
-    path "asset_sound_effects/sf_eat_1.wav"
+: SoundEffect "item_eaten"
+    path "asset_sound_effects/sf_eat_2.wav"
 
-: SoundEffect organ_play_broken
+: SoundEffect "organ_play_broken"
     path "asset_sound_effects/osj/LoseFX.wav"
 
-: SoundEffect organ_play_repaired
+: SoundEffect "organ_play_repaired"
     path "asset_sound_effects/osj/PowerMusic.wav"
 
 # //////////////////////////////////////////////////////////////////////////
@@ -472,6 +504,7 @@
     adjectives Array("small" "silver")
     description Tag("examine")
         "The handle of the key is shaped like a music note."
+
 
 # //////////////////////////////////////////////////////////////////////////
 #                                    NPCs

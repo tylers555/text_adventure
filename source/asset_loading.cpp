@@ -232,6 +232,80 @@ asset_system::ExpectTypeArrayCString(){
     return(Result);
 }
 
+color
+asset_system::ExpectTypeColor(){
+    color Result = {};
+    
+    file_token Token = Reader.PeekToken();
+    if(Token.Type != FileTokenType_Identifier) return Result;
+    if(CompareStrings(Token.Identifier, "Color")){
+        Expect(Identifier);
+        
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError();
+        
+        Token = Reader.PeekToken();
+        if(Token.Type == FileTokenType_Float){
+            for(u32 I=0; I<4; I++){
+                Result.E[I] = Expect(Float);
+            }
+        }else if(Token.Type == FileTokenType_Integer){
+            file_token First = Reader.NextToken();
+            Token = Reader.PeekToken();
+            if((Token.Type == FileTokenType_Integer) ||
+               (Token.Type == FileTokenType_Float)){
+                First = MaybeTokenIntegerToFloat(First);
+                Assert(First.Type == FileTokenType_Float);
+                Result.R = First.Float;
+                for(u32 I=1; I<4; I++){
+                    Result.E[I] = Expect(Float);
+                }
+            }else if(Token.Type == FileTokenType_EndArguments){
+                Result = MakeColor(First.Integer);
+            }else{
+                LogError("Expected ) or a number, and %s is neither!", 
+                         TokenToString(Token));
+                Reader.LastError = FileReaderError_InvalidToken;
+                return Result;
+            }
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError();
+    }
+    
+    return(Result);
+}
+
+fancy_font_format
+asset_system::ExpectTypeFancy(){
+    fancy_font_format Result = {};
+    
+    file_token Token = Reader.PeekToken();
+    if(Token.Type != FileTokenType_Identifier) return Result;
+    if(CompareStrings(Token.Identifier, "Fancy")){
+        Expect(Identifier);
+        
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError();
+        
+        Result.Color = ExpectTypeColor();
+        HandleError();
+        
+        Token = Reader.PeekToken();
+        if(Token.Type != FileTokenType_EndArguments){
+            Result.Amplitude = Expect(Float);
+            Result.Speed     = Expect(Float);
+            Result.dT        = Expect(Float);
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError();
+    }
+    
+    return(Result);
+}
+
 asset_tag
 asset_system::MaybeExpectTag(){
     asset_tag Result = {};
@@ -351,6 +425,8 @@ asset_system::ProcessCommand(){
     const char *String = Expect(Identifier);
     
     IfCommand(Ignore);
+    IfCommand(Variables);
+    IfCommand(Theme);
     IfCommand(Font);
     IfCommand(SoundEffect);
     IfCommand(TARoom);
@@ -361,13 +437,86 @@ asset_system::ProcessCommand(){
 }
 #undef IfCommand
 
+//~ Variables
+
+b8
+asset_system::ProcessVariables(){
+    b8 Result = false;
+    ta_system *TA = &TextAdventure;
+    
+    while(true){
+        file_token Token = Reader.PeekToken();
+        HandleToken(Token);
+        const char *Attribute = Expect(Identifier);
+        if(DoAttribute(Attribute, "start_game_mode")){
+            const char *S = Expect(String);
+            if(GameMode == GameMode_None){
+                if(CompareStrings(S, "main game")) GameMode = GameMode_MainGame;
+                else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
+            }
+            
+        }else if(DoAttribute(Attribute, "start_room")){
+            const char *S = Expect(String);
+            TA->StartRoom = Strings.GetString(S);
+        }else if(DoAttribute(Attribute, "theme")){
+            const char *S = Expect(String);
+            console_theme *Theme = Strings.FindInHashTablePtr(&TA->ThemeTable, S);
+            if(Theme){
+                TA->Theme = *Theme;
+            }
+        }else{ LogInvalidAttribute(Attribute); return false; }
+    }
+    
+    return true;
+}
+
+//~ Theme
+b8
+asset_system::ProcessTheme(){
+    b8 Result = false;
+    ta_system *TA = &TextAdventure;
+    
+    const char *Name = Expect(String);
+    console_theme *Theme = Strings.GetInHashTablePtr(&TA->ThemeTable, Name);
+    
+    while(true){
+        file_token Token = Reader.PeekToken();
+        HandleToken(Token);
+        const char *Attribute = Expect(Identifier);
+        if(DoAttribute(Attribute, "basic_font")){
+            const char *S = Expect(String);
+            Theme->BasicFont = Strings.GetString(S);
+        }else if(DoAttribute(Attribute, "title_font")){
+            const char *S = Expect(String);
+            Theme->TitleFont = Strings.GetString(S);
+        }else if(DoAttribute(Attribute, "background_color")){
+            color C = ExpectTypeColor(); HandleError();
+            Theme->BackgroundColor = C;
+        }else if(DoAttribute(Attribute, "basic")){      Theme->BasicFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "room_title")){ Theme->RoomTitleFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "item")){       Theme->ItemFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "room")){       Theme->RoomFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "direction")){  Theme->DirectionFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "response")){   Theme->ResponseFancies[0] = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "emphasis")){   Theme->ResponseFancies[1] = ExpectTypeFancy(); HandleError();
+        }else{ LogInvalidAttribute(Attribute); return false; }
+    }
+    
+    Theme->DescriptionFancies[0] = Theme->BasicFancy;
+    Theme->DescriptionFancies[1] = Theme->DirectionFancy;
+    Theme->DescriptionFancies[2] = Theme->RoomFancy; 
+    Theme->DescriptionFancies[3] = Theme->ItemFancy;
+    
+    return true;
+}
+
 //~ Sound effects
 
 b8
 asset_system::ProcessSoundEffect(){
     b8 Result = false;
     
-    const char *Name = Expect(Identifier);
+    const char *Name = Expect(String);
     asset_sound_effect *Sound = Strings.GetInHashTablePtr(&SoundEffects, Name);
     if(Sound->Sound.Samples){
         ProcessIgnore();
@@ -404,7 +553,7 @@ b8
 asset_system::ProcessFont(){
     b8 Result = false;
     
-    const char *Name = Expect(Identifier);
+    const char *Name = Expect(String);
     asset_font *Font = Strings.GetInHashTablePtr(&Fonts, Name);
     *Font = {};
     

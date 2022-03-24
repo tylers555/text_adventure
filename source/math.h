@@ -676,8 +676,11 @@ V4S(v2s XY, v2s ZW){
 }
 
 //~ Colors
-struct color {
-    f32 R, G, B, A;
+union color {
+    struct { 
+        f32 R, G, B, A;
+    };
+    f32 E[4];
 };
 
 internal inline color

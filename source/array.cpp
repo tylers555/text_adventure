@@ -11,7 +11,7 @@ struct array {
         return(Items[Index]);
     }
     
-    inline operator b8(){  return (Items != 0) || (Count == 0); }
+    inline operator b8(){  return (Items != 0) || (Count > 0); }
 };
 
 template<typename T> internal inline array<T>

@@ -141,6 +141,8 @@ struct asset_system {
     
     array<s32>          ExpectTypeArrayS32();
     array<const char *> ExpectTypeArrayCString();
+    color               ExpectTypeColor();
+    fancy_font_format   ExpectTypeFancy();
     asset_tag           MaybeExpectTag();
     
     void InitializeLoader(memory_arena *Arena);
@@ -150,6 +152,10 @@ struct asset_system {
     void LoadAssetFile(const char *Path);
     b8 ProcessCommand();
     b8 ProcessIgnore();
+    
+    b8 ProcessVariables();
+    b8 ProcessTheme();
+    
     b8 ProcessSoundEffect();
     b8 ProcessFont();
     
