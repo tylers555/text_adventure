@@ -510,34 +510,6 @@ WinMain(HINSTANCE Instance,
     }
     LogMessage("Window opened");
     
-    //~ Timing setup
-    UINT DesiredSchedulerMS = 1;
-    b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
-    
-    LARGE_INTEGER PerformanceCounterFrequencyResult;
-    QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
-    GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
-    
-    s32 MonitorRefreshHz = 60;
-    f32 TargetSecondsPerFrame;
-    {
-        HDC DeviceContext = GetDC(MainWindow);
-        s32 RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
-        if(RefreshRate > 1) MonitorRefreshHz = RefreshRate;
-        f32 GameUpdateHz = (f32)(MonitorRefreshHz);
-        
-        TargetSecondsPerFrame = 1.0f / GameUpdateHz;
-        if(TargetSecondsPerFrame < MINIMUM_SECONDS_PER_FRAME){
-            TargetSecondsPerFrame = MINIMUM_SECONDS_PER_FRAME;
-        }else if(TargetSecondsPerFrame > MAXIMUM_SECONDS_PER_FRAME){
-            TargetSecondsPerFrame = MAXIMUM_SECONDS_PER_FRAME;
-        }
-        ReleaseDC(MainWindow, DeviceContext);
-        
-        LogMessage("Timing calculated %u %d %d %f %f %'llu", SleepIsGranular, 
-                   MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, GlobalPerfCounterFrequency);
-    }
-    
     if(!Win32InitOpenGL(Instance, &MainWindow)){
         return -1;
     }
@@ -548,6 +520,29 @@ WinMain(HINSTANCE Instance,
     
     HDC DeviceContext = GetDC(MainWindow);
     Running = true;
+    
+    //~ Timing setup
+    UINT DesiredSchedulerMS = 1;
+    b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
+    
+    LARGE_INTEGER PerformanceCounterFrequencyResult;
+    QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
+    GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
+    
+    s32 MonitorRefreshHz = 60;
+    s32 RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
+    if(RefreshRate > 1) MonitorRefreshHz = RefreshRate;
+    f32 GameUpdateHz = (f32)(MonitorRefreshHz);
+    
+    f32 TargetSecondsPerFrame = 1.0f / GameUpdateHz;
+    if(TargetSecondsPerFrame < MINIMUM_SECONDS_PER_FRAME){
+        TargetSecondsPerFrame = MINIMUM_SECONDS_PER_FRAME;
+    }else if(TargetSecondsPerFrame > MAXIMUM_SECONDS_PER_FRAME){
+        TargetSecondsPerFrame = MAXIMUM_SECONDS_PER_FRAME;
+    }
+    
+    LogMessage("Timing calculated %u %d %d %f %f %'llu", SleepIsGranular, 
+               MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, GlobalPerfCounterFrequency);
     
     //~ Audio
     s32 SamplesPerSecond = 48000;

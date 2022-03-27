@@ -135,6 +135,9 @@ GameUpdateAndRender(){
             case GameMode_MainGame: {
                 GameMode = GameMode_MainGame; 
             }break;
+            case GameMode_Map: {
+                GameMode = GameMode_Map;
+            }break;
         }
         
         StateChangeData = {};

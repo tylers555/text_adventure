@@ -5,7 +5,7 @@ UpdateAndRenderMap(game_renderer *Renderer, audio_mixer *Mixer, asset_system *As
     ta_system *TA = &TextAdventure;
     asset_font *Font = Assets->GetFont(String("basic"));
     
-    Renderer->NewFrame(&TransientStorageArena, Input->WindowSize, PINK);
+    Renderer->NewFrame(&TransientStorageArena, Input->WindowSize, BLACK);
     
     render_texture Texture = TA->MapImage->Texture;
     v2 Size = V2(TA->MapImage->Size);
