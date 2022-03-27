@@ -8,6 +8,8 @@ layout (location = 1) in vec2 InUV;
 out vec2 FragmentUV;
 out vec2 FragmentP;
 
+uniform float InScale;
+
 void main(){
     gl_Position = vec4(InPosition, 0.0, 1.0);
     FragmentP = InPosition;
@@ -47,6 +49,7 @@ void main(){
     vec2 Pixel = FragmentUV*TextureSize;
     
     vec2 UV = floor(Pixel) + 0.5;
+    // vec2 UV = Pixel;
     
     //vec2 UV = FragmentUV;
     

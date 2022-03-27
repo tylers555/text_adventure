@@ -709,7 +709,7 @@ struct opengl_backend {
     
     void NormalSetup();
     void UploadRenderData(dynamic_array<item_vertex> *Vertices, dynamic_array<u32> *Indices);
-    void RenderFramebuffer(framebuffer *Framebuffer, f32 Scale);
+    void RenderFramebuffer(framebuffer *Framebuffer, v2 OutputSize, f32 Scale);
 };
 
 #endif //SNAIL_JUMPY_OPENGL_H

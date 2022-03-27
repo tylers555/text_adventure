@@ -501,6 +501,9 @@ asset_system::ProcessVariables(){
             if(Theme){
                 TA->Theme = *Theme;
             }
+        }else if(DoAttribute(Attribute, "town_map")){
+            const char *Path = Expect(String);
+            TA->MapImage = LoadImageFromPath(Path);
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     

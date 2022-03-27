@@ -10,7 +10,7 @@ global_constant f32 PI = 3.141592653589f;
 global_constant f32 TAU = 2.0f*PI;
 
 internal inline s32
-RoundF32ToS32(f32 A)
+RoundToS32(f32 A)
 {
     s32 Result;
     if(A < 0)

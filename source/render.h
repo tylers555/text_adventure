@@ -143,8 +143,8 @@ internal shader_program  MakeShaderProgramFromFile(const char *Path);
 internal screen_shader MakeScreenShaderFromFile(const char *Path);
 internal s32 ShaderProgramGetUniformLocation(shader_program Program, const char *Name);
 
-internal void InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2 Size);
-internal void ResizeFramebuffer(framebuffer *Framebuffer, v2 NewSize);
+internal void InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2s Size);
+internal void ResizeFramebuffer(framebuffer *Framebuffer, v2s Size);
 internal void UseFramebuffer(framebuffer *Framebuffer);
 
 #endif //SNAIL_JUMPY_RENDER_H

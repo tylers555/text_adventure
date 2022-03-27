@@ -48,7 +48,9 @@ String(const char *S){
 #include "text_adventure.cpp"
 #include "commands.cpp"
 
+#include "debug.cpp"
 #include "game.cpp"
+#include "map.cpp"
 #include "menu.cpp"
 
 //~ 
@@ -58,7 +60,6 @@ InitializeGame(){
     u64 Start = OSGetMicroseconds();
     
     stbi_set_flip_vertically_on_load(true);
-    
     {
         umw Size = Megabytes(256);
         void *Memory = AllocateVirtualMemory(Size);
@@ -70,9 +71,9 @@ InitializeGame(){
         Assert(Memory);
         InitializeArena(&TransientStorageArena, Memory, Size);
     }
-    
     InitializeRendererBackend();
     GameRenderer.Initialize(&PermanentStorageArena, OSInput.WindowSize);
+    
     
     Strings.Initialize(&PermanentStorageArena);
     
@@ -83,13 +84,11 @@ InitializeGame(){
     AssetSystem.Initialize(&PermanentStorageArena);
     
     AudioMixer.Initialize(&PermanentStorageArena);
-    
     AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
     //AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("test_music")), MixerSoundFlag_Music|MixerSoundFlag_Loop, 1.0f);
     
-    DebugInitTime = OSGetMicroseconds()-Start;
-    
     GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, PINK);
+    DebugInitTime = OSGetMicroseconds()-Start;
 }
 
 //~
@@ -115,7 +114,10 @@ GameUpdateAndRender(){
             UpdateAndRenderMenu(&GameRenderer);
         }break;
         case GameMode_MainGame: {
-            UpdateAndRenderMainGame(&GameRenderer);
+            UpdateAndRenderMainGame(&GameRenderer, &AudioMixer, &AssetSystem, &OSInput);
+        }break;
+        case GameMode_Map: {
+            UpdateAndRenderMap(&GameRenderer, &AudioMixer, &AssetSystem, &OSInput);
         }break;
     }
     

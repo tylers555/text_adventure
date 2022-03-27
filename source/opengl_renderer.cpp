@@ -315,7 +315,7 @@ ShaderProgramDoProjectionMatrix(s32 ProjectionLocation, v2 OutputSize, f32 ZReso
 //~ Framebuffer
 
 internal void 
-InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2 Size){
+InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2s Size){
     GLsizei Width = (GLsizei)Size.X;
     GLsizei Height = (GLsizei)Size.Y;
     
@@ -350,9 +350,9 @@ InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2 S
 }
 
 internal void 
-ResizeFramebuffer(framebuffer *Framebuffer, v2 NewSize){
-    GLsizei Width = (GLsizei)NewSize.X;
-    GLsizei Height = (GLsizei)NewSize.Y;
+ResizeFramebuffer(framebuffer *Framebuffer, v2s Size){
+    GLsizei Width = (GLsizei)Size.X;
+    GLsizei Height = (GLsizei)Size.Y;
     
     glBindFramebuffer(GL_FRAMEBUFFER, Framebuffer->ID);
     
@@ -384,9 +384,7 @@ UseFramebuffer(framebuffer *Framebuffer){
 }
 
 void
-opengl_backend::RenderFramebuffer(framebuffer *Framebuffer, f32 Scale){
-    v2 OutputSize = OSInput.WindowSize;
-    
+opengl_backend::RenderFramebuffer(framebuffer *Framebuffer, v2 OutputSize, f32 Scale){
     glScissor(0, 0, (u32)OutputSize.X, (u32)OutputSize.Y);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glDisable(GL_DEPTH_TEST);
@@ -467,6 +465,7 @@ GLRenderNodes(game_renderer *Renderer, render_node *StartNode){
 internal void
 RendererRenderAll(game_renderer *Renderer){
     v2 OutputSize = Renderer->OutputSize;
+    
     glScissor(0, 0, (u32)OutputSize.X, (u32)OutputSize.Y);
     glViewport(0, 0, (u32)OutputSize.X, (u32)OutputSize.Y);
     
@@ -480,5 +479,5 @@ RendererRenderAll(game_renderer *Renderer){
     UseFramebuffer(&Renderer->GameScreenFramebuffer);
     GLClearOutput(Renderer->ClearColor);
     GLRenderNodes(Renderer, Renderer->RenderNode);
-    OpenGL.RenderFramebuffer(&Renderer->GameScreenFramebuffer, Renderer->CameraScale);
+    OpenGL.RenderFramebuffer(&Renderer->GameScreenFramebuffer, OutputSize, Renderer->CameraScale);
 }

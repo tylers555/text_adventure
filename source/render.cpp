@@ -125,7 +125,7 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
     
     //Assert(0);
     screen_shader GameScreenShader = MakeScreenShaderFromFile("shaders/glsl/game_screen_shader.glsl");
-    InitializeFramebuffer(&GameScreenFramebuffer, GameScreenShader, OutputSize/CameraScale);
+    InitializeFramebuffer(&GameScreenFramebuffer, GameScreenShader, V2S(OutputSize/CameraScale));
     
     DefaultShader.ID = MakeShaderProgramFromFile("shaders/glsl/game_shader.glsl");
     DefaultShader.ProjectionLocation = ShaderProgramGetUniformLocation(DefaultShader.ID, "InProjection");
@@ -137,11 +137,13 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
 void
 game_renderer::ChangeScale(f32 NewScale){
     CameraScale = NewScale;
-    ResizeFramebuffer(&GameScreenFramebuffer, OutputSize/CameraScale);
+    ResizeFramebuffer(&GameScreenFramebuffer, V2S(OutputSize/CameraScale));
 }
 
 void
 game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
+    local_persist v2 WindowSize;
+    
     v2 OldOutputSize = OutputSize;
     OutputSize = OutputSize_;
     ClearColor = ClearColor_;
@@ -166,6 +168,7 @@ game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
 #endif
     
     if(OSInput.WasWindowResized()){
+        WindowSize = OSInput.WindowSize;
         f32 Aspect = OutputSize.X/OutputSize.Y;
         f32 Factor = 270.0f;
         f32 NewScale = Minimum(OutputSize.X, OutputSize.Y)/Factor;

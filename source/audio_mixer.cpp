@@ -58,7 +58,7 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
         sound_data *SoundData = Sound->Data;
         Assert(SoundData->ChannelCount == 2);
         
-        u32 RemainingSamples = SoundData->SampleCount-RoundF32ToS32(Sound->SamplesPlayed);
+        u32 RemainingSamples = SoundData->SampleCount-RoundToS32(Sound->SamplesPlayed);
         u32 RemainingChunks = RemainingSamples / 4;
         if(Sound->Flags & MixerSoundFlag_Loop){
             RemainingChunks = MaxChunksToWrite;

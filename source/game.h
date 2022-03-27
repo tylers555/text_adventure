@@ -61,7 +61,7 @@ struct ta_room {
 };
 
 struct ta_system;
-typedef void command_func(ta_system *TA, char **Words, u32 WordCount);
+typedef void command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount);
 
 struct ta_system {
     hash_table<string, console_theme> ThemeTable;
@@ -89,6 +89,7 @@ struct ta_system {
     //~ Game specific data
     asset_tag_id OrganState;
     u32 Money;
+    image *MapImage;
 };
 
 #endif //GAME_H

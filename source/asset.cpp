@@ -77,7 +77,7 @@ asset_system::GetFont(string Name){
 }
 
 internal f32
-VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, va_list VarArgs){
+VFontRenderString(game_renderer *Renderer, asset_font *Font, v2 StartP, color Color, const char *Format, va_list VarArgs){
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
     
     char Buffer[DEFAULT_BUFFER_SIZE];
@@ -103,8 +103,7 @@ VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, 
         TextureR.Max.X /= Font->Size.Width;
         TextureR.Min.Y /= Font->Size.Height;
         TextureR.Max.Y /= Font->Size.Height;
-        RenderTexture(&GameRenderer, R, 0.0, Font->Texture, TextureR, false, Color);
-        //RenderRect(&GameRenderer, R, 0.0, MakeColor(1.0, 1.0, 0.0, 0.0));
+        RenderTexture(Renderer, R, 0.0, Font->Texture, TextureR, false, Color);
         
         P.X += Glyph.Width+FONT_LETTER_SPACE;
     }
@@ -113,11 +112,11 @@ VFontRenderString(asset_font *Font, v2 StartP, color Color, const char *Format, 
 }
 
 internal f32
-FontRenderString(asset_font *Font, v2 P, color Color, const char *Format, ...){
+FontRenderString(game_renderer *Renderer, asset_font *Font, v2 P, color Color, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
     
-    f32 Result = VFontRenderString(Font, P, Color, Format, VarArgs);
+    f32 Result = VFontRenderString(Renderer, Font, P, Color, Format, VarArgs);
     
     va_end(VarArgs);
     return Result;
@@ -222,7 +221,7 @@ FontStringAdvance(asset_font *Font, const char *S, f32 MaxWidth=F32_POSITIVE_INF
 
 #if 1
 internal f32
-FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+FontRenderFancyString(game_renderer *Renderer, asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
     if(!S) return 0;
     if(!S[0]) return 0;
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
@@ -244,7 +243,6 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
         ColorTs[I] = Fancies[I].ColorTOffset+Fancies[I].ColorSpeed*Counter;
     }
     
-    game_renderer *Renderer = &GameRenderer;
     render_item *RenderItem = Renderer->NewRenderItem(Font->Texture, false, 0.0);
     Assert(RenderItem);
     
@@ -337,7 +335,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
 
 // NOTE(Tyler): This does not seem to have too significant of a speedup
 internal f32
-FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+FontRenderFancyString(game_renderer *Renderer, asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount, v2 StartP, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
     if(!S) return 0;
     if(!S[0]) return 0;
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;
@@ -356,7 +354,6 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
         Ts[I] = Fancies[I].Speed*Counter;
     }
     
-    game_renderer *Renderer = &GameRenderer;
     render_item *RenderItem = Renderer->NewRenderItem(Font->Texture, false, 0.0);
     Assert(RenderItem);
     

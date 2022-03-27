@@ -115,8 +115,8 @@ ToggleFullscreen(HWND Window){
             SetWindowLong(Window, GWL_STYLE, Style & ~WS_OVERLAPPEDWINDOW);
             SetWindowPos(Window, HWND_TOP,
                          MonitorInfo.rcMonitor.left, MonitorInfo.rcMonitor.top,
-                         MonitorInfo.rcMonitor.right- MonitorInfo.rcMonitor.left,
-                         MonitorInfo.rcMonitor.bottom- MonitorInfo.rcMonitor.top,
+                         MonitorInfo.rcMonitor.right-MonitorInfo.rcMonitor.left,
+                         MonitorInfo.rcMonitor.bottom-MonitorInfo.rcMonitor.top,
                          SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
         }
     }else{
@@ -148,7 +148,11 @@ Win32MainWindowProc(HWND Window,
         case WM_DESTROY: {
             Running = false;
         }break;
-        case WM_SYSKEYDOWN: Assert(0); break;
+        case WM_GETMINMAXINFO: {
+            LPMINMAXINFO lpMMI = (LPMINMAXINFO)LParam;
+            lpMMI->ptMinTrackSize.x = MINIMUM_WINDOW_WIDTH;
+            lpMMI->ptMinTrackSize.y = MINIMUM_WINDOW_HEIGHT;
+        }break;
         default: {
             Result = DefWindowProcA(Window, Message, WParam, LParam);
         }break;
@@ -173,7 +177,7 @@ Win32SecondsElapsed(LARGE_INTEGER Begin, LARGE_INTEGER End){
 }
 
 internal b32
-Win32LoadOpenGlFunctions(){
+Win32LoadOpenGLFunctions(){
     b32 Result = true;
     s32 CurrentFunction = 0;
 #define GL_FUNC(Name) Name = (type_##Name *)wglGetProcAddress(#Name); \
@@ -186,8 +190,9 @@ CurrentFunction++;
     return(Result);
 }
 
-internal void
-Win32InitOpenGl(HINSTANCE Instance, HWND *Window){
+internal b8
+Win32InitOpenGL(HINSTANCE Instance, HWND *Window){
+    
     HDC DeviceContext = GetDC(*Window);
     
     PIXELFORMATDESCRIPTOR PixelFormatDescriptor = {};
@@ -203,102 +208,99 @@ Win32InitOpenGl(HINSTANCE Instance, HWND *Window){
     PIXELFORMATDESCRIPTOR ActualPixelFormatDescriptor;
     DescribePixelFormat(DeviceContext, PixelFormat, sizeof(ActualPixelFormatDescriptor), &ActualPixelFormatDescriptor);
     
-    if(SetPixelFormat(DeviceContext, PixelFormat, &ActualPixelFormatDescriptor)){
-        HGLRC OpenGlContext = wglCreateContext(DeviceContext);
-        if(wglMakeCurrent(DeviceContext, OpenGlContext)){
-            wgl_choose_pixel_format_arb *wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb*)wglGetProcAddress("wglChoosePixelFormatARB");
-            wgl_create_context_attribs_arb *wglCreateContextAttribsARB = (wgl_create_context_attribs_arb*)wglGetProcAddress("wglCreateContextAttribsARB");
-            if(wglChoosePixelFormatARB && wglCreateContextAttribsARB){
-                wglMakeCurrent(DeviceContext, 0);
-                Assert(wglDeleteContext(OpenGlContext));
-                Assert(ReleaseDC(*Window, DeviceContext));
-                Assert(DestroyWindow(*Window));
-                
-                *Window = CreateWindowEx(0,
-                                         "WindowClass",
-                                         "Toe Tac Tic",
-                                         WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-                                         CW_USEDEFAULT, CW_USEDEFAULT,
-                                         CW_USEDEFAULT, CW_USEDEFAULT,
-                                         0,
-                                         0,
-                                         Instance,
-                                         0);
-                
-                DeviceContext = GetDC(*Window);
-                
-                const s32 AttributeList[] =
-                {
-                    WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-                    WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-                    WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
-                    WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
-                    WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
-                    WGL_COLOR_BITS_ARB, 32,
-                    WGL_ALPHA_BITS_ARB, 8,
-                    WGL_DEPTH_BITS_ARB, 24,
-                    WGL_STENCIL_BITS_ARB, 8,
-                    WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,
-                    WGL_SAMPLES_ARB, 4,
-                    0
-                };
-                
-                s32 PixelFormat;
-                u32 TotalFormats;
-                if(wglChoosePixelFormatARB(DeviceContext, AttributeList, 0, 1, &PixelFormat,
-                                           &TotalFormats)){
-                    PIXELFORMATDESCRIPTOR PixelFormatDescriptor;
-                    DescribePixelFormat(DeviceContext, PixelFormat, 
-                                        sizeof(PixelFormatDescriptor), 
-                                        &PixelFormatDescriptor);
-                    if(SetPixelFormat(DeviceContext, PixelFormat, &PixelFormatDescriptor)){
-                        const s32 OpenGLAttributes[] = {
-                            WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
-                            WGL_CONTEXT_MINOR_VERSION_ARB, 3,
-                            WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
-                            0,
-                        };
-                        
-                        HGLRC OpenGLContext = wglCreateContextAttribsARB(DeviceContext, 0, OpenGLAttributes);
-                        if(OpenGLContext){
-                            if(wglMakeCurrent(DeviceContext, OpenGLContext)){
-                                if(Win32LoadOpenGlFunctions()){
-                                    // NOTE(Tyler): Success!!!
-                                    
-                                }else{
-                                    LogMessage("Win32: Couldn't load OpenGL functions");
-                                    Assert(0);
-                                }
-                            }else{
-                                LogMessage("Win32: Couldn't make OpenGL context current 2");
-                                Assert(0);
-                            }
-                        }else{
-                            LogMessage("Win32: Couldn't create OpenGL context");
-                            Assert(0);
-                        }
-                    }else{
-                        LogMessage("Win32: Couldn't set pixel format");
-                        Assert(0);
-                    }
-                }else{
-                    // TODO(Tyler): Logging!!!
-                    LogMessage("Win32: Couldn't choose pixel format 2");
-                    Assert(0);
-                }
-            }else{
-                LogMessage("Win32: Couldn't choose pixel format 1");
-                Assert(0);
-            }
-        }else{
-            LogMessage("Win32: Couldn't make OpenGL context current 1");
-            Assert(0);
-        }
-    }else{
-        // TODO(Tyler): Logging!!!
+    if(!SetPixelFormat(DeviceContext, PixelFormat, &ActualPixelFormatDescriptor)){
         LogMessage("Win32: Couldn't set pixel format 1");
         Assert(0);
+        return false;
     }
+    
+    HGLRC OpenGlContext = wglCreateContext(DeviceContext);
+    if(!wglMakeCurrent(DeviceContext, OpenGlContext)){
+        LogMessage("Win32: Couldn't make OpenGL context current 1");
+        return false;
+    }
+    
+    wgl_choose_pixel_format_arb *wglChoosePixelFormatARB = (wgl_choose_pixel_format_arb*)wglGetProcAddress("wglChoosePixelFormatARB");
+    wgl_create_context_attribs_arb *wglCreateContextAttribsARB = (wgl_create_context_attribs_arb*)wglGetProcAddress("wglCreateContextAttribsARB");
+    if(!wglChoosePixelFormatARB){
+        LogMessage("Win32: Couldn't load wglChoosePixelFormatARB");
+        return false;
+    }
+    if(!wglCreateContextAttribsARB){
+        LogMessage("Win32: Couldn't load wglCreateContexAttribsARB");
+        return false;
+    }
+    
+    wglMakeCurrent(DeviceContext, 0);
+    Assert(wglDeleteContext(OpenGlContext));
+    Assert(ReleaseDC(*Window, DeviceContext));
+    Assert(DestroyWindow(*Window));
+    
+    *Window = CreateWindowEx(0,
+                             "WindowClass",
+                             WINDOW_NAME,
+                             WS_OVERLAPPEDWINDOW,
+                             CW_USEDEFAULT, CW_USEDEFAULT,
+                             CW_USEDEFAULT, CW_USEDEFAULT,
+                             0,
+                             0,
+                             Instance,
+                             0);
+    
+    DeviceContext = GetDC(*Window);
+    
+    const s32 AttributeList[] =
+    {
+        WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
+        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
+        WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
+        WGL_PIXEL_TYPE_ARB, WGL_TYPE_RGBA_ARB,
+        WGL_ACCELERATION_ARB, WGL_FULL_ACCELERATION_ARB,
+        WGL_COLOR_BITS_ARB, 32,
+        WGL_ALPHA_BITS_ARB, 8,
+        WGL_DEPTH_BITS_ARB, 24,
+        WGL_STENCIL_BITS_ARB, 8,
+        WGL_SAMPLE_BUFFERS_ARB, GL_TRUE,
+        WGL_SAMPLES_ARB, 4,
+        0
+    };
+    
+    u32 TotalFormats;
+    if(!wglChoosePixelFormatARB(DeviceContext, AttributeList, 0, 1, &PixelFormat,
+                                &TotalFormats)){
+        LogMessage("Win32: Couldn't choose pixel format 2");
+        Assert(0);
+    }
+    DescribePixelFormat(DeviceContext, PixelFormat, 
+                        sizeof(PixelFormatDescriptor), 
+                        &PixelFormatDescriptor);
+    if(!SetPixelFormat(DeviceContext, PixelFormat, &PixelFormatDescriptor)){
+        LogMessage("Win32: Couldn't set pixel format");
+        return false;
+    }
+    const s32 OpenGLAttributes[] = {
+        WGL_CONTEXT_MAJOR_VERSION_ARB, 3,
+        WGL_CONTEXT_MINOR_VERSION_ARB, 3,
+        WGL_CONTEXT_PROFILE_MASK_ARB, WGL_CONTEXT_COMPATIBILITY_PROFILE_BIT_ARB,
+        0,
+    };
+    
+    HGLRC OpenGLContext = wglCreateContextAttribsARB(DeviceContext, 0, OpenGLAttributes);
+    if(!OpenGLContext){
+        LogMessage("Win32: Couldn't create OpenGL context");
+        return false;
+    }
+    if(!wglMakeCurrent(DeviceContext, OpenGLContext)){
+        LogMessage("Win32: Couldn't make OpenGL context current 2");
+        return false;
+    }
+    
+    if(!Win32LoadOpenGLFunctions()){
+        LogMessage("Win32: Couldn't load OpenGL functions");
+        return false;
+    }
+    
+    return true;
 }
 
 internal inline v2
@@ -483,133 +485,147 @@ WinMain(HINSTANCE Instance,
     //WindowClass.hIcon = ...;
     WindowClass.lpszClassName = "WindowClass";
     
-    if(RegisterClass(&WindowClass)){
-        MainWindow = CreateWindowExA(0,
-                                     WindowClass.lpszClassName,
-                                     "FAKE WINDOW",
-                                     WS_OVERLAPPEDWINDOW,
-                                     CW_USEDEFAULT, CW_USEDEFAULT,
-                                     CW_USEDEFAULT, CW_USEDEFAULT,
-                                     0,
-                                     0,
-                                     Instance,
-                                     0);
-        if(MainWindow){
-            Win32InitOpenGl(Instance, &MainWindow);
-            ToggleFullscreen(MainWindow);
-            wglSwapIntervalEXT(0);
-            
-            HDC DeviceContext = GetDC(MainWindow);
-            Running = true;
-            
-            //~ Timing setup
-            UINT DesiredSchedulerMS = 1;
-            b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
-            
-            LARGE_INTEGER PerformanceCounterFrequencyResult;
-            QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
-            GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
-            
-            s32 MonitorRefreshHz = 60;
-            s32 RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
-            if(RefreshRate > 1) MonitorRefreshHz = RefreshRate;
-            f32 GameUpdateHz = (f32)(MonitorRefreshHz);
-            
-            f32 TargetSecondsPerFrame = 1.0f / GameUpdateHz;
-            if(TargetSecondsPerFrame < MINIMUM_SECONDS_PER_FRAME){
-                TargetSecondsPerFrame = MINIMUM_SECONDS_PER_FRAME;
-            }else if(TargetSecondsPerFrame > MAXIMUM_SECONDS_PER_FRAME){
-                TargetSecondsPerFrame = MAXIMUM_SECONDS_PER_FRAME;
-            }
-            
-            LogMessage("Timing calculated %u %d %d %f %f %'llu", SleepIsGranular, 
-                       MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, GlobalPerfCounterFrequency);
-            
-            //~ Audio
-            s32 SamplesPerSecond = 48000;
-            u32 SamplesPerAudioFrame = (u32)((f32)SamplesPerSecond / (f32)MonitorRefreshHz);
-            Win32InitAudio(SamplesPerSecond, SamplesPerSecond);
-            AudioClient->Start();
-            
-            u32 AudioSampleCount;
-            HRESULT Error;
-            if(FAILED(Error = AudioClient->GetBufferSize(&AudioSampleCount))) Assert(0);
-            
-            u32 BufferSize = AudioSampleCount*2*sizeof(s16);
-            OSSoundBuffer.SampleRate = SamplesPerSecond;
-            OSSoundBuffer.Samples = (s16 *)AllocateVirtualMemory(BufferSize);
-            
-            CreateThread(0, 0, Win32AudioThreadProc, DeviceContext, 0, 0);
-            LogMessage("Audio initialized");
-            
-            //~
-            RECT ClientRect;
-            GetClientRect(MainWindow, &ClientRect);
-            int Width = ClientRect.right - ClientRect.left;
-            int Height = ClientRect.bottom - ClientRect.top;
-            OSInput.WindowSize = {(f32)Width, (f32)Height};
-            
-            //~ 
-            InitializeGame();
-            LogMessage("Game initialized");
-            
-            //~ Main loop
-            OSInput.dTime = TargetSecondsPerFrame;
-            SwapBuffers(DeviceContext);
-            while(Running){
-                LARGE_INTEGER LastTime = Win32GetWallClock();
-                GameUpdateAndRender();
-                
-                SwapBuffers(DeviceContext);
-                
-                f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                //OSInput.dTime = SecondsElapsed;
-#if 1
-                if(SecondsElapsed < TargetSecondsPerFrame){
-                    if(SleepIsGranular){
-                        DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame-SecondsElapsed));
-                        //LogMessage("Sleeping for %u MS", SleepMS);
-                        if(SleepMS > 2){
-                            SleepMS -= 2;
-                            Sleep(SleepMS);
-                        }
-                    }
-                    
-                    f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                    while(SecondsElapsed <= TargetSecondsPerFrame){
-                        SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
-                    }
-                    
-                    //f32 Epsilon = 0.00001f;
-                    f32 Epsilon = 0.001f;
-                    if(SecondsElapsed >= TargetSecondsPerFrame+Epsilon){
-                        LogMessage("Went past target time | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
-                    }
-                    
-                    OSInput.dTime = SecondsElapsed;
-                }else if(SecondsElapsed > TargetSecondsPerFrame){
-                    LogMessage("Missed FPS %f", SecondsElapsed);
-                    OSInput.dTime = SecondsElapsed;
-                    if(OSInput.dTime > MAXIMUM_SECONDS_PER_FRAME){
-                        OSInput.dTime = MAXIMUM_SECONDS_PER_FRAME;
-                    }
-                }
-                
-                if(OSInput.dTime <= 0.0){
-                    LogMessage("dTime is not valid! | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
-                    OSInput.dTime = MINIMUM_SECONDS_PER_FRAME;
-                }
-#endif
-            }
-        }else{
-            // TODO(Tyler): Error logging!
-            OutputDebugString("Failed to create window!");
-            LogMessage("Win32: Failed to create window!");
-        }
-    }else{
+    if(!RegisterClass(&WindowClass)){
         // TODO(Tyler): Error logging!
         OutputDebugString("Failed to register window class!");
         LogMessage("Win32: Failed to register window class!");
+        return -1;
+    }
+    
+    MainWindow = CreateWindowExA(0,
+                                 WindowClass.lpszClassName,
+                                 "FAKE WINDOW",
+                                 WS_OVERLAPPEDWINDOW,
+                                 CW_USEDEFAULT, CW_USEDEFAULT,
+                                 CW_USEDEFAULT, CW_USEDEFAULT,
+                                 0,
+                                 0,
+                                 Instance,
+                                 0);
+    if(!MainWindow){
+        // TODO(Tyler): Error logging!
+        OutputDebugString("Failed to create window!");
+        LogMessage("Win32: Failed to create window!");
+        return -1;
+    }
+    LogMessage("Window opened");
+    
+    //~ Timing setup
+    UINT DesiredSchedulerMS = 1;
+    b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
+    
+    LARGE_INTEGER PerformanceCounterFrequencyResult;
+    QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
+    GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
+    
+    s32 MonitorRefreshHz = 60;
+    f32 TargetSecondsPerFrame;
+    {
+        HDC DeviceContext = GetDC(MainWindow);
+        s32 RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
+        if(RefreshRate > 1) MonitorRefreshHz = RefreshRate;
+        f32 GameUpdateHz = (f32)(MonitorRefreshHz);
+        
+        TargetSecondsPerFrame = 1.0f / GameUpdateHz;
+        if(TargetSecondsPerFrame < MINIMUM_SECONDS_PER_FRAME){
+            TargetSecondsPerFrame = MINIMUM_SECONDS_PER_FRAME;
+        }else if(TargetSecondsPerFrame > MAXIMUM_SECONDS_PER_FRAME){
+            TargetSecondsPerFrame = MAXIMUM_SECONDS_PER_FRAME;
+        }
+        ReleaseDC(MainWindow, DeviceContext);
+        
+        LogMessage("Timing calculated %u %d %d %f %f %'llu", SleepIsGranular, 
+                   MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, GlobalPerfCounterFrequency);
+    }
+    
+    if(!Win32InitOpenGL(Instance, &MainWindow)){
+        return -1;
+    }
+    LogMessage("OpenGL initialized");
+    
+    ToggleFullscreen(MainWindow);
+    wglSwapIntervalEXT(0);
+    
+    HDC DeviceContext = GetDC(MainWindow);
+    Running = true;
+    
+    //~ Audio
+    s32 SamplesPerSecond = 48000;
+    u32 SamplesPerAudioFrame = (u32)((f32)SamplesPerSecond / (f32)MonitorRefreshHz);
+    Win32InitAudio(SamplesPerSecond, SamplesPerSecond);
+    AudioClient->Start();
+    
+    u32 AudioSampleCount;
+    HRESULT Error;
+    if(FAILED(Error = AudioClient->GetBufferSize(&AudioSampleCount))) Assert(0);
+    
+    u32 BufferSize = AudioSampleCount*2*sizeof(s16);
+    OSSoundBuffer.SampleRate = SamplesPerSecond;
+    OSSoundBuffer.Samples = (s16 *)AllocateVirtualMemory(BufferSize);
+    
+    CreateThread(0, 0, Win32AudioThreadProc, DeviceContext, 0, 0);
+    LogMessage("Audio initialized");
+    
+    //~
+    RECT ClientRect;
+    GetClientRect(MainWindow, &ClientRect);
+    int Width = ClientRect.right - ClientRect.left;
+    int Height = ClientRect.bottom - ClientRect.top;
+    OSInput.WindowSize = {(f32)Width, (f32)Height};
+    
+    //~ 
+    InitializeGame();
+    LogMessage("Game initialized");
+    
+    //~ Main loop
+    OSInput.dTime = TargetSecondsPerFrame;
+    SwapBuffers(DeviceContext);
+    while(Running){
+        LARGE_INTEGER LastTime = Win32GetWallClock();
+        GameUpdateAndRender();
+        
+        SwapBuffers(DeviceContext);
+        
+        f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
+        //OSInput.dTime = SecondsElapsed;
+#if 1
+        if(SecondsElapsed < TargetSecondsPerFrame){
+            if(SleepIsGranular){
+                DWORD SleepMS = (DWORD)(1000.0f * (TargetSecondsPerFrame-SecondsElapsed));
+                //LogMessage("Sleeping for %u MS", SleepMS);
+                if(SleepMS > 2){
+                    SleepMS -= 2;
+                    Sleep(SleepMS);
+                }
+            }
+            
+            f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
+            while(SecondsElapsed <= TargetSecondsPerFrame){
+                SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
+            }
+            
+            //f32 Epsilon = 0.00001f;
+            f32 Epsilon = 0.001f;
+            if(SecondsElapsed >= TargetSecondsPerFrame+Epsilon){
+                LogMessage("Went past target time | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
+            }
+            
+            OSInput.dTime = SecondsElapsed;
+        }else if(SecondsElapsed > TargetSecondsPerFrame){
+            LogMessage("Missed FPS %f", SecondsElapsed);
+            OSInput.dTime = SecondsElapsed;
+            if(OSInput.dTime > MAXIMUM_SECONDS_PER_FRAME){
+                OSInput.dTime = MAXIMUM_SECONDS_PER_FRAME;
+            }
+        }
+        
+        if(OSInput.dTime <= 0.0){
+            LogMessage("dTime is not valid! | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
+            OSInput.dTime = MINIMUM_SECONDS_PER_FRAME;
+        }
+#endif
+        
+        ShowWindow(MainWindow, SW_SHOW);
     }
     
     return(0);

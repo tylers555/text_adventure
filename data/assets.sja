@@ -37,6 +37,7 @@
     start_game_mode "main game"
     start_room      "Plaza SE"
     theme           "default"
+    town_map        "asset_arts/map_colored.png"
 
 # //////////////////////////////////////////////////////////////////////////
 #                                  Fonts
