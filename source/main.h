@@ -13,7 +13,7 @@
 global_constant u32 DEFAULT_BUFFER_SIZE = 512;
 
 global_constant f32 MAXIMUM_SECONDS_PER_FRAME = (1.0f / 20.0f);
-global_constant f32 MINIMUM_SECONDS_PER_FRAME = (1.0f / 90.0f);
+global_constant f32 MINIMUM_SECONDS_PER_FRAME = (1.0f / 60.0f);
 global_constant f32 SECONDS_PER_TICK = (1.0f / 75.0f);
 
 global_constant u32 PHYSICS_ITERATIONS_PER_OBJECT = 4;
@@ -71,6 +71,7 @@ enum game_mode {
     GameMode_None,
     GameMode_Menu,
     GameMode_MainGame,
+    GameMode_Map,
 };
 
 struct state_change_data {

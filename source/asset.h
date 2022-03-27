@@ -21,11 +21,15 @@ global_constant u32 MAX_ASSETS_PER_TYPE = 128;
 enum asset_tag_id {
     AssetTag_None = 0,
     AssetTag_Play,
+    AssetTag_Take,
     AssetTag_Examine,
     AssetTag_Eat,
     AssetTag_Activate,
+    AssetTag_Talk,
     
     AssetTag_Organ,
+    AssetTag_BellTower,
+    
     AssetTag_Broken,
     AssetTag_Repaired,
     
@@ -34,6 +38,8 @@ enum asset_tag_id {
     AssetTag_OpenNoon,
     AssetTag_OpenDusk,
     AssetTag_OpenNight,
+    
+    AssetTag_Dark,
     
     AssetTag_Items,
     AssetTag_Adjacents,
@@ -76,10 +82,15 @@ global u32 FONT_VERTICAL_SPACE = 3;
 global u32 FONT_LETTER_SPACE = 1;
 
 struct fancy_font_format {
-    color Color;
+    color Color1;
+    color Color2;
     f32 Amplitude;
     f32 Speed;
     f32 dT;
+    
+    f32 ColorSpeed;
+    f32 ColordT;
+    f32 ColorTOffset;
 };
 
 struct asset_font_glyph {
@@ -99,10 +110,26 @@ struct asset_font {
 internal inline fancy_font_format
 MakeFancyFormat(color Color, f32 Amplitude, f32 Speed, f32 dT){
     fancy_font_format Result = {};
-    Result.Color = Color;
+    Result.Color1 = Color;
+    Result.Amplitude = Amplitude;
+    Result.Speed = 0.5f*PI*Speed;
+    Result.dT = 0.5f*PI*dT;
+    return Result;
+}
+
+internal inline fancy_font_format
+MakeFancyFormat(color Color1, color Color2, 
+                f32 Amplitude, f32 Speed, f32 dT, 
+                f32 ColorSpeed, f32 ColordT, f32 ColorTOffset){
+    fancy_font_format Result = {};
+    Result.Color1 = Color1;
+    Result.Color2 = Color2;
     Result.Amplitude = Amplitude;
     Result.Speed = Speed;
-    Result.dT = dT;
+    Result.dT = 0.5f*PI*dT;
+    Result.ColorSpeed = 0.5f*PI*ColorSpeed;
+    Result.ColordT = 0.5f*PI*ColordT;
+    Result.ColorTOffset = 0.5f*PI*ColorTOffset;
     return Result;
 }
 

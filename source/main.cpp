@@ -45,6 +45,8 @@ String(const char *S){
 #include "asset.cpp"
 #include "asset_loading.cpp"
 #include "audio_mixer.cpp"
+#include "text_adventure.cpp"
+#include "commands.cpp"
 
 #include "game.cpp"
 #include "menu.cpp"
@@ -137,9 +139,10 @@ GameUpdateAndRender(){
     }
     
     if(FrameCounter == 1){
-        DebugInitTime += OSGetMicroseconds()-Start;
+        u64 FirstFrameTime = OSGetMicroseconds()-Start;
+        DebugInitTime += FirstFrameTime;
         f32 Time = (f32)DebugInitTime/1000000.0f;
-        LogMessage("Time to initialize: %f\n", Time);
+        LogMessage("Time to initialize: %f | First frame: %f", Time, FirstFrameTime);
     }
 }
 

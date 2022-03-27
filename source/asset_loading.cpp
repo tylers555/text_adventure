@@ -78,7 +78,9 @@ asset_system::InitializeLoader(memory_arena *Arena){
     InsertIntoHashTable(&TagTable, "examine",    AssetTag_Examine);
     InsertIntoHashTable(&TagTable, "eat",        AssetTag_Eat);
     InsertIntoHashTable(&TagTable, "activate",   AssetTag_Activate);
+    InsertIntoHashTable(&TagTable, "take",       AssetTag_Take);
     InsertIntoHashTable(&TagTable, "organ",      AssetTag_Organ);
+    InsertIntoHashTable(&TagTable, "bell-tower", AssetTag_BellTower);
     InsertIntoHashTable(&TagTable, "broken",     AssetTag_Broken);
     InsertIntoHashTable(&TagTable, "repaired",   AssetTag_Repaired);
     InsertIntoHashTable(&TagTable, "locked",     AssetTag_Locked);
@@ -272,6 +274,9 @@ asset_system::ExpectTypeColor(){
         
         ExpectToken(FileTokenType_EndArguments);
         HandleError();
+    }else{
+        Reader.LastError = FileReaderError_InvalidToken;
+        return(Result);
     }
     
     return(Result);
@@ -289,19 +294,50 @@ asset_system::ExpectTypeFancy(){
         ExpectToken(FileTokenType_BeginArguments);
         HandleError();
         
-        Result.Color = ExpectTypeColor();
+        Result.Color1 = ExpectTypeColor();
         HandleError();
         
         Token = Reader.PeekToken();
-        if(Token.Type != FileTokenType_EndArguments){
+        if(Token.Type == FileTokenType_EndArguments){
+        }else if(Token.Type == FileTokenType_Float){
             Result.Amplitude = Expect(Float);
             Result.Speed     = Expect(Float);
             Result.dT        = Expect(Float);
+        }else if(Token.Type == FileTokenType_Identifier){
+            Result.Color2 = ExpectTypeColor();
+            HandleError();
+            
+            f32 A = Expect(Float);
+            f32 B = Expect(Float);
+            f32 C = Expect(Float);
+            Token = Reader.PeekToken();
+            if(Token.Type == FileTokenType_EndArguments){
+                Result.ColorSpeed   = A;
+                Result.ColordT      = B;
+                Result.ColorTOffset = C;
+            }else{
+                Result.Amplitude    = A;
+                Result.Speed        = B;
+                Result.dT           = C;
+                Result.ColorSpeed   = Expect(Float);
+                Result.ColordT      = Expect(Float);
+                Result.ColorTOffset = Expect(Float);
+            }
         }
         
         ExpectToken(FileTokenType_EndArguments);
         HandleError();
+        
+        Result.Speed        *= 0.5f*PI;
+        Result.dT           *= 0.5f*PI;
+        Result.ColorSpeed   *= 0.5f*PI;
+        Result.ColordT      *= 0.5f*PI;
+        Result.ColorTOffset *= 0.5f*PI;
+    }else{
+        Reader.LastError = FileReaderError_InvalidToken;
+        return(Result);
     }
+    
     
     return(Result);
 }
@@ -325,7 +361,7 @@ asset_system::MaybeExpectTag(){
             
             enum8(asset_tag_id) ID = (u8)FindInHashTable(&TagTable, S);
             if(!ID){ 
-                LogError("'%s' is not a valid tag!", S);
+                LogError("WARNING: '%s' is not registered as a tag and it will thus be ignored.!", S);
                 //Assert(0);
                 continue;
             }
@@ -453,6 +489,7 @@ asset_system::ProcessVariables(){
             if(GameMode == GameMode_None){
                 if(CompareStrings(S, "main game")) GameMode = GameMode_MainGame;
                 else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
+                else if(CompareStrings(S, "map")) GameMode = GameMode_Map;
             }
             
         }else if(DoAttribute(Attribute, "start_room")){

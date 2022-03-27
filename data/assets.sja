@@ -8,9 +8,13 @@
     title_font "basic_bold"
     background_color Color(0x0a0d4aff)
     basic      Fancy(Color(0xf2f2f2ff))
-    room_title Fancy(Color(0xff6969ff)1.0 4.0 2.0)
-    item       Fancy(Color(0x24e3e3ff))
-    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
+#    room_title Fancy(Color(0xff6969ff) 1.0 4.0 2.0)
+    room_title Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.0 4.0 2.0 0.0 2.0 1.0)
+    item       Fancy(Color(0x24e3e3ff) Color(0xb3e8e8ff) 0.0 6.0 0.0)
+#    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
+    room       Fancy(Color(0xffe369ff) Color(0xff6969ff) 2.0 2.0 1.0)
+#    room       Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.5 0.0 0.0)
+#    direction  Fancy(Color(0x00ff40ff) Color(0x9b4ac7ff) 1.5 0.0 0.0)
     direction  Fancy(Color(0x84d197ff))
     response   Fancy(Color(0x9063ffff))
     emphasis   Fancy(Color(0xe06ecdff) 1.0 5.0 3.0)
@@ -20,7 +24,7 @@
     title_font "basic_bold"
     background_color Color(0x09360aff)
     basic      Fancy(Color(0xf2f2f2ff))
-    room_title Fancy(Color(0xff6969ff)1.0 4.0 2.0)
+    room_title Fancy(Color(0xff6969ff) 1.0 4.0 2.0)
     item       Fancy(Color(0x24e3e3ff))
     room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
     direction  Fancy(Color(0x6c38ffff))
@@ -365,7 +369,7 @@
     # path "asset_sound_effects/osj_music.wav"
 
 : SoundEffect "room_change"
-    path "asset_sound_effects/sf_wood_walk_3.wav"
+    path "asset_sound_effects/sf_wood_walk_4.wav"
  
 : SoundEffect "open_door"
     path "asset_sound_effects/sf_open_door_1.wav"
@@ -374,7 +378,7 @@
     path "asset_sound_effects/sf_take.wav"
 
 : SoundEffect "item_bought"
-    path "asset_sound_effects/sf_coin_1.wav"
+    path "asset_sound_effects/sf_coin_5.wav"
 
 : SoundEffect "item_dropped"
     path "asset_sound_effects/sf_drop.wav"
@@ -470,42 +474,21 @@
     description Tag("eat")
         "You must be really desperate or really don’t like wasting food."
 
-: TAItem "organ console" Tag("organ" "static")
-    Array("organ" "organs" "console" "consoles")
-    adjectives Array("organ")
-    description Tag("examine" "broken")
-        "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
-        "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
-    description Tag("examine" "repaired")
-        "You're a little biased, but the organ almost looks brand new, whilst simultaneously boasting its grand old age! "
-        "The keys and new stops shine, even though you never dusted them..."
-    description Tag("play" "broken")
-        "Not all the notes sound properly, and you hear the breathy sound of leaking air."
-    description Tag("play" "repaired")
-        "All the notes sound with renewed strength."
-
-: TAItem "organ bellows" Tag("organ" "static")
-    Array("bellow" "bellows")
-    adjectives Array("organ")
-    description Tag("examine" "broken")
-        "From a swift glance at the multitude of bellows, "
-        "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
-    description Tag("examine" "repaired")
-        "They are in peachy keen condition!"
-
-: TAItem "organ pipes" Tag("organ" "static")
-    Array("pipe" "pipes")
-    adjectives Array("organ")    
-    description Tag("examine" "broken")
-        "You observe that several pipes seem to be absent."
-    description Tag("examine" "repaired")
-        "They are in fantastic condition. "
+# //////////////////////////////////////////////////////////////////////////
+#                                   Keys
+# //////////////////////////////////////////////////////////////////////////
 
 : TAItem "small silver key" Tag("organ" "key")
     Array("key" "keys")
     adjectives Array("small" "silver")
     description Tag("examine")
         "The handle of the key is shaped like a music note."
+
+: TAItem "bell tower key" Tag("bell-tower" "key")
+    Array("key" "keys")
+    adjectives Array("bell" "tower")
+    description Tag("examine")
+        "This key is magical and currently doesn't have a description!"
 
 
 # //////////////////////////////////////////////////////////////////////////
@@ -552,7 +535,7 @@
     description
         "Plaza NW"
     description Tag("adjacents")
-        "\2The plaza\0 extends  further \south\0 for a great distance. "
+        "\2The plaza\0 extends further \1south\0 for a great distance. "
     adjacents
         south "Plaza SW"
 
@@ -564,6 +547,7 @@
     description
         "Thorn lane E"
     description Tag("adjacents")
+        "To the \1north\0, stands \2the Inn\0, tall and proud"
     adjacents
         north "Inn front"
         east  "Plaza SW"
@@ -594,30 +578,50 @@
 #                                 Inn rooms
 # //////////////////////////////////////////////////////////////////////////
 
+: TAItem "vibrant ceramic plant pot" Tag("static")
+    Array("pot" "pots")    
+    adjectives Array("vibrant" "ceramic" "plant")
+    description Tag("examine")
+        "The pot is painted with a very intricate and beautiful pattern."
+    description Tag("take")
+        "You don't want to disturb the sleeping cat."
+
+: TAItem "pretty black cat" Tag("static")
+    Array("cat" "cats")    
+    adjectives Array("pretty" "black")
+    description Tag("examine")
+        "The cat is a deep black color and is sleeping very peacefully"
+    description Tag("take")
+        "You don't want to disturb the sleeping cat."
+
 : TARoom "Inn front"
     description
-        "Inn front"
+        "Wide glass windows emit a warm glow, and through the streaks of raindrops you see a few animated silhouettes of those inside. "
+        "A sign over the door reads \2'Murkwell Inn'\0."
     description Tag("adjacents")
     adjacents
-        north "Inn"
+        north "Inn lobby"
         east  "Plaza SW"
         south "Thorn lane E"
         west  "Thorn lane"
 
-: TARoom "Inn"
+: TARoom "Inn lobby"
     description
-        "Inn"
+        "A few travelers sit on cushions, engaged in worldly discussions and drinking mint tea. "
+        "An old woman sits behind the front desk, engrossed in the pages of a short novel. "
+        "A pretty black cat is curled around a vibrant ceramic plant pot in the corner."
     description Tag("adjacents")
     adjacents
         south "Inn front"
         up "Inn hallway"
+    items Array("vibrant ceramic plant pot")
 
 : TARoom "Inn hallway"
     description
         "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
     description Tag("adjacents")
     adjacents
-        down "Inn"
+        down "Inn lobby"
 
 : TARoom "Inn room 1"
     description
@@ -648,6 +652,11 @@
     description
         "A thin but sturdy wooden door is surrounded by brick on either side, welcoming you to enter. "
         "Above the door is a large sign that reads: \2'Susan's Shop'"
+    description Tag("adjacents")
+        "To the \1north\0 extends \2the plaza\0,"
+        "\n\2the bakery\0 to the \1north\0"
+        "\n\2the shop\0 to the \1south\0, beyond the door,"
+        "\nand \2the bar\0 stands to the \1west\0"
     adjacents
         north "Plaza SE"
         east  "Bakery front"
@@ -658,6 +667,8 @@
     description
         "The shop boasts nothing more than a modestly sized room, with a large counter at the far wall."
         "The sides of the room are surrounded by shelves, serving as homes to numerous common goods. "
+    description Tag("adjacents")
+        "There is only a door to the \1north\0 that leads out towards the \2the front\0"
     description Tag("items")
         "Several items catch your eye: "
     adjacents
@@ -728,8 +739,39 @@
         down "Bar"
 
 # //////////////////////////////////////////////////////////////////////////
- #                              Cathedral rooms
+#                              Cathedral rooms
 # //////////////////////////////////////////////////////////////////////////
+
+: TAItem "organ console" Tag("organ" "static")
+    Array("organ" "organs" "console" "consoles")
+    adjectives Array("organ")
+    description Tag("examine" "broken")
+        "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
+        "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
+    description Tag("examine" "repaired")
+        "You're a little biased, but the organ almost looks brand new, whilst simultaneously boasting its grand old age! "
+        "The keys and new stops shine, even though you never dusted them..."
+    description Tag("play" "broken")
+        "Not all the notes sound properly, and you hear the breathy sound of leaking air."
+    description Tag("play" "repaired")
+        "All the notes sound with renewed strength."
+
+: TAItem "organ bellows" Tag("organ" "static")
+    Array("bellow" "bellows")
+    adjectives Array("organ")
+    description Tag("examine" "broken")
+        "From a swift glance at the multitude of bellows, "
+        "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
+    description Tag("examine" "repaired")
+        "They are in peachy keen condition!"
+
+: TAItem "organ pipes" Tag("organ" "static")
+    Array("pipe" "pipes")
+    adjectives Array("organ")    
+    description Tag("examine" "broken")
+        "You observe that several pipes seem to be absent."
+    description Tag("examine" "repaired")
+        "They are in fantastic condition. "
 
 : TARoom "Cathedral front"
     description
@@ -750,13 +792,15 @@
         "Despite the large stained-glass windows on either side, the cathedral is oddly dim, lit more by candelabras than natural light. "
         "There are a few rows of red-cushioned benches facing the altar. "
     description Tag("adjacents")        
-        "Further \1northward\0 lies \2the altar\0, "
-        "\nbehind you to the \1south\0 stands \2the door\0, "
+        "Further \1northward\0 lies \2the altar\0,"
+        "\nbehind you to the \1south\0 stands \2the door\0,"
+        "\nin the \1west\0 is an \2old spiral staircase\0 leading upwards"
         "\nand you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
     adjacents
         north     "Cathedral altar"
         northeast "Cathedral organ console"
         south     "Cathedral front"
+        west      "Cathedral spiral staircase"
 
 : TARoom "Cathedral altar"
     description
@@ -772,7 +816,10 @@
 
 : TARoom "Cathedral vestry"
     description
-        
+        "This appears to be a room made for official church duties. "
+        "Wardrobes line the chilled stone wall, holding pristine jet-black church robes. "
+        "Other glass cabinets showcase an assortment of religious artifacts: ornate gold staffs, bejeweled silver chalices, ancient texts so old their pages have nearly disintegrated into a fine grey dust. " 
+        "On a couch to your right you catch a glimmer of a small silver key wedged between two plump cushions."
     description Tag("adjacents")
         "Behind you in the \1south\0 is \2the nave\0, "
         "\nand a door connects to the \2the altar\0 in the \1east\0"
@@ -812,3 +859,65 @@
     adjacents
         south "Cathedral organ console"
     items Array("organ bellows" "organ pipes")
+
+# //////////////////////////////////////////////////////////////////////////
+#                              Bell tower rooms
+# //////////////////////////////////////////////////////////////////////////
+
+: TARoom "Cathedral spiral staircase"
+    description
+        "You work your way up the spiral staircase. "
+        "The steep, narrow stone steps have been worn smooth through years of regular use. "
+        "When you finally reach that top after what feels like an impossibly long time, "
+        "you reach a sturdy iron door with a small keyhole."
+    description Tag("adjacents")
+        "There is an exit leading to \2the nave\0 in the \1east\0, "
+        "\nand the staircase leads \1upwards\0 to \2the programming room\0"
+    adjacents
+        east "Cathedral nave"
+        up   "Bell tower programming room" Tag("bell-tower" "locked")
+    items Array("bell tower key")
+
+: TARoom "Bell tower programming room"
+    description
+    description Tag("adjacents")
+        "There is a small open door in the \1west\0 connecting to a \2storage room\0"
+    adjacents
+        west "Bell tower storage room"
+        up   "Bell tower playing room"
+        down "Cathedral spiral staircase"
+
+: TARoom "Bell tower storage room"
+    description
+    description Tag("adjacents")
+        "There is only an open door in the \1east\0 connecting to the \2programming room\0"
+    adjacents
+        east "Bell tower programming room"
+
+: TARoom "Bell tower playing room"
+    description
+    description Tag("adjacents")
+    adjacents
+        up   "Bell tower belfrey"
+        down "Bell tower programming room"
+
+: TARoom "Bell tower belfrey"
+    description
+    description Tag("adjacents")
+    adjacents
+        up   "Bell tower lookout"
+        down "Bell tower playing room"
+
+: TARoom "Bell tower lookout"
+    description
+        "As you reach the top of the ladder you are immediately confronted with a rainy gust of wind. "
+        "A fierce flock of crows sits scheming on the stone railing. "
+        "From this great height the people in the plaza down below look like tiny little beetles, and you watch them go about their little beetle lives."
+#        "You are monumentously high above the town and can see its vast sprawl. "
+#        "Every reddish brown roof in the town appears tiny and almost insignificnat from this height. "
+#        "The surrounding canal, wears a beatiful blue and reflects the only gleam of sunlight to have penetrated the cloudy skies. "
+#        "Behind you is an incredible "
+    description Tag("adjacents")
+        ""
+    adjacents
+        down "Bell tower belfrey"

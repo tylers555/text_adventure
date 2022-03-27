@@ -361,8 +361,11 @@ os_input::TestModifier(os_key_flags Flags){
         Flags &= 0b0111;
         Result = ((OSInput.KeyFlags & Flags) == Flags);
     }else{
+#if 0
         Result = (((OSInput.KeyFlags & Flags) == Flags) &&
                   ((~OSInput.KeyFlags & ~Flags) == ~Flags));
+#endif
+        Result = OSInput.KeyFlags == Flags;
     }
     return(Result);
 }

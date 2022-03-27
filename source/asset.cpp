@@ -238,8 +238,10 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
     StartP.Y -= Font->Descent;
     v2 P = StartP;
     f32 Ts[MAX_FANCY_COUNT];
+    f32 ColorTs[MAX_FANCY_COUNT];
     for(u32 I=0; I<FancyCount; I++){
-        Ts[I] = Fancies[I].Speed*Counter;
+        Ts[I]      = Fancies[I].Speed*Counter;
+        ColorTs[I] = Fancies[I].ColorTOffset+Fancies[I].ColorSpeed*Counter;
     }
     
     game_renderer *Renderer = &GameRenderer;
@@ -289,8 +291,13 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
         
         {
             v2 CharP = P;
+            color Color = Fancy->Color1;
             if(Ts[CurrentFancyIndex] != 0.0f)
-                CharP.Y += Fancy->Amplitude*Sin(0.5f*PI*Ts[CurrentFancyIndex]);
+                CharP.Y += Fancy->Amplitude*Sin(Ts[CurrentFancyIndex]);
+            if(ColorTs[CurrentFancyIndex] != 0.0f){
+                f32 Alpha = 0.5f*(Sin(ColorTs[CurrentFancyIndex])+1.0f);
+                Color = MixColor(Fancy->Color2, Fancy->Color1, Alpha);
+            }
             
             f32 X0 = CharP.X;
             f32 Y0 = CharP.Y;
@@ -302,10 +309,10 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
             f32 TX1 = (f32)(Glyph.Offset.X+Glyph.Width)  / Font->Size.Width;
             f32 TY1 = (f32)(Glyph.Offset.Y+Font->Height) / Font->Size.Height;
             
-            Vertices[4*J+0] = {V2(X0, Y0), Z, V2(TX0, TY0), Fancy->Color};
-            Vertices[4*J+1] = {V2(X0, Y1), Z, V2(TX0, TY1), Fancy->Color};
-            Vertices[4*J+2] = {V2(X1, Y1), Z, V2(TX1, TY1), Fancy->Color};
-            Vertices[4*J+3] = {V2(X1, Y0), Z, V2(TX1, TY0), Fancy->Color};
+            Vertices[4*J+0] = {V2(X0, Y0), Z, V2(TX0, TY0), Color};
+            Vertices[4*J+1] = {V2(X0, Y1), Z, V2(TX0, TY1), Color};
+            Vertices[4*J+2] = {V2(X1, Y1), Z, V2(TX1, TY1), Color};
+            Vertices[4*J+3] = {V2(X1, Y0), Z, V2(TX1, TY0), Color};
             
             Indices[6*J+0] = 4*J+0;
             Indices[6*J+1] = 4*J+1;
@@ -319,6 +326,7 @@ FontRenderFancyString(asset_font *Font, const fancy_font_format *Fancies, u32 Fa
         
         J++;
         Ts[CurrentFancyIndex] += Fancy->dT;
+        ColorTs[CurrentFancyIndex] += Fancy->ColordT;
     }
     RenderItem->IndexCount = 6*J;
     
