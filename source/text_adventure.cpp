@@ -98,7 +98,7 @@ TAContinueFindItems(ta_system *TA, array<string> *Items, char **Words, u32 WordC
                         Found->Weight = Weight;
                         FoundSomething = true;
                         break;
-                    }else{
+                    }else if(Weight == Found->Weight){
                         FoundSomething = true;
                         Founds->IsAmbiguous = true;
                         break;

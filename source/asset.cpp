@@ -283,9 +283,11 @@ FontRenderFancyString(game_renderer *Renderer, asset_font *Font, const fancy_fon
         }else if(C == '\x02'){
             I++;
             Assert(I < Length);
-            CurrentFancyIndex = S[I];
-            Assert(CurrentFancyIndex <= FancyCount);
+            u32 NewIndex = S[I];
+            if(NewIndex > FancyCount) continue;
+            CurrentFancyIndex = NewIndex;
             CurrentFancyIndex--;
+            Assert(CurrentFancyIndex < FancyCount);
             Fancy = &Fancies[CurrentFancyIndex];
             continue;
         }else if(P.X-StartP.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){

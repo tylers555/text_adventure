@@ -170,8 +170,9 @@ game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
     if(OSInput.WasWindowResized()){
         WindowSize = OSInput.WindowSize;
         f32 Aspect = OutputSize.X/OutputSize.Y;
-        f32 Factor = 270.0f;
-        f32 NewScale = Minimum(OutputSize.X, OutputSize.Y)/Factor;
+        f32 XFactor = 480.0f;
+        f32 YFactor = 270.0f;
+        f32 NewScale = Minimum(OutputSize.X/XFactor, OutputSize.Y/YFactor);
         //NewScale = Clamp(NewScale, 1.0f, 0.0f);
         NewScale = Maximum(NewScale, 1.0f);
         ChangeScale(Round(NewScale));

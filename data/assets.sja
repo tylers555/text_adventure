@@ -15,6 +15,7 @@
     room       Fancy(Color(0xff6969ff))
     direction  Fancy(Color(0x5eeb82ff))
     misc       Fancy(Color(0xf5d756ff))
+    mood       Fancy(Color(0x59ab8aff))
     response   Fancy(Color(0x9063ffff))
     emphasis   Fancy(Color(0xe64eccff) Color(0x9063ffff) 2.0 0.2 0.0)
 
@@ -41,7 +42,7 @@
 # As such, this is a current limitation of the SJA system, and will be changed.
 : Variables
     start_game_mode "main game"
-    start_room      "Shop"
+    start_room      "Plant shop"
     theme           "default"
     give_item       "a town map"
  
@@ -406,6 +407,31 @@
     path "asset_sound_effects/osj/PowerMusic.wav"
 
 # //////////////////////////////////////////////////////////////////////////
+#                              Map
+# //////////////////////////////////////////////////////////////////////////
+
+: TAMap 
+    path "asset_arts/map_colored.png"
+    area "Art studio"   V2(79 75)
+    area "Bakery"       V2(103 41)
+    area "Bar"          V2(83 31)
+    area "Bell tower"   V2(87 57)
+    area "Cathedral"    V2(94 52)
+    area "Concert hall" V2(45 21)
+    area "Dark alley"   V2(59 53)
+    area "Garden"       V2(109 56)
+    area "Inn"          V2(71 44)
+    area "Plant shop"   V2(60 60)
+    area "Plaza NW"     V2(84 48)
+    area "Plaza SE"     V2(93 41)
+    area "Plaza SW"     V2(84 41)
+    area "Restaurant"   V2(45 45)
+    area "Shop"         V2(93 31)
+    area "Thorn lane"   V2(61 35)
+    area "Thorn lane E" V2(72 38)
+    area "Thorn lane W" V2(47 36)
+
+# //////////////////////////////////////////////////////////////////////////
 #                                    Items
 # //////////////////////////////////////////////////////////////////////////
 
@@ -510,7 +536,6 @@
 
 : Ignore "name"
 
-
 # //////////////////////////////////////////////////////////////////////////
 #                                 Plaza rooms
 # //////////////////////////////////////////////////////////////////////////
@@ -577,9 +602,9 @@
         "Thorn lane"
     description Tag("adjacents")
     adjacents
-        north "Plant shop front"
+        north "Dark alley"
         east  "Thorn lane E"
-        south "Tailor shop"
+        south "Tailor front"
         west  "Thorn lane W"
 
 : TARoom "Thorn lane W"
@@ -592,6 +617,138 @@
         east  "Thorn lane"
         south "Concert hall front"
         west  "Bridge"
+
+: TARoom "Dark alley"
+    area "Dark alley"
+    description
+        "The alley is rather dark and quite secluded. "
+        "You feel quite uneasy, unsure of what might happen here. "
+        "A long green vine creeps along the weathered brick, stemming from a small shop at the end of this alley. "
+        "You can see a window peering down upon this alley, in the east."
+    description Tag("adjacents")
+        "Behind you in the \1south\0 extends \2Thorn lane\0 "
+        "\nand \1northward\0 stands a \2mysterious shop\0, that protrudes plentiful plants"
+    adjacents
+        north "Plant shop front"
+        south "Thorn lane"
+
+# //////////////////////////////////////////////////////////////////////////
+#                             Plant shop rooms 
+# //////////////////////////////////////////////////////////////////////////
+
+: TAItem "plant pot"
+    Array("pot" "pots")
+    adjectives Array("plant" "plants")
+    cost 3
+    description Tag("examine")
+        "This pot has a beatiful design painted onto it"
+
+: TAItem "garden shovel"
+    Array("shovel" "shovels")
+    adjectives Array("garden" "gardening")
+    cost 5
+    description Tag("examine")
+        "This shovel is built to last, and sports a stunning design on the handle."
+
+: TAItem "garden gloves"
+    Array("glove" "gloves")
+    adjectives Array("garden" "gardening")
+    cost 4
+    description Tag("examine")
+        "These gloves have an incredibly durable feel to them, "
+        "and would be effective for handling any type of plant"
+
+: TAItem "mess of vines" Tag("static")
+    Array("vine" "vines")
+    adjectives Array("mess")
+    description Tag("examine")
+        "A \1intricate tangle of overlapping vines\0."
+
+: TAItem "dark rugged door" Tag("static")
+    Array ("door" "doors")
+    adjectives Array("dark" "rugged")
+    description Tag("examine")
+        "A \1strong yet small door\0"
+
+: TAItem "rusty doorknob" Tag("static")
+    Array("doorknob" "doorknobs" "knob" "knobs")
+    adjectives Array("rusty" "door")
+    description Tag("examine")
+        "A \1small rusty doorknob\0 that appears almost \1leaflike\0"
+
+: TARoom "Plant shop front"
+    area "Plant shop"
+    description
+        "You glance forward and are greeted with the sight of a small wooden door, "
+        "covered in scraggly ivy and vibrant moss. "
+        "Dangling overhead resides a \5mess of vines\0 curling around an ancient sign that reads \4'Planty Pleasantries.'\0 "
+        "You look closer at the \5dark rugged door\0, "
+        "taking a moment to appreciate the \5rusty doorknob\0 carved into an almost leaflike shape, "
+        "and can not help but feel the urge to wander inside."
+    description Tag("adjacents")
+        "The rugged door stands in the \1north\0"
+        "\nand to the \1south\0 extends \2the dark alley\0"
+    adjacents
+        north "Plant shop"
+        south "Dark alley"
+    items Array("mess of vines" "dark rugged door" "rusty doorknob")
+
+: TAItem "silvery scindapsus" Tag("static")
+    Array("scindapsus" "plant")
+    adjectives Array("silvery")
+    description Tag("examine")
+        "A stunning plant with leaves mixing both \1silver\0 and \1green\0."
+
+: TAItem "dainty philodendron micans" Tag("static")
+    Array("philodendron" "micans" "plant")
+    adjectives Array("dainty" "philodendron")
+    description Tag("examine")
+        "A \1pretty\0 and \1very lush plant\0, that drapes down from the ceiling"
+
+: TAItem "ferns" Tag("static")
+    Array("fern" "ferns")
+    description Tag("examine")
+        "\1Small vibrant green plants\0 populating the corners of the rooms"
+
+: TAItem "calatheas" Tag("static")
+    Array("fern" "calatheas")
+    description Tag("examine")
+        "Stunning plants with an incredible contrast of \1red\0 and \1green\0, that keep the ferns company"
+
+: TAItem "lush green plants" Tag("static")
+    Array("plants")
+    adjectives Array("lush" "green")
+    description Tag("examine")
+        "An \1awe-inspiring variety of plants\0 lines every inch of the room."
+
+: TARoom "Plant shop"
+    area "Plant shop"
+    description
+        "The shop is dark and damp, being illuminated by candles carefully arranged throughout the space, "
+        "yet the room secretes feelings of comfort, not fear. "
+        "\5Lush green plants\0 are present everywhere, from \5dainty philodendron micans\0 draping from the ceiling, "
+        "\5ferns\0 and \5calatheas\0 nestled in dull corners, and \5silvery scindapsus\0 resting in front of a large window. "
+#        "Pots, shovels, gloves, and other gardening necessities line the array of shelves present on the walls."
+    description Tag("adjacents")
+        "The door in the \1south\0 leads outside and"
+        "\nthere is a short hallway leading \1northward\0 into \2the greenhouse\0."
+    description Tag("items")
+        "Lining the array of shelves on the walls are: "
+    adjacents
+        north "Plant shop greenhouse"
+        south "Plant shop front"
+    items Array("plant pot" "garden shovel" "garden gloves" 
+                "lush green plants" "dainty philodendron micans"  "ferns" "calatheas" "silvery scindapsus")
+
+: TARoom "Plant shop greenhouse"
+    area "Plant shop"
+    description
+        "Greenhouse"
+    description Tag("adjacents")
+        "\2The shop room\0 lies towards the \1south\0, "
+        "there is a trap door leading \1downwards\0"
+    adjacents
+        south "Plant shop"
 
 # //////////////////////////////////////////////////////////////////////////
 #                                 Inn rooms
@@ -613,6 +770,21 @@
     description Tag("take")
         "You don't want to disturb the sleeping cat."
 
+: TAItem "room 1 window" Tag("static")
+    Array("window" "windows")
+    description Tag("examine")
+        "You have to stand on your tiptoes to get a good view out this window, "
+        "and good views this was not designed for; "
+        "you look straight out at a brick wall across a small dim alley. "
+        "However you do notice a lush vine creeping from the left across the damp brick."    
+
+: TAItem "room 3 window" Tag("static")
+    Array("window" "windows")
+    description Tag("examine")
+        "You have a great view of the vastness of the cathedral, "
+        "and the bell tower that still towers above you, even from the second floor. "
+        "For a while you enjoy watching pigeons perch on spires and fly down to the plaza to hunt for food crumbs."
+
 : TARoom "Inn front"
     area "Inn"
     description
@@ -630,7 +802,7 @@
     description
         "A few travelers sit on cushions, engaged in worldly discussions and drinking mint tea. "
         "An old woman sits behind the front desk, engrossed in the pages of a short novel. "
-        "A pretty black cat is curled around a vibrant ceramic plant pot in the corner."
+        "A pretty black cat is curled around a \5vibrant ceramic plant pot\0 in the corner."
     description Tag("adjacents")
     adjacents
         south "Inn front"
@@ -649,9 +821,13 @@
     area "Inn"
     description
         "The room is smaller than you expected."
+        "A tiny window lets a cool ray of light into the room. "
+        "A smallish woodstove in the corner serves to heat up the room. "
+        "There is a plain one-person bed. A simple candle holder is mounted to the wall. "
     description Tag("adjacents")
     adjacents
         south "Inn hallway"
+    items Array("room 1 window")
 
 : TARoom "Inn room 2"
     area "Inn"
@@ -668,6 +844,7 @@
     description Tag("adjacents")
     adjacents
         south "Inn hallway"
+    items Array("room 3 window")
 
 # //////////////////////////////////////////////////////////////////////////
 #                                 Shop rooms
@@ -966,28 +1143,3 @@
         ""
     adjacents
         down "Bell tower belfrey"
-
-
-# //////////////////////////////////////////////////////////////////////////
-#                              Map
-# //////////////////////////////////////////////////////////////////////////
-
-: TAMap 
-    path "asset_arts/map_colored.png"
-    area "Art studio"   V2(79 75)
-    area "Bakery"       V2(103 41)
-    area "Bar"          V2(83 31)
-    area "Bell tower"   V2(87 57)
-    area "Cathedral"    V2(94 52)
-    area "Concert hall" V2(45 21)
-    area "Garden"       V2(109 56)
-    area "Inn"          V2(71 44)
-    area "Plant shop"   V2(60 60)
-    area "Plaza NW"     V2(84 48)
-    area "Plaza SE"     V2(93 41)
-    area "Plaza SW"     V2(84 41)
-    area "Restaurant"   V2(45 45)
-    area "Shop"         V2(93 31)
-    area "Thorn lane"   V2(61 35)
-    area "Thorn lane E" V2(72 38)
-    area "Thorn lane W" V2(47 36)

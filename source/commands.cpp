@@ -140,7 +140,10 @@ void CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
             TA->Respond("You couldn't possible hope to buy that!");
             continue;
         }
-        if(TA->Money >= Item->Cost){
+        
+        if(Item->Cost == 0){
+            TA->Respond("You don't have to \002\002pay\002\001 for that!");
+        }else if(TA->Money >= Item->Cost){
             if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
             else return;
             RemovedItems++;

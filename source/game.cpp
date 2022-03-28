@@ -208,7 +208,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
             
             if(CurrentArea){
                 rect Point = R.Min+CenterRect(CurrentArea->Offset, V2(3));
-                color C = MixColor(PINK, WHITE, 0.5f*(Sin(3.0f*Counter)+1.0f));
+                color C = MixColor(PINK, WHITE, 0.5f*(Sin(5.0f*Counter)+1.0f));
                 RenderRect(Renderer, Point, -1.0, C);
             }
         }

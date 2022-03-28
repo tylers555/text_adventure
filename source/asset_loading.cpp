@@ -571,6 +571,7 @@ asset_system::ProcessTheme(){
         }else if(DoAttribute(Attribute, "room")){       Theme->RoomFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "direction")){  Theme->DirectionFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "misc")){  Theme->MiscFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "mood")){  Theme->MoodFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "response")){   Theme->ResponseFancies[0] = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "emphasis")){   Theme->ResponseFancies[1] = ExpectTypeFancy(); HandleError();
         }else{ LogInvalidAttribute(Attribute); return false; }
@@ -581,6 +582,7 @@ asset_system::ProcessTheme(){
     Theme->DescriptionFancies[2] = Theme->RoomFancy; 
     Theme->DescriptionFancies[3] = Theme->ItemFancy;
     Theme->DescriptionFancies[4] = Theme->MiscFancy;
+    Theme->DescriptionFancies[5] = Theme->MoodFancy;
     
     return true;
 }

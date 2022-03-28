@@ -28,7 +28,8 @@ struct console_theme {
     fancy_font_format RoomFancy;
     fancy_font_format DirectionFancy;
     fancy_font_format MiscFancy;
-    fancy_font_format DescriptionFancies[5];
+    fancy_font_format MoodFancy;
+    fancy_font_format DescriptionFancies[6];
     fancy_font_format ResponseFancies[2];
 };
 internal inline console_theme MakeDefaultConsoleTheme();
