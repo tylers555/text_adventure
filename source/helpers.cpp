@@ -123,3 +123,65 @@ CharToLower(char C){
     if((('A' <= C) && (C <= 'Z'))) C -= 'A'-'a';
     return C;
 }
+
+internal constexpr b8
+CompareStrings(const char *A, const char *B){
+    while(*A && *B){
+        if(*A++ != *B++){
+            return false;
+        }
+    }
+    if(*A != *B) return false;
+    
+    return true;
+}
+
+internal b8
+IsStringASubset(const char *A, const char *B){
+    while(*A && *B){
+        if(*A++ != *B++){
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+internal constexpr u64
+HashString(const char *String){
+    u64 Result = 71984823;
+    while(char Char = *String++) {
+        Result += (Char << 5) + Char;
+    }
+    return(Result);
+}
+
+internal inline b8
+IsFirstStringFirst(const char *A, const char *B){
+    while(*A && *B){
+        if(*A < *B) return true;
+        else if(*A > *B) return false;
+        
+        *A++;
+        *B++;
+    }
+    
+    return (*A == 0);
+}
+
+internal inline u32
+CountWordMatchCount(const char *A, const char *B){
+    u32 Result = 0;
+    while(*A && *B){
+        if(*A == ' ') { A++; continue; }
+        if(*B == ' ') { B++; continue; }
+        if(*A != *B){
+            if(CharToLower(*A) != CharToLower(*B)) return Result;
+        }
+        A++;
+        B++;
+        Result++;
+    }
+    
+    return Result;
+}

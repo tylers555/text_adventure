@@ -185,6 +185,12 @@ FontWordAdvance(asset_font *Font, const char *S, u32 WordStart){
 
 #endif 
 
+internal inline constexpr f32
+FontLineHeight(asset_font *Font){
+    f32 Result = Font->Height+FONT_VERTICAL_SPACE;
+    return Result;
+}
+
 internal v2
 FontStringAdvance(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
     v2 Result = V2(0);
@@ -218,6 +224,7 @@ FontStringAdvance(asset_font *Font, const char *S, f32 MaxWidth=F32_POSITIVE_INF
     v2 Result = FontStringAdvance(Font, CStringLength(S), S, MaxWidth);
     return Result;
 }
+
 
 #if 1
 internal f32
@@ -516,3 +523,12 @@ FontRenderFancyString(game_renderer *Renderer, asset_font *Font, const fancy_fon
 }
 
 #endif
+
+//~ 
+internal inline f32
+FontRenderFancyString(game_renderer *Renderer, asset_font *Font, const fancy_font_format *Fancies, u32 FancyCount,
+                      const char *S, rect R){
+    v2 Size = RectSize(R);
+    f32 Result = FontRenderFancyString(Renderer, Font, Fancies, FancyCount, V2(R.X0,R.Y1), S, Size.X);
+    return Result;
+}

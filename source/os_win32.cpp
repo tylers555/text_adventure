@@ -508,7 +508,7 @@ WinMain(HINSTANCE Instance,
         LogMessage("Win32: Failed to create window!");
         return -1;
     }
-    LogMessage("Window opened");
+    LogMessage("Window created");
     
     if(!Win32InitOpenGL(Instance, &MainWindow)){
         return -1;

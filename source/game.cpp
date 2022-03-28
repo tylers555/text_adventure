@@ -23,7 +23,6 @@ ta_system::Initialize(memory_arena *Arena){
     InsertIntoHashTable(&CommandTable, "inspect",  CommandExamine);
     InsertIntoHashTable(&CommandTable, "observe",  CommandExamine);
     InsertIntoHashTable(&CommandTable, "look",     CommandExamine);
-    InsertIntoHashTable(&CommandTable, "map",      CommandMap);
     InsertIntoHashTable(&CommandTable, "unlock",   CommandUnlock);
     
     InsertIntoHashTable(&CommandTable, "testrepair",   CommandTestRepair);
@@ -64,7 +63,13 @@ ta_system::Initialize(memory_arena *Arena){
     OrganState = AssetTag_Broken;
 }
 
+
 //~ 
+internal inline void
+DoString(game_renderer *Renderer, asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, 
+         const char *S, rect *R){
+    R->Y1 -= FontRenderFancyString(Renderer, Font, Fancies, FancyCount, S, *R);
+}
 
 internal void
 UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
@@ -96,20 +101,20 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
     
     v2 WindowSize = RoundV2(Renderer->ScreenToWorld(Input->WindowSize));
     
+    //~ Area positioning
+    f32 Padding = 10;
+    rect WindowRect = MakeRect(V2(Padding), WindowSize-V2(Padding));
+    rect RoomDescriptionRect = RectRound(RectPercent(WindowRect, 0.0f, 0.5f, 0.6f, 1.0f));
+    RoomDescriptionRect.X1 -= Padding;
+    rect InventoryRect       = RectRound(RectPercent(WindowRect, 0.6f, 0.5f, 1.0f, 1.0f));
+    rect InputRect           = RectRound(RectPercent(WindowRect, 0.0f, 0.0f, 0.6f, 0.5f));
+    rect MapRect             = RectRound(RectPercent(WindowRect, 0.6f, 0.0f, 1.0f, 0.5f));
+    
     //~ Room display
     ta_room *Room = TA->CurrentRoom;
-    v2 StartRoomP = V2(10, WindowSize.Y-15);
-    f32 RoomDescriptionWidth = WindowSize.X-150;
-    v2 StartItemP = V2(StartRoomP.X+RoomDescriptionWidth+10, StartRoomP.Y);
-    f32 ItemDescriptionWidth = WindowSize.X-25-RoomDescriptionWidth;
-    f32 InventoryWidth = ItemDescriptionWidth;
-    f32 RoomTitleHeight = 0;
     
     {
-        v2 RoomP = StartRoomP;
-        
-        RoomTitleHeight = FontRenderFancyString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, RoomP, Room->Name);
-        RoomP.Y -= RoomTitleHeight;
+        DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->Name, &RoomDescriptionRect);
         
         ta_string *Description = Room->Descriptions[0];
         if(HasTag(Room->Tag, AssetTag_Organ)){
@@ -117,13 +122,13 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
             if(New) Description = New;
         }
         
-        RoomP.Y -= FontRenderFancyString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                                         RoomP, Description->Data, RoomDescriptionWidth);
+        DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
+                 Description->Data, &RoomDescriptionRect);
         
         ta_string *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
         if(Adjacents){
-            RoomP.Y -= FontRenderFancyString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                                             RoomP, Adjacents->Data, RoomDescriptionWidth);
+            DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
+                     Adjacents->Data, &RoomDescriptionRect);
         }
         
         
@@ -131,7 +136,6 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
     
     //~ Inventory
     {
-        v2 ItemP = StartItemP;
         if(Room->Items.Count > 0){
             b8 HasNonStatic = false;
             for(u32 I=0; I<Room->Items.Count; I++){
@@ -144,68 +148,94 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
             }
             
             if(HasNonStatic){
-                ItemP.Y -= RoomTitleHeight;
+                InventoryRect.Y1 -= FontLineHeight(BoldFont);
                 
                 ta_string *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
                 if(Items){
-                    ItemP.Y -= FontRenderFancyString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                                                     ItemP, Items->Data, ItemDescriptionWidth);
+                    f32 L = FontStringAdvance(Font, Items->Data, RectSize(InventoryRect).X).X;
+                    DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
+                             Items->Data, &InventoryRect);
                 }else{
-                    ItemP.Y -= FontRenderFancyString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                                                     ItemP, "Items:", ItemDescriptionWidth);
+                    DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
+                             "Items:", &InventoryRect);
                 }
                 
                 for(u32 I=0; I<Room->Items.Count; I++){
                     ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[I]);
                     if(!Item) continue;
                     if(HasTag(Item->Tag, AssetTag_Static)) continue;
-                    ItemP.Y -= FontRenderFancyString(Renderer, Font, &Theme->ItemFancy, 1, 
-                                                     ItemP, Strings.GetString(Room->Items[I]), ItemDescriptionWidth);
+                    DoString(Renderer, Font, &Theme->ItemFancy, 1, 
+                             Strings.GetString(Room->Items[I]), &InventoryRect);
                 }
-                ItemP.Y -= 10;
+                
+                InventoryRect.Y1 -= Padding;
             }
         }
         
-        v2 InventoryP = ItemP;
-        InventoryP.Y -= FontRenderFancyString(Renderer, BoldFont, &Theme->BasicFancy, 1, InventoryP, "Inventory:");
+        DoString(Renderer, BoldFont, &Theme->BasicFancy, 1, "Inventory:", &InventoryRect);
         
         {
             char Buffer[DEFAULT_BUFFER_SIZE];
             stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%u coins", TA->Money);
-            InventoryP.Y -= FontRenderFancyString(Renderer, Font, &Theme->ItemFancy, 1, InventoryP, Buffer);
+            DoString(Renderer, Font, &Theme->ItemFancy, 1, Buffer, &InventoryRect);
         }
         
         for(u32 I=0; I<TA->Inventory.Count; I++){
             const char *Item = Strings.GetString(TA->Inventory[I]);
-            InventoryP.Y -= FontRenderFancyString(Renderer, Font, &Theme->ItemFancy, 1, InventoryP, Item);
+            DoString(Renderer, Font, &Theme->ItemFancy, 1, Item, &InventoryRect);
+        }
+    }
+    
+    //~ Map
+    {
+        s32 MapIndex = TAFindItemByTag(TA, &TA->Inventory, AssetTag(AssetTag_Map));
+        if(MapIndex >= 0){
+            ta_map *Map = &TA->Map;
+            render_texture Texture = Map->Texture;
+            v2 BR = V2(MapRect.X1, MapRect.Y0);
+            rect R = SizeRect(BR, Map->Size);
+            R = RectMoveRight(R, -Map->Size.X);
+            RenderTexture(Renderer, R, 0.0, Texture);
+            
+            ta_area *CurrentArea = 0;
+            for(u32 I=0; I<Map->Areas.Count; I++){
+                ta_area *Area = &Map->Areas[I];
+                if(Area->Name == TA->CurrentRoom->Area){
+                    CurrentArea = Area;
+                    break;
+                }
+            }
+            
+            if(CurrentArea){
+                rect Point = R.Min+CenterRect(CurrentArea->Offset, V2(3));
+                color C = MixColor(PINK, WHITE, 0.5f*(Sin(3.0f*Counter)+1.0f));
+                RenderRect(Renderer, Point, -1.0, C);
+            }
         }
     }
     
     //~ Text input rendering
     {
-        
-        f32 InputHeight = 100;
-        f32 ResponseWidth = RoomDescriptionWidth;
-        v2 InputP = V2(10, InputHeight);
-        
         const char *Response = TA->ResponseBuilder.Buffer;
-        InputP.Y -= FontRenderFancyString(Renderer, Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies), InputP, 
-                                          Response, ResponseWidth);
+        DoString(Renderer, Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies),
+                 Response, &InputRect);
         
         char *Text = Input->Buffer;
-        FontRenderFancyString(Renderer, Font, &Theme->BasicFancy, 1, InputP, Text);
+        v2 InputP = V2(InputRect.X0, InputRect.Y1);
+        DoString(Renderer, Font, &Theme->BasicFancy, 1, Text, &InputRect);
         
         f32 CursorHeight = Font->Height-Font->Descent;
         v2 CursorP = InputP+FontStringAdvance(Font, Input->CursorPosition, Text);
         if(((FrameCounter+30) / 30) % 3){
-            RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, WHITE);
+            RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, Theme->CursorColor);
         }
         
         //~ Selection
         if(Input->SelectionMark >= 0){
             v2 SelectionP = InputP+FontStringAdvance(Font, Input->SelectionMark, Text);
             f32 Width = SelectionP.X-CursorP.X;
-            RenderRect(Renderer, RectFix(SizeRect(V2(CursorP.X, CursorP.Y-1), V2(Width, Font->Height+2))), 1.0, BLUE);
+            RenderRect(Renderer, SizeRect(V2(CursorP.X, CursorP.Y-1), V2(Width, Font->Height+2)), 1.0, 
+                       Theme->SelectionColor);
         }
         
         //~ Command processing
@@ -228,7 +258,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
                     if(Func) break;
                 }
                 if(Func){
-                    (*Func)(Mixer, TA, Assets, &Tokens[1], TokenCount-1);
+                    (*Func)(Mixer, TA, Assets, Tokens, TokenCount);
                 }else{
                     TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
                 }

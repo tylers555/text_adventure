@@ -116,9 +116,6 @@ GameUpdateAndRender(){
         case GameMode_MainGame: {
             UpdateAndRenderMainGame(&GameRenderer, &AudioMixer, &AssetSystem, &OSInput);
         }break;
-        case GameMode_Map: {
-            UpdateAndRenderMap(&GameRenderer, &AudioMixer, &AssetSystem, &OSInput);
-        }break;
     }
     
     RendererRenderAll(&GameRenderer);
@@ -135,9 +132,6 @@ GameUpdateAndRender(){
             case GameMode_MainGame: {
                 GameMode = GameMode_MainGame; 
             }break;
-            case GameMode_Map: {
-                GameMode = GameMode_Map;
-            }break;
         }
         
         StateChangeData = {};
@@ -152,10 +146,9 @@ GameUpdateAndRender(){
 }
 
 internal inline void
-ChangeState(game_mode NewMode, string NewLevel){
+ChangeState(game_mode NewMode){
     StateChangeData.DidChange = true;
     StateChangeData.NewMode = NewMode;
-    StateChangeData.NewLevel = Strings.GetString(NewLevel);
 }
 
 //~ Text input
@@ -290,4 +283,9 @@ os_input::MaybeEndTextInput(){
         InputFlags &= !OSInputFlag_DoTextInput;
     }
     return Result;
+}
+
+inline void
+os_input::EndTextInput(){
+    InputFlags &= !OSInputFlag_DoTextInput;
 }

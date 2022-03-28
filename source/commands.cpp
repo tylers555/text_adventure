@@ -37,7 +37,7 @@ void CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     }
     TA->CurrentRoom = NextRoom;
     
-    Mixer->PlaySound(Assets->GetSoundEffect(String("room_change")));
+    Mixer->PlaySound(Assets->GetSoundEffect(String("move")));
 }
 
 void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
@@ -266,11 +266,6 @@ void CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, cha
         if(!Description) continue;
         TA->Respond(Description->Data);
     }
-}
-
-void CommandMap(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
-    TA->Respond("Not implemented yet!");
-    Assert(0);
 }
 
 void CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){

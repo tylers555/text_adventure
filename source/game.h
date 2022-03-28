@@ -19,13 +19,16 @@ struct console_theme {
     string TitleFont;
     
     color BackgroundColor;
+    color CursorColor;
+    color SelectionColor;
     
     fancy_font_format BasicFancy;
     fancy_font_format RoomTitleFancy;
     fancy_font_format ItemFancy;
     fancy_font_format RoomFancy;
     fancy_font_format DirectionFancy;
-    fancy_font_format DescriptionFancies[4];
+    fancy_font_format MiscFancy;
+    fancy_font_format DescriptionFancies[5];
     fancy_font_format ResponseFancies[2];
 };
 internal inline console_theme MakeDefaultConsoleTheme();
@@ -41,6 +44,17 @@ struct ta_string {
     const char Data[];
 };
 
+struct ta_area {
+    string Name;
+    v2 Offset;
+};
+
+struct ta_map {
+    render_texture Texture;
+    v2 Size;
+    array<ta_area> Areas;
+};
+
 struct ta_item {
     b8 Dirty;
     asset_tag Tag;
@@ -53,6 +67,7 @@ struct ta_item {
 struct ta_room {
     b8 Dirty;
     const char *Name;
+    string Area;
     asset_tag Tag;
     array<ta_string *> Descriptions;
     array<string> Items;
@@ -89,7 +104,8 @@ struct ta_system {
     //~ Game specific data
     asset_tag_id OrganState;
     u32 Money;
-    image *MapImage;
+    
+    ta_map Map;
 };
 
 #endif //GAME_H

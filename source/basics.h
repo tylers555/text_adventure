@@ -77,38 +77,4 @@ typedef double f64;
 #define enum32(Enum) u32
 #define enum64(Enum) u64
 
-//~ String functions
-
-internal constexpr b8
-CompareStrings(const char *A, const char *B){
-    while(*A && *B){
-        if(*A++ != *B++){
-            return false;
-        }
-    }
-    if(*A != *B) return false;
-    
-    return true;
-}
-
-internal b8
-IsStringASubset(const char *A, const char *B){
-    while(*A && *B){
-        if(*A++ != *B++){
-            return false;
-        }
-    }
-    
-    return true;
-}
-
-internal constexpr u64
-HashString(const char *String){
-    u64 Result = 71984823;
-    while(char Char = *String++) {
-        Result += (Char << 5) + Char;
-    }
-    return(Result);
-}
-
 #endif //SNAIL_JUMPY_PRIMITIVE_TYPES_H

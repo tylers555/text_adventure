@@ -178,6 +178,34 @@ asset_system::ExpectPositiveInteger_(){
     return(Integer);
 }
 
+v2
+asset_system::ExpectTypeV2(){
+    v2 Result = V2(0);
+    
+    const char *Identifier = Expect(Identifier);
+    if(CompareStrings(Identifier, "V2")){
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError();
+        
+        Result.X = Expect(Float);
+        file_token Token = Reader.PeekToken();
+        if(Token.Type != FileTokenType_EndArguments){
+            Result.Y = Expect(Float);
+        }else{
+            Result.Y = Result.X;
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError();
+        
+    }else{
+        Reader.LastError = FileReaderError_InvalidToken;
+        return(Result);
+    }
+    
+    return(Result);
+}
+
 array<s32>
 asset_system::ExpectTypeArrayS32(){
     array<s32> Result = MakeArray<s32>(&TransientStorageArena, SJA_MAX_ARRAY_ITEM_COUNT);
@@ -467,6 +495,7 @@ asset_system::ProcessCommand(){
     IfCommand(SoundEffect);
     IfCommand(TARoom);
     IfCommand(TAItem);
+    IfCommand(TAMap);
     
     LogMessage("(Line: %u) '%s' isn't a valid command!", Reader.Line, String);
     return(false);
@@ -489,7 +518,6 @@ asset_system::ProcessVariables(){
             if(GameMode == GameMode_None){
                 if(CompareStrings(S, "main game")) GameMode = GameMode_MainGame;
                 else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
-                else if(CompareStrings(S, "map")) GameMode = GameMode_Map;
             }
             
         }else if(DoAttribute(Attribute, "start_room")){
@@ -501,9 +529,14 @@ asset_system::ProcessVariables(){
             if(Theme){
                 TA->Theme = *Theme;
             }
-        }else if(DoAttribute(Attribute, "town_map")){
-            const char *Path = Expect(String);
-            TA->MapImage = LoadImageFromPath(Path);
+        }else if(DoAttribute(Attribute, "give_item")){
+            const char *S = Expect(String);
+            string Item = Strings.GetString(S);
+            b8 FoundIt = false;
+            for(u32 I=0; I<TA->Inventory.Count; I++){
+                if(TA->Inventory[I] == Item) { FoundIt = true; break; }
+            }
+            if(!FoundIt) TA->AddItem(Item);
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     
@@ -529,14 +562,15 @@ asset_system::ProcessTheme(){
         }else if(DoAttribute(Attribute, "title_font")){
             const char *S = Expect(String);
             Theme->TitleFont = Strings.GetString(S);
-        }else if(DoAttribute(Attribute, "background_color")){
-            color C = ExpectTypeColor(); HandleError();
-            Theme->BackgroundColor = C;
+        }else if(DoAttribute(Attribute, "background_color")){ Theme->BackgroundColor = ExpectTypeColor(); HandleError();
+        }else if(DoAttribute(Attribute, "cursor_color")){ Theme->CursorColor = ExpectTypeColor(); HandleError();
+        }else if(DoAttribute(Attribute, "selection_color")){ Theme->SelectionColor = ExpectTypeColor(); HandleError();
         }else if(DoAttribute(Attribute, "basic")){      Theme->BasicFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "room_title")){ Theme->RoomTitleFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "item")){       Theme->ItemFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "room")){       Theme->RoomFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "direction")){  Theme->DirectionFancy = ExpectTypeFancy(); HandleError();
+        }else if(DoAttribute(Attribute, "misc")){  Theme->MiscFancy = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "response")){   Theme->ResponseFancies[0] = ExpectTypeFancy(); HandleError();
         }else if(DoAttribute(Attribute, "emphasis")){   Theme->ResponseFancies[1] = ExpectTypeFancy(); HandleError();
         }else{ LogInvalidAttribute(Attribute); return false; }
@@ -546,6 +580,7 @@ asset_system::ProcessTheme(){
     Theme->DescriptionFancies[1] = Theme->DirectionFancy;
     Theme->DescriptionFancies[2] = Theme->RoomFancy; 
     Theme->DescriptionFancies[3] = Theme->ItemFancy;
+    Theme->DescriptionFancies[4] = Theme->MiscFancy;
     
     return true;
 }
@@ -757,6 +792,9 @@ asset_system::ProcessTARoom(){
         
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "area")){
+            const char *S = Expect(String);
+            Room->Area = Strings.GetString(S);
         }else if(DoAttribute(Attribute, "adjacents")){ 
             while(true){
                 file_token Token = Reader.PeekToken();
@@ -844,6 +882,50 @@ asset_system::ProcessTAItem(){
     Item->Descriptions = MakeArray<ta_string *>(&Memory, Descriptions.Count);
     for(u32 I=0; I<Descriptions.Count; I++){
         ArrayAdd(&Item->Descriptions, Descriptions[I]);
+    }
+    
+    return true;
+}
+
+//~
+b8
+asset_system::ProcessTAMap(){
+    b8 Result = false;
+    
+    ta_system *TA = &TextAdventure;
+    ta_map *Map = &TA->Map;
+    
+    // Attributes
+    dynamic_array<ta_area> Areas = MakeDynamicArray<ta_area>(8, &TransientStorageArena);
+    while(true){
+        file_token Token = Reader.PeekToken();
+        HandleToken(Token);
+        const char *Attribute = Expect(Identifier);
+        if(DoAttribute(Attribute, "path")){ 
+            const char *Path = Expect(String);
+            image *Image = LoadImageFromPath(Path);
+            Map->Texture = Image->Texture;
+            Map->Size = V2(Image->Size);
+        }else if(DoAttribute(Attribute, "area")){
+            ta_area *Area = ArrayAlloc(&Areas);
+            const char *S = Expect(String);
+            Area->Name = Strings.GetString(S);
+            Area->Offset = ExpectTypeV2();
+        }else{ LogInvalidAttribute(Attribute); return false; }
+    }
+    
+    Map->Areas = MakeArray<ta_area>(&Memory, Areas.Count);
+    for(u32 I=0; I<Areas.Count; I++){
+#if 0
+        u32 J;
+        for(J=0; J<Map->Areas.Count; J++){
+            if(IsFirstStringFirst(Strings.GetString(Areas[I].Name), Strings.GetString(Map->Areas[J].Name))){
+                break;
+            }
+        }
+        ArrayInsert(&Map->Areas, J, Areas[I]);
+#endif
+        ArrayAdd(&Map->Areas, Areas[I]);
     }
     
     return true;

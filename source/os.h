@@ -341,6 +341,7 @@ struct os_input {
     inline void DeleteFromBuffer(u32 Begin, u32 End);
     inline void BeginTextInput();
     inline b8   MaybeEndTextInput();
+    inline void EndTextInput();
 };
 
 global os_input OSInput;

@@ -7,17 +7,23 @@
     basic_font "basic"
     title_font "basic_bold"
     background_color Color(0x0a0d4aff)
+    cursor_color     Color(0xf2f2f2ff)
+    selection_color  Color(0x232c8cff)
     basic      Fancy(Color(0xf2f2f2ff))
-#    room_title Fancy(Color(0xff6969ff) 1.0 4.0 2.0)
-    room_title Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.0 4.0 2.0 0.0 2.0 1.0)
-    item       Fancy(Color(0x24e3e3ff) Color(0xb3e8e8ff) 0.0 6.0 0.0)
-#    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
-    room       Fancy(Color(0xffe369ff) Color(0xff6969ff) 2.0 2.0 1.0)
-#    room       Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.5 0.0 0.0)
-#    direction  Fancy(Color(0x00ff40ff) Color(0x9b4ac7ff) 1.5 0.0 0.0)
-    direction  Fancy(Color(0x84d197ff))
+    room_title Fancy(Color(0xff6969ff) 1.0 4.0 2.0)
+    item       Fancy(Color(0x24e3e3ff))
+    room       Fancy(Color(0xff6969ff))
+    direction  Fancy(Color(0x5eeb82ff))
+    misc       Fancy(Color(0xf5d756ff))
     response   Fancy(Color(0x9063ffff))
-    emphasis   Fancy(Color(0xe06ecdff) 1.0 5.0 3.0)
+    emphasis   Fancy(Color(0xe64eccff) Color(0x9063ffff) 2.0 0.2 0.0)
+
+#    room_title Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.0 4.0 2.0 0.0 2.0 1.0)
+#    item       Fancy(Color(0x24e3e3ff) Color(0x475D83ff) 1.0 0.2 0.0)
+#    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
+#    room       Fancy(Color(0xffe369ff) Color(0xff6969ff) 2.0 1.0 1.0)
+#    room       Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.5 0.0 0.0)
+#    direction  Fancy(Color(0x00ff40ff) Color(0x074F47ff) 1.0 0.5 0.0)
 
 : Theme "planty"
     basic_font "basic"
@@ -35,10 +41,10 @@
 # As such, this is a current limitation of the SJA system, and will be changed.
 : Variables
     start_game_mode "main game"
-    start_room      "Plaza SE"
+    start_room      "Shop"
     theme           "default"
-    town_map        "asset_arts/map_colored.png"
-
+    give_item       "a town map"
+ 
 # //////////////////////////////////////////////////////////////////////////
 #                                  Fonts
 # //////////////////////////////////////////////////////////////////////////
@@ -369,11 +375,17 @@
     path "asset_sound_effects/osj/Music.wav"
     # path "asset_sound_effects/osj_music.wav"
 
-: SoundEffect "room_change"
+: SoundEffect "move"
     path "asset_sound_effects/sf_wood_walk_4.wav"
  
 : SoundEffect "open_door"
     path "asset_sound_effects/sf_open_door_1.wav"
+
+: SoundEffect "open_map"
+    path "asset_sound_effects/testing/glide_00.wav"
+
+: SoundEffect "close_map"
+    path "asset_sound_effects/testing/drop_00.wav"
 
 : SoundEffect "item_taken"
     path "asset_sound_effects/sf_take.wav"
@@ -397,25 +409,25 @@
 #                                    Items
 # //////////////////////////////////////////////////////////////////////////
 
-: TAItem "A town map" Tag("map")
+: TAItem "a town map" Tag("map")
     Array("map" "maps")
     adjectives Array("town")
     cost 5
     description Tag("examine")
-        "This map appears very old and very weathered, however its detail is unparalleled. "
-        "You can make out just about every aspect of this town on the map. "
+        "This map is feels new and looks absolutely stunning. "
+        "The detail found in this map is unparalled; you can see every part of town on it."
 
-: TAItem "An umbrella" 
+: TAItem "an umbrella" 
     Array("umbrella" "umbrellas")
     cost 7
     description Tag("examine")
-        "A bit dusty, but in exquisite condition"
+        "Its a very dark black, and appears very durable."
 
-: TAItem "A lantern" Tag("light")
+: TAItem "a lantern" Tag("light")
     Array("lantern" "lanterns")
     cost 10
     description Tag("examine")
-        "A bit rusty, but in otherwise perfect working condition. "
+        "Its a beautiful brass color, and is in perfect working condition. "
         "This will work nicely to light dark areas. "
     description Tag("activate")
         "The lantern flickers to life, filling the area with warm yellow glow. "
@@ -504,6 +516,7 @@
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Plaza SE"
+    area "Plaza SE"
     description
 #        "\2A\0 BCDEFGHIJKLMNOPQRSTUVWXYZ\n"
 #        "0123456789\n"
@@ -521,6 +534,7 @@
         north "Cathedral front"
 
 : TARoom "Plaza SW"
+    area "Plaza SW"
     description
         "Plaza SW"
     description Tag("adjacents")
@@ -533,6 +547,7 @@
         west  "Thorn lane E"
 
 : TARoom "Plaza NW"
+    area "Plaza NW"
     description
         "Plaza NW"
     description Tag("adjacents")
@@ -545,6 +560,7 @@
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Thorn lane E"
+    area "Thorn lane E"
     description
         "Thorn lane E"
     description Tag("adjacents")
@@ -556,6 +572,7 @@
         west  "Thorn lane"
 
 : TARoom "Thorn lane"
+    area "Thorn lane"
     description
         "Thorn lane"
     description Tag("adjacents")
@@ -566,6 +583,7 @@
         west  "Thorn lane W"
 
 : TARoom "Thorn lane W"
+    area "Thorn lane W"
     description
         "Thorn lane W"
     description Tag("adjacents")
@@ -596,6 +614,7 @@
         "You don't want to disturb the sleeping cat."
 
 : TARoom "Inn front"
+    area "Inn"
     description
         "Wide glass windows emit a warm glow, and through the streaks of raindrops you see a few animated silhouettes of those inside. "
         "A sign over the door reads \2'Murkwell Inn'\0."
@@ -607,6 +626,7 @@
         west  "Thorn lane"
 
 : TARoom "Inn lobby"
+    area "Inn"
     description
         "A few travelers sit on cushions, engaged in worldly discussions and drinking mint tea. "
         "An old woman sits behind the front desk, engrossed in the pages of a short novel. "
@@ -618,6 +638,7 @@
     items Array("vibrant ceramic plant pot")
 
 : TARoom "Inn hallway"
+    area "Inn"
     description
         "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
     description Tag("adjacents")
@@ -625,6 +646,7 @@
         down "Inn lobby"
 
 : TARoom "Inn room 1"
+    area "Inn"
     description
         "The room is smaller than you expected."
     description Tag("adjacents")
@@ -632,6 +654,7 @@
         south "Inn hallway"
 
 : TARoom "Inn room 2"
+    area "Inn"
     description
         "The room is darker than you expected."
     description Tag("adjacents")
@@ -639,6 +662,7 @@
         south "Inn hallway"
 
 : TARoom "Inn room 3"
+    area "Inn"
     description
         "The room is colder than you expected."
     description Tag("adjacents")
@@ -650,9 +674,10 @@
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Shop front"
+    area "Shop"
     description
         "A thin but sturdy wooden door is surrounded by brick on either side, welcoming you to enter. "
-        "Above the door is a large sign that reads: \2'Susan's Shop'"
+        "There is a large sign above the door that reads: \4'Susan's Shop'"
     description Tag("adjacents")
         "To the \1north\0 extends \2the plaza\0,"
         "\n\2the bakery\0 to the \1north\0"
@@ -665,19 +690,21 @@
         west  "Bar front"
 
 : TARoom "Shop"
+    area "Shop"
     description
-        "The shop boasts nothing more than a modestly sized room, with a large counter at the far wall."
+        "The shop boasts nothing more than a modestly sized room, with a large counter at the far wall. "
         "The sides of the room are surrounded by shelves, serving as homes to numerous common goods. "
     description Tag("adjacents")
         "There is only a door to the \1north\0 that leads out towards the \2the front\0"
     description Tag("items")
-        "Several items catch your eye: "
+        "Several items catch your eye:"
     adjacents
         north "Shop front"
-    items  Array("A town map" "An umbrella" "A lantern")
+    items  Array("a town map" "an umbrella" "a lantern")
 #    person "Susan"
 
 : TARoom "Bakery front"
+    area "Bakery"
     description
         "The warmth almost penetrates the solid wall and seems to infect even the door. "
         "A beautiful aroma permeates through a large area infront of the bakery. "
@@ -690,6 +717,7 @@
         west "Plaza SE"
 
 : TARoom "Bakery"
+    area "Bakery"
     description
         "A glass counter consumes the majority of the space inside the small bakery. " 
         "Behind it extends a vast kitchen, which seems to be the source of the beautiful aroma. "
@@ -704,6 +732,7 @@
     items Array("carrot cake muffins" "honeyed almond pastries" "cinnamon sugar churros" "chocolate croissants" "large loaves of wheat bread")
 
 : TARoom "Bar front"
+    area "Bar"
     description
         "The front of the bar. "
     description Tag("adjacents")
@@ -716,6 +745,7 @@
         west  "Thorn lane E"
  
 : TARoom "Bar"
+    area "Bar"
     description
         "A bar."        
     description Tag("adjacents")
@@ -726,6 +756,7 @@
         down  "Bar cellar"
 
 : TARoom "Bar cellar"
+    area "Bar"
     description
         "Bar cellar"        
     description Tag("adjacents")
@@ -733,6 +764,7 @@
         up "Bar"
 
 : TARoom "Bar billiard room"
+    area "Bar"
     description
         "Bar billiard room"        
     description Tag("adjacents")
@@ -775,6 +807,7 @@
         "They are in fantastic condition. "
 
 : TARoom "Cathedral front"
+    area "Cathedral"
     description
         "The cathedral stands tall and proud right in front of you, radiating a certain holiness. "
         "A weathered wooden door, framed by intricate stone priests and gargoyles, looms before you, "
@@ -788,6 +821,7 @@
         south "Plaza SE"
 
 : TARoom "Cathedral nave"
+    area "Cathedral"
     description
         "Lines of stone pillars reach up into arches at a vaulted ceiling. "
         "Despite the large stained-glass windows on either side, the cathedral is oddly dim, lit more by candelabras than natural light. "
@@ -804,6 +838,7 @@
         west      "Cathedral spiral staircase"
 
 : TARoom "Cathedral altar"
+    area "Cathedral"
     description
         "You cannot help but feel that you are in the presence of a spiritual being..."
     description Tag("adjacents")
@@ -816,6 +851,7 @@
         west  "Cathedral vestry"
 
 : TARoom "Cathedral vestry"
+    area "Cathedral"
     description
         "This appears to be a room made for official church duties. "
         "Wardrobes line the chilled stone wall, holding pristine jet-black church robes. "
@@ -830,6 +866,7 @@
     items Array("small silver key")
 
 : TARoom "Cathedral organ console" Tag("organ")
+    area "Cathedral"
     description Tag("broken")
         "A once-great \3pipe organ\0 sits in neglected despair. "
         "It looks to be missing some parts. "
@@ -848,6 +885,7 @@
     items Array("organ console")
 
 : TARoom "Cathedral maintenance room" Tag("organ")
+    area "Cathedral"
     description Tag("broken")
         "This small room is crammed full of the vital components of the organ. "
         "There are a bountiful number of \3bellows\0 to breathe air and life into the marvelous machine. "
@@ -866,6 +904,7 @@
 # //////////////////////////////////////////////////////////////////////////
 
 : TARoom "Cathedral spiral staircase"
+    area "Bell tower"
     description
         "You work your way up the spiral staircase. "
         "The steep, narrow stone steps have been worn smooth through years of regular use. "
@@ -880,6 +919,7 @@
     items Array("bell tower key")
 
 : TARoom "Bell tower programming room"
+    area "Bell tower"
     description
     description Tag("adjacents")
         "There is a small open door in the \1west\0 connecting to a \2storage room\0"
@@ -889,6 +929,7 @@
         down "Cathedral spiral staircase"
 
 : TARoom "Bell tower storage room"
+    area "Bell tower"
     description
     description Tag("adjacents")
         "There is only an open door in the \1east\0 connecting to the \2programming room\0"
@@ -896,6 +937,7 @@
         east "Bell tower programming room"
 
 : TARoom "Bell tower playing room"
+    area "Bell tower"
     description
     description Tag("adjacents")
     adjacents
@@ -903,6 +945,7 @@
         down "Bell tower programming room"
 
 : TARoom "Bell tower belfrey"
+    area "Bell tower"
     description
     description Tag("adjacents")
     adjacents
@@ -910,6 +953,7 @@
         down "Bell tower playing room"
 
 : TARoom "Bell tower lookout"
+    area "Bell tower"
     description
         "As you reach the top of the ladder you are immediately confronted with a rainy gust of wind. "
         "A fierce flock of crows sits scheming on the stone railing. "
@@ -922,3 +966,28 @@
         ""
     adjacents
         down "Bell tower belfrey"
+
+
+# //////////////////////////////////////////////////////////////////////////
+#                              Map
+# //////////////////////////////////////////////////////////////////////////
+
+: TAMap 
+    path "asset_arts/map_colored.png"
+    area "Art studio"   V2(79 75)
+    area "Bakery"       V2(103 41)
+    area "Bar"          V2(83 31)
+    area "Bell tower"   V2(87 57)
+    area "Cathedral"    V2(94 52)
+    area "Concert hall" V2(45 21)
+    area "Garden"       V2(109 56)
+    area "Inn"          V2(71 44)
+    area "Plant shop"   V2(60 60)
+    area "Plaza NW"     V2(84 48)
+    area "Plaza SE"     V2(93 41)
+    area "Plaza SW"     V2(84 41)
+    area "Restaurant"   V2(45 45)
+    area "Shop"         V2(93 31)
+    area "Thorn lane"   V2(61 35)
+    area "Thorn lane E" V2(72 38)
+    area "Thorn lane W" V2(47 36)

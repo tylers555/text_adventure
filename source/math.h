@@ -846,6 +846,14 @@ operator+(rect A, v2 B){
 }
 
 internal inline rect
+operator+(v2 B, rect A){
+    rect Result;
+    Result.Min = A.Min + B;
+    Result.Max = A.Max + B;
+    return(Result);
+}
+
+internal inline rect
 operator-(rect A, v2 B){
     rect Result;
     Result.Min = A.Min - B;
@@ -1030,6 +1038,38 @@ RectLerp(rect A, rect B, f32 T){
     Result.Min = Lerp(A.Min, B.Min, T);
     Result.Max = Lerp(A.Max, B.Max, T);
     return(Result);
+}
+
+internal inline rect
+RectPercent(rect R, f32 X0Percent, f32 Y0Percent, f32 X1Percent, f32 Y1Percent){
+    rect Result;
+    v2 Size = RectSize(R);
+    Result.X0 = R.X0 + Size.X*X0Percent;
+    Result.Y0 = R.Y0 + Size.Y*Y0Percent;
+    Result.X1 = R.X0 + Size.X*X1Percent;
+    Result.Y1 = R.Y0 + Size.Y*Y1Percent;
+    return Result;
+}
+
+internal inline rect
+RectMoveUp(rect R, f32 Amount){
+    R.Y0 += Amount;
+    R.Y1 += Amount;
+    return R;
+}
+
+internal inline rect
+RectMoveRight(rect R, f32 Amount){
+    R.X0 += Amount;
+    R.X1 += Amount;
+    return R;
+}
+
+internal inline rect
+RectRound(rect R){
+    R.Min = RoundV2(R.Min);
+    R.Max = RoundV2(R.Max);
+    return R;
 }
 
 #endif // SNAIL_JUMPY_MATH_H

@@ -166,6 +166,7 @@ struct asset_system {
     file_token ExpectToken(file_token_type Type);
     u32        ExpectPositiveInteger_();
     
+    v2                  ExpectTypeV2();
     array<s32>          ExpectTypeArrayS32();
     array<const char *> ExpectTypeArrayCString();
     color               ExpectTypeColor();
@@ -189,6 +190,7 @@ struct asset_system {
     b8 ProcessTADescription(dynamic_array<ta_string *> *Descriptions);
     b8 ProcessTARoom();
     b8 ProcessTAItem();
+    b8 ProcessTAMap();
 };
 
 #endif //SNAIL_JUMPY_ASSET_H

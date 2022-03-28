@@ -75,13 +75,11 @@ enum game_mode {
     GameMode_None,
     GameMode_Menu,
     GameMode_MainGame,
-    GameMode_Map,
 };
 
 struct state_change_data {
     b8 DidChange;
     game_mode NewMode;
-    const char *NewLevel;
 };
 
 //~ Includes
@@ -102,6 +100,6 @@ struct state_change_data {
 #include "menu.h"
 
 //~ Forward declarations
-internal inline void ChangeState(game_mode NewMode, string NewLevel);
+internal inline void ChangeState(game_mode NewMode);
 
 #endif

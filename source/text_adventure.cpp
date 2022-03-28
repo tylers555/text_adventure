@@ -240,12 +240,16 @@ MakeDefaultConsoleTheme(){
     Result.ItemFancy      = MakeFancyFormat(ITEM_COLOR, 0.0,  0.0, 0.0);
     Result.RoomFancy      = MakeFancyFormat(ROOM_COLOR, 1.0,  3.0, .125);
     Result.DirectionFancy = MakeFancyFormat(DIRECTION_COLOR, 0.0,  0.0, 0.0);
+    Result.DirectionFancy = MakeFancyFormat(ROOM_COLOR, 0.0,  0.0, 0.0);
     Result.DescriptionFancies[0] = Result.BasicFancy;
     Result.DescriptionFancies[1] = Result.DirectionFancy;
     Result.DescriptionFancies[2] = Result.RoomFancy; 
     Result.DescriptionFancies[3] = Result.ItemFancy;
+    Result.DescriptionFancies[3] = Result.MiscFancy;
     Result.ResponseFancies[0] = MakeFancyFormat(RESPONSE_COLOR, 0.0,  0.0, 0.0);
     Result.ResponseFancies[1] = MakeFancyFormat(EMPHASIS_COLOR, 1.0, 5.0, 3.0);
+    Result.CursorColor    = WHITE;
+    Result.SelectionColor = BLUE;
     
     return Result;
 }
