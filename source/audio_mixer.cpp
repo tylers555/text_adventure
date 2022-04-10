@@ -90,10 +90,10 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
             __m128 D0 = _mm_load_ps((float*)Dest0);
             __m128 D1 = _mm_load_ps((float*)Dest1);
             
-            __m128i SampleIndex = _mm_cvtps_epi32(_mm_sub_ps(SampleP,Half));
+            __m128i SampleIndex = _mm_cvtps_epi32(_mm_sub_ps(SampleP, Half));
             __m128 Fraction = _mm_sub_ps(SampleP, _mm_cvtepi32_ps(SampleIndex));
             
-            // NOTE(Tyler): It would work to save this and use it for the next iteration of the loop
+            // TODO(Tyler): It would work to save this and use it for the next iteration of the loop
             // (NextSampleValueA & NextSampleValueB)
             __m128 SampleValue0 = _mm_setr_ps(Samples[(((u32 *)&SampleIndex)[0]*2)     % TotalSampleCount],
                                               Samples[(((u32 *)&SampleIndex)[1]*2)     % TotalSampleCount],

@@ -51,13 +51,13 @@ struct string_manager {
     char *MakeBuffer();
     void  RemoveBuffer(char *Buffer);
     template<typename T> T *GetInHashTablePtr(hash_table<string, T> *Table, const char *Key);
-    template<typename T> T *FindInHashTablePtr(hash_table<string, T> *Table, const char *Key);
+    template<typename T> T *HashTableFindPtr(hash_table<string, T> *Table, const char *Key);
 };
 
 void
 string_manager::Initialize(memory_arena *Arena){
     StringMemory = MakeArena(Arena, Kilobytes(32));
-    Table = PushHashTable<const char *, const char *>(Arena, 512);
+    Table = MakeHashTable<const char *, const char *>(Arena, 512);
     
     u32 BufferCount = 128;
     //u32 BufferCount = 2;
@@ -76,10 +76,10 @@ string_manager::GetString(const char *String){
     string Result = {};
     if(!String) return Result;
     
-    const char *ResultString = FindInHashTable(&Table, String);
+    const char *ResultString = HashTableFind(&Table, String);
     if(!ResultString){
         ResultString = ArenaPushCString(&StringMemory, String);
-        InsertIntoHashTable(&Table, ResultString, ResultString);
+        HashTableInsert(&Table, ResultString, ResultString);
     }
     
     Result.ID = (u64)ResultString;
@@ -121,17 +121,17 @@ string_manager::RemoveBuffer(char *Buffer){
 template<typename T> T *
 string_manager::GetInHashTablePtr(hash_table<string, T> *Table, const char *Key){
     string String = GetString(Key);
-    T *Result = ::FindInHashTablePtr(Table, String);
+    T *Result = ::HashTableFindPtr(Table, String);
     if(!Result){
-        Result = CreateInHashTablePtr(Table, String);
+        Result = HashTableAlloc(Table, String);
     }
     return(Result);
 }
 
 template<typename T> T *
-string_manager::FindInHashTablePtr(hash_table<string, T> *Table, const char *Key){
+string_manager::HashTableFindPtr(hash_table<string, T> *Table, const char *Key){
     string String = GetString(Key);
-    T *Result = ::FindInHashTablePtr(Table, String);
+    T *Result = ::HashTableFindPtr(Table, String);
     return(Result);
 }
 
@@ -151,7 +151,7 @@ BeginStringBuilder(memory_arena *Arena, u32 Capacity){
 }
 
 internal inline char *
-StringBuilderFinalize(memory_arena *Arena, string_builder *Builder){
+FinalizeStringBuilder(memory_arena *Arena, string_builder *Builder){
     u32 Size = Builder->BufferSize+1;
     char *Result = PushArray(Arena, char, Size);
     CopyMemory(Result, Builder->Buffer, Size);
@@ -160,18 +160,14 @@ StringBuilderFinalize(memory_arena *Arena, string_builder *Builder){
 }
 
 internal inline char *
-EndStringBuilder(memory_arena *Arena, string_builder *Builder){
+EndStringBuilder(string_builder *Builder){
     char *Result = Builder->Buffer;
     return Result;
 }
 
 internal inline void
-StringBuilderAdd(string_builder *Builder, const char *S){
-    u32 Length = CStringLength(S);
-    Assert(Builder->BufferSize+Length < Builder->BufferCapacity-1);
-    CopyCString(&Builder->Buffer[Builder->BufferSize], S, Length);
-    Builder->BufferSize += Length;
-    Builder->Buffer[Builder->BufferSize] = 0;
+StringBuilderToFile(string_builder *Builder, os_file *File, u64 Offset=0){
+    WriteToFile(File, Offset, Builder->Buffer, Builder->BufferSize);
 }
 
 internal inline void
@@ -182,20 +178,33 @@ StringBuilderAdd(string_builder *Builder, char C){
 }
 
 internal inline void
-StringBuilderAdd(string_builder *Builder, void *Data, u32 DataSize){
+StringBuilderAddData(string_builder *Builder, void *Data, u32 DataSize){
     Assert(Builder->BufferSize+DataSize < Builder->BufferCapacity-1);
     CopyMemory(&Builder->Buffer[Builder->BufferSize], Data, DataSize);
     Builder->BufferSize += DataSize;
     Builder->Buffer[Builder->BufferSize] = 0;
 }
 
-#define StringBuilderAddVar(Builder, Data) StringBuilderAdd(Builder, &Data, sizeof(Data))
+internal inline void 
+StringBuilderAlign(string_builder *Builder, u32 Alignment){
+    //char *BufferPos = Builder->Buffer+Builder->BufferSize;
+    //char *EndPos = AlignValue(BufferPos, 
+}
+
+#define StringBuilderAddVar(Builder, Data) StringBuilderAddData(Builder, &Data, sizeof(Data))
 
 internal inline void
 StringBuilderVAdd(string_builder *Builder, const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
-    stbsp_vsnprintf(Buffer, DEFAULT_BUFFER_SIZE, Format, VarArgs);
-    StringBuilderAdd(Builder, Buffer);
+    s32 CharactersWritten = stbsp_vsnprintf(Buffer, DEFAULT_BUFFER_SIZE, Format, VarArgs);
+    Assert(CharactersWritten >= 0);
+    Assert(CharactersWritten < DEFAULT_BUFFER_SIZE);
+    const char *S = Buffer;
+    u32 Length = CStringLength(S);
+    Assert(Builder->BufferSize+Length < Builder->BufferCapacity-1);
+    CopyCString(&Builder->Buffer[Builder->BufferSize], S, Length);
+    Builder->BufferSize += Length;
+    Builder->Buffer[Builder->BufferSize] = 0;
 }
 
 internal inline void
@@ -205,3 +214,11 @@ StringBuilderAdd(string_builder *Builder, const char *Format, ...){
     StringBuilderVAdd(Builder, Format, VarArgs);
     va_end(VarArgs);
 }
+
+internal inline void
+StringBuilderAddString(string_builder *Builder, char *S){
+    StringBuilderAddData(Builder, S, CStringLength(S));
+}
+
+//~ Globals
+global string_manager Strings;

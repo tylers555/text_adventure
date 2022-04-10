@@ -1,3 +1,5 @@
+
+#if defined(SNAIL_JUMPY_DEBUG_BUILD)
 internal void
 VLogMessage(char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
@@ -27,3 +29,7 @@ LogMessage(char *Format, ...){
     
     va_end(VarArgs);
 }
+#else
+internal void VLogMessage(char *Format, va_list VarArgs){}
+internal void LogMessage(char *Format, ...) {}
+#endif

@@ -97,9 +97,9 @@ RenderTexture(game_renderer *Renderer, rect R, f32 Z, render_texture Texture,
 
 //~ Renderer
 internal inline item_shader
-MakeItemShader(const char *Path){
+MakeItemShaderFromData(entire_file File){
     item_shader Result = {};
-    Result.ID = MakeShaderProgramFromFile(Path);
+    Result.ID = MakeShaderProgramFromFileData(File);
     if(Result.ID == -1) return Result;
     
     Result.ProjectionLocation = ShaderProgramGetUniformLocation(Result.ID, "InProjection");
@@ -121,14 +121,107 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
     WhiteTexture = MakeTexture();
     TextureUpload(WhiteTexture, TemplateColor, 1, 1);
     
-    GameShader = MakeItemShader("shaders/glsl/game_shader.glsl");
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+    entire_file GameShaderFile; GameShaderFile.Data = (u8 *)BEGIN_STRING
+    (
+     //~
+#vertex_shader
+     
+#version 330 core\n
+     
+     layout (location = 0) in vec3 InPosition;
+     layout (location = 1) in vec2 InPixelUV;
+     layout (location = 2) in vec4 InColor;
+     
+     out vec3 FragmentP;
+     out vec4 FragmentColor;
+     out vec2 FragmentUV;
+     uniform mat4 InProjection;
+     
+     void main(){
+         gl_Position = InProjection * vec4(InPosition, 1.0);
+         FragmentP = InPosition;
+         FragmentColor = InColor;
+         FragmentUV = InPixelUV;
+     };
+     
+     //~
+#pixel_shader
+#version 330 core\n
+     
+     out vec4 OutColor;
+     
+     in vec3 FragmentP;
+     in vec4 FragmentColor;
+     in vec2 FragmentUV;
+     
+     uniform sampler2D InTexture;
+     
+     void main(){
+         vec2 UV = FragmentUV;
+         OutColor = texture(InTexture, UV)*FragmentColor;
+         
+         if(OutColor.a == 0.0) discard;
+     }
+     );
+    GameShaderFile.Size = CStringLength((const char *)GameShaderFile.Data);
     
-    //Assert(0);
-    screen_shader GameScreenShader = MakeScreenShaderFromFile("shaders/glsl/game_screen_shader.glsl");
+    
+    entire_file GameScreenShaderFile; GameScreenShaderFile.Data = (u8 *)BEGIN_STRING
+    (
+#vertex_shader
+     
+#version 330 core\n
+     
+     layout (location = 0) in vec2 InPosition;
+     layout (location = 1) in vec2 InUV;
+     
+     out vec2 FragmentUV;
+     out vec2 FragmentP;
+     
+     uniform float InScale;
+     
+     void main(){
+         gl_Position = vec4(InPosition, 0.0, 1.0);
+         FragmentP = InPosition;
+         FragmentUV = InUV;
+     }
+     
+     //~
+#pixel_shader
+     
+#version 330 core\n
+     
+     out vec4 OutColor;
+     in vec2 FragmentUV;
+     in vec2 FragmentP;
+     
+     uniform sampler2D InTexture;
+     uniform float     InScale;
+     
+     void main(){
+         vec2 TextureSize = textureSize(InTexture, 0).xy;
+         vec2 Pixel = FragmentUV*TextureSize;
+         
+         vec2 UV = floor(Pixel) + 0.5;
+         
+         vec4 Color = texture(InTexture, UV/TextureSize);
+         if(Color.a == 0.0){
+             discard;
+         }
+         
+         OutColor = Color;
+     }
+     );
+    GameScreenShaderFile.Size = CStringLength((const char *)GameScreenShaderFile.Data);
+#else
+    entire_file GameShaderFile = ReadEntireFile(&TransientStorageArena, "shaders/glsl/game_shader.glsl");
+    entire_file GameScreenShaderFile = ReadEntireFile(&TransientStorageArena, "shaders/glsl/game_screen_shader.glsl");
+#endif
+    
+    GameShader = MakeItemShaderFromData(GameShaderFile);
+    screen_shader GameScreenShader = MakeScreenShaderFromFileData(GameScreenShaderFile);
     InitializeFramebuffer(&GameScreenFramebuffer, GameScreenShader, V2S(OutputSize/CameraScale));
-    
-    DefaultShader.ID = MakeShaderProgramFromFile("shaders/glsl/game_shader.glsl");
-    DefaultShader.ProjectionLocation = ShaderProgramGetUniformLocation(DefaultShader.ID, "InProjection");
     
     InitializeArray(&Vertices, 2000);
     InitializeArray(&Indices,  2000);

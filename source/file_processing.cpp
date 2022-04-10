@@ -1,4 +1,3 @@
-global hash_table<const char *, image> LoadedImageTable;
 
 //~ Loading
 
@@ -15,53 +14,6 @@ ReadEntireFile(memory_arena *Arena, const char *Path) {
     entire_file Result;
     Result.Size = FileSize;
     Result.Data = FileData;
-    return(Result);
-}
-
-internal image *
-LoadImageFromPath(const char *Path){
-    image *Result = 0;
-    
-    os_file *File = 0;
-    File = OpenFile(Path, OpenFile_Read);
-    if(!File) return(Result);
-    u64 LastFileWriteTime;
-    LastFileWriteTime = GetLastFileWriteTime(File);
-    CloseFile(File);
-    u8 *ImageData;
-    s32 Components;
-    
-    Result = FindOrCreateInHashTablePtr(&LoadedImageTable, Path);
-    if(Result->HasBeenLoadedBefore){
-        if(Result->LastWriteTime < LastFileWriteTime){
-            entire_file File = ReadEntireFile(&TransientStorageArena, Path);
-            
-            ImageData = (u8 *)stbi_load_from_memory((u8 *)File.Data,
-                                                    (int)File.Size,
-                                                    &Result->Width, &Result->Height,
-                                                    &Components, 4);
-            TextureUpload(Result->Texture, ImageData, Result->Width, Result->Height);
-            stbi_image_free(ImageData);
-        }
-    }else{
-        entire_file File;
-        File = ReadEntireFile(&TransientStorageArena, Path);
-        s32 Components = 0;
-        stbi_info_from_memory((u8 *)File.Data, (int)File.Size, 
-                              &Result->Width, &Result->Height, &Components);
-        ImageData = (u8 *)stbi_load_from_memory((u8 *)File.Data,
-                                                (int)File.Size,
-                                                &Result->Width, &Result->Height,
-                                                &Components, 4);
-        Result->HasBeenLoadedBefore = true;
-        Result->LastWriteTime = LastFileWriteTime,
-        Result->IsTranslucent = true;
-        Result->Texture = MakeTexture();
-        TextureUpload(Result->Texture, ImageData, Result->Width, Result->Height);
-        
-        stbi_image_free(ImageData);
-    }
-    
     return(Result);
 }
 
@@ -143,187 +95,81 @@ TokenToString(file_token Token){
 }
 
 //~ File reader
+#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
 
-internal void
-ConsumeTextWhiteSpace(stream *Stream){
-    u8 *NextBytePtr = PeekBytes(Stream, 1);
-    if(NextBytePtr){
-        u8 NextByte = *NextBytePtr;
-        if((NextByte == ' ') ||
-           (NextByte == '\t') ||
-           (NextByte == '\n') ||
-           (NextByte == '\r')){
-            b8 DoDecrement = true;
-            while((NextByte == ' ') ||
-                  (NextByte == '\t') ||
-                  (NextByte == '\n') ||
-                  (NextByte == '\r')){
-                u8 *NextBytePtr = ConsumeBytes(Stream, 1);
-                if(!NextBytePtr) { DoDecrement = false; break; }
-                NextByte = *NextBytePtr;
-            }
-            if(DoDecrement) Stream->CurrentIndex--;
-        }
-    }
-}
+#define HandleError(Reader) \
+if((Reader)->LastError == FileReaderError_InvalidToken) return(Result) \
 
-internal char *
-ConsumeTextIdentifier(stream *Stream){
+#define Expect(Reader, Name) \
+(Reader)->ExpectToken(FileTokenType_##Name).Name; \
+HandleError(Reader);
+
+char *
+file_reader::ConsumeTextIdentifier(){
     char *Buffer = PushArray(&TransientStorageArena, char, DEFAULT_BUFFER_SIZE);
     u32 BufferIndex = 0;
-    u8 *CharPtr = ConsumeBytes(Stream, 1);
-    if(CharPtr){
-        u8 Char = *CharPtr;
-        while((('a' <= Char) && (Char <= 'z')) ||
-              (('A' <= Char) && (Char <= 'Z')) ||
-              (('0' <= Char) && (Char <= '9')) ||
-              (Char == '_')){
-            if(BufferIndex >= DEFAULT_BUFFER_SIZE-1) break;
-            Buffer[BufferIndex++] = Char;
-            CharPtr = ConsumeBytes(Stream, 1);
-            if(!CharPtr) break;
-            Char = *CharPtr;
-        }
-        Stream->CurrentIndex--;
-        Buffer[BufferIndex] = '\0';
-    }else{
-        Buffer[0] = '\0';
+    
+    while((FilePos < FileEnd) &&
+          (('a' <= *FilePos) && (*FilePos <= 'z')) ||
+          (('A' <= *FilePos) && (*FilePos <= 'Z')) ||
+          (('0' <= *FilePos) && (*FilePos <= '9')) ||
+          (*FilePos == '_')){
+        if(BufferIndex >= DEFAULT_BUFFER_SIZE-1) break;
+        Buffer[BufferIndex++] = *FilePos;
+        FilePos++;
     }
+    Buffer[BufferIndex] = '\0';
     
     return(Buffer);
 }
 
-internal char *
-ConsumeTextString(stream *Stream){
+char *
+file_reader::ConsumeTextString(){
     char *Buffer = PushArray(&TransientStorageArena, char, DEFAULT_BUFFER_SIZE);
     
     u32 BufferIndex = 0;
-    u8 *CharPtr = ConsumeBytes(Stream, 1);
-    Assert(*CharPtr == '"');
-    CharPtr = ConsumeBytes(Stream, 1);
-    if(CharPtr){
-        u8 Char = *CharPtr;
-        while(Char != '"'){
-            if(BufferIndex >= DEFAULT_BUFFER_SIZE-1) break;
-            Buffer[BufferIndex++] = Char;
-            CharPtr = ConsumeBytes(Stream, 1);
-            if(!CharPtr) break;
-            Char = *CharPtr;
-        }
-        Buffer[BufferIndex] = '\0';
-    }else{
-        Buffer[0] = '\0';
+    Assert(*FilePos == '"');
+    FilePos++;
+    while((FilePos < FileEnd) && (*FilePos != '"')){
+        if(BufferIndex >= DEFAULT_BUFFER_SIZE-1) break;
+        Buffer[BufferIndex++] = *FilePos;
+        FilePos++;
     }
+    FilePos++; // Consume the extra "
+    Buffer[BufferIndex] = '\0';
     
     return(Buffer);
-}
-
-internal s32
-ConsumeTextNumber(stream *Stream){
-    s32 Number = 0;
-    b8 IsNegative = false;
-    u8 *CharPtr = PeekBytes(Stream, 1);
-    if(CharPtr){
-        u8 Char = *CharPtr;
-        if(Char == '-'){
-            IsNegative = true;
-            ConsumeBytes(Stream, 1);
-            CharPtr = PeekBytes(Stream, 1);
-            Char = *CharPtr;
-        }
-        if(('0' <= Char) && (Char <= '9')){
-            b8 DoDecrement = true;
-            while(true){
-                CharPtr = ConsumeBytes(Stream, 1);
-                if(!CharPtr) { DoDecrement = false; break; }
-                Char = *CharPtr;
-                if(!(('0' <= Char) && (Char <= '9'))) break;
-                Number *= 10;
-                Number += Char -'0';
-            }
-            if(DoDecrement) Stream->CurrentIndex--;
-        }
-    }
-    if(IsNegative){ Number = -Number; }
-    return(Number);
-}
-
-// TODO(Tyler): This is an incredibly naive implementation
-internal f32
-ConsumeTextFloat(stream *Stream){
-    f32 NumberA = 0;
-    f32 NumberB = 0;
-    f32 Place = 0.1f;
-    b8 DoingDecimals = false;
-    u8 *CharPtr = PeekBytes(Stream, 1);
-    if(CharPtr){
-        u8 Char = *CharPtr;
-        if(('0' <= Char) && (Char <= '9')){
-            b8 DoDecrement = true;
-            while(true){
-                CharPtr = ConsumeBytes(Stream, 1);
-                if(!CharPtr) { DoDecrement = false; break; }
-                Char = *CharPtr;
-                if((Char == '.') && !DoingDecimals) { DoingDecimals = true; continue; }
-                if((Char == '.') &&  DoingDecimals) { break; }
-                if(!(('0' <= Char) && (Char <= '9'))) break;
-                f32 Digit = (f32)(Char -'0');
-                
-                if(!DoingDecimals){
-                    NumberA *= 10;
-                    NumberA += Digit;
-                }else{
-                    NumberB += Place*Digit;
-                    Place *= 0.1f;
-                }
-            }
-            if(DoDecrement) Stream->CurrentIndex--;
-        }
-    }
-    
-    f32 Number = NumberA + NumberB;
-    return(Number);
-}
-
-internal inline void
-ConsumeTextComment(stream *Stream){
-    ConsumeBytes(Stream, 1);
-    while(true){
-        u8 *B = PeekBytes(Stream, 1);
-        if(!B) break;
-        if((*B == '\n') || (*B == '\r')) break;
-        ConsumeBytes(Stream, 1);
-    }
-    ConsumeTextWhiteSpace(Stream);
 }
 
 internal inline file_reader
-MakeFileReader(const char *Path){
+MakeFileReader(const char *Path, asset_system *System=0){
     file_reader Result = {};
     entire_file File = ReadEntireFile(&TransientStorageArena, Path);
-    Result.Stream = MakeReadStream(File.Data, File.Size);
+    Result.FileStart = (u8 *)File.Data;
+    Result.FilePos = Result.FileStart;
+    Result.FileEnd = Result.FileStart+(u32)File.Size;
     Result.Line   = 1;
+    Result.System = System;
     return(Result);
 }
 
-internal inline u32
-ConumeHexNumber(stream *Stream){
+inline u32
+file_reader::ConsumeTextHexNumber(){
     u32 Result = 0;
     
     for(u32 I=0; I<8; I++){
-        u8 *B = PeekBytes(Stream, 1);
-        if(!B) break;
-        if(IsANumber(*B)){
+        if(FilePos >= FileEnd) break;
+        if(IsANumber(*FilePos)){
             Result <<= 4;
-            Result |= *B-'0';
-        }else if (('A' <= *B) && (*B <= 'F')){
+            Result |= *FilePos-'0';
+        }else if (('A' <= *FilePos) && (*FilePos <= 'F')){
             Result <<= 4;
-            Result |= *B-'A'+10;
-        }else if(('a' <= *B) && (*B <= 'f')){
+            Result |= *FilePos-'A'+10;
+        }else if(('a' <= *FilePos) && (*FilePos <= 'f')){
             Result <<= 4;
-            Result |= *B-'a'+10;
+            Result |= *FilePos-'a'+10;
         }else break;
-        ConsumeBytes(Stream, 1);
+        FilePos++;
     }
     
     return Result;
@@ -332,54 +178,48 @@ ConumeHexNumber(stream *Stream){
 file_token
 file_reader::NextToken(){
     file_token Result = {};
+    Result.Type = FileTokenType_EndFile;
+    Result.Line = Line;
     
-    while(true){
-        u8 *NextBytePtr = PeekBytes(&Stream, 1);
-        if(!NextBytePtr){
-            Result.Type = FileTokenType_EndFile;
-            break;
-        }
-        
-        if(IsALetter(*NextBytePtr) ||
-           (*NextBytePtr == '_')){
+    while(FilePos < FileEnd){
+        if(IsALetter(*FilePos) ||
+           (*FilePos == '_')){
             Result.Type = FileTokenType_Identifier;
             Result.Line = Line;
-            Result.Identifier = ConsumeTextIdentifier(&Stream);
+            Result.Identifier = ConsumeTextIdentifier();
             break;
-            
-        }else if(*NextBytePtr == ':'){
+        }else if(*FilePos == ':'){
             Result.Type = FileTokenType_BeginCommand;
             Result.Line = Line;
-            ConsumeBytes(&Stream, 1);
+            FilePos++;
             break;
             
-        }else if(IsANumber(*NextBytePtr) ||
-                 (*NextBytePtr == '-')){
+        }else if(IsANumber(*FilePos) ||
+                 (*FilePos == '-')){
             s32 FirstPart   = 0;
             f32 SecondPart  = 0;
             b8 DoingDecimals = false;
             f32 Place = 0.1f;
             b8 IsNegative   = false;
-            u8 *B = NextBytePtr;
             
-            if(*B == '-'){
+            if(*FilePos == '-'){
                 IsNegative = true;
-                ConsumeBytes(&Stream, 1);
-            }else if(*B == '0'){
-                u8 B1 = PeekBytes(&Stream, 2)[1];
-                if(B1 == 'x'){
-                    ConsumeBytes(&Stream, 2);
-                    FirstPart = ConumeHexNumber(&Stream);
+                FilePos++;
+            }else if(*FilePos == '0'){
+                FilePos++;
+                if(FilePos < FileEnd){
+                    if(*FilePos == 'x'){
+                        FilePos++;
+                        FirstPart = ConsumeTextHexNumber();
+                    }
                 }
             }
             
-            while(true){
-                B = PeekBytes(&Stream, 1);
-                if(!B) { break; }
-                if((*B == '.') && !DoingDecimals) { DoingDecimals = true; ConsumeBytes(&Stream, 1); continue; }
-                if((*B == '.') &&  DoingDecimals) { break; }
-                if(!(('0' <= *B) && (*B <= '9'))) break;
-                s32 Digit = (*B - '0');
+            while(FilePos < FileEnd){
+                if((*FilePos == '.') && !DoingDecimals) { DoingDecimals = true; FilePos++; continue; }
+                if((*FilePos == '.') &&  DoingDecimals) { break; }
+                if(!(('0' <= *FilePos) && (*FilePos <= '9'))) break;
+                s32 Digit = (*FilePos - '0');
                 
                 if(!DoingDecimals){
                     FirstPart *= 10;
@@ -389,7 +229,7 @@ file_reader::NextToken(){
                     Place      *= 0.1f;
                 }
                 
-                ConsumeBytes(&Stream, 1);
+                FilePos++;
             }
             
             if(!DoingDecimals){
@@ -405,58 +245,51 @@ file_reader::NextToken(){
             
             break;
             
-        }else if(*NextBytePtr == '#'){
-            ConsumeBytes(&Stream, 1);
-            while(true){
-                u8 *B = PeekBytes(&Stream, 1);
-                if(!B) break;
-                if((*B == '\n') || (*B == '\r')) break;
-                ConsumeBytes(&Stream, 1);
+        }else if(*FilePos == '#'){
+            FilePos++;
+            while(FilePos < FileEnd){
+                if((*FilePos == '\n') || (*FilePos == '\r')) break;
+                FilePos++;
             }
             
-        }else if(IsWhiteSpace(*NextBytePtr)){
-            u8 *B = NextBytePtr;
-            while(true){
-                B = PeekBytes(&Stream, 1);
-                if(!B) { break; }
-                if(*B == '\n'){ Line++; }
-                if(!IsWhiteSpace(*B)) { break; }
-                ConsumeBytes(&Stream, 1);
+        }else if(IsWhiteSpace(*FilePos)){
+            while((FilePos < FileEnd) && IsWhiteSpace(*FilePos)){
+                if(*FilePos == '\n') Line++;
+                FilePos++;
             }
-            
-        }else if(*NextBytePtr == '"'){
+        }else if(*FilePos == '"'){
             Result.Type = FileTokenType_String;
             Result.Line = Line;
-            Result.String = ConsumeTextString(&Stream);
+            Result.String = ConsumeTextString();
             break;
             
-        }else if(*NextBytePtr == '('){
+        }else if(*FilePos == '('){
             Result.Type = FileTokenType_BeginArguments;
             Result.Line = Line;
-            ConsumeBytes(&Stream, 1);
+            FilePos++;
             break;
             
-        }else if(*NextBytePtr == ')'){
+        }else if(*FilePos == ')'){
             Result.Type = FileTokenType_EndArguments;
             Result.Line = Line;
-            ConsumeBytes(&Stream, 1);
+            FilePos++;
             break;
             
-        }else if(*NextBytePtr == '{'){
+        }else if(*FilePos == '{'){
             Result.Type = FileTokenType_BeginSpecial;
             Result.Line = Line;
-            ConsumeBytes(&Stream, 1);
+            FilePos++;
             break;
             
-        }else if(*NextBytePtr == '}'){
+        }else if(*FilePos == '}'){
             Result.Type = FileTokenType_EndSpecial;
             Result.Line = Line;
-            ConsumeBytes(&Stream, 1);
+            FilePos++;
             break;
             
         }else{
             Result.Type = FileTokenType_Invalid;
-            Result.Char = *NextBytePtr;
+            Result.Char = *FilePos;
             break;
         }
     }
@@ -466,10 +299,161 @@ file_reader::NextToken(){
 
 file_token
 file_reader::PeekToken(){
-    umw Index = Stream.CurrentIndex;
-    u32 Line_ = Line;
+    u8 *SavedPos = FilePos;
+    u32 SavedLine = Line;
     file_token Result = NextToken();
-    Stream.CurrentIndex = Index;
-    Line = Line_;
+    FilePos = SavedPos;
+    Line = SavedLine;
     return(Result);
 }
+
+
+file_token
+file_reader::ExpectToken(file_token_type Type){
+    LastError = FileReaderError_None;
+    file_token Token = NextToken();
+    if(Type == FileTokenType_Float){
+        Token = MaybeTokenIntegerToFloat(Token);
+    }
+    
+    if(Token.Type == Type){
+        return(Token);
+    }else {
+        System->LogError("Expected %s, instead read: %s", TokenTypeName(Type), TokenToString(Token));
+    }
+    
+    LastError = FileReaderError_InvalidToken;
+    return(Token);
+}
+
+v2
+file_reader::ExpectTypeV2(){
+    v2 Result = V2(0);
+    
+    const char *Identifier = Expect(this, Identifier);
+    if(CompareStrings(Identifier, "V2")){
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError(this);
+        
+        Result.X = Expect(this, Float);
+        file_token Token = PeekToken();
+        if(Token.Type != FileTokenType_EndArguments){
+            Result.Y = Expect(this, Float);
+        }else{
+            Result.Y = Result.X;
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError(this);
+        
+    }else{
+        LastError = FileReaderError_InvalidToken;
+        return(Result);
+    }
+    
+    return(Result);
+}
+
+array<s32>
+file_reader::ExpectTypeArrayS32(){
+    array<s32> Result = MakeArray<s32>(&TransientStorageArena, SJA_MAX_ARRAY_ITEM_COUNT);
+    
+    const char *Identifier = Expect(this, Identifier);
+    if(CompareStrings(Identifier, "Array")){
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError(this);
+        
+        file_token Token = PeekToken();
+        while(Token.Type != FileTokenType_EndArguments){
+            s32 Integer = Expect(this, Integer);
+            ArrayAdd(&Result, Integer);
+            
+            Token = PeekToken();
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError(this);
+        
+    }else{
+        LastError = FileReaderError_InvalidToken;
+        return(Result);
+    }
+    
+    return(Result);
+}
+
+array<const char *>
+file_reader::ExpectTypeArrayCString(){
+    array<const char *> Result = MakeArray<const char *>(&TransientStorageArena, SJA_MAX_ARRAY_ITEM_COUNT);
+    
+    const char *Identifier = Expect(this, Identifier);
+    if(CompareStrings(Identifier, "Array")){
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError(this);
+        
+        file_token Token = PeekToken();
+        while(Token.Type != FileTokenType_EndArguments){
+            const char *String = Expect(this, String);
+            ArrayAdd(&Result, String);
+            
+            Token = PeekToken();
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError(this);
+        
+    }else{
+        LastError = FileReaderError_InvalidToken;
+        return(Result);
+    }
+    
+    return(Result);
+}
+
+color
+file_reader::ExpectTypeColor(){
+    color Result = {};
+    
+    file_token Token = PeekToken();
+    if(Token.Type != FileTokenType_Identifier) return Result;
+    if(CompareStrings(Token.Identifier, "Color")){
+        Expect(this, Identifier);
+        
+        ExpectToken(FileTokenType_BeginArguments);
+        HandleError(this);
+        
+        Token = PeekToken();
+        if(Token.Type == FileTokenType_Float){
+            for(u32 I=0; I<4; I++){
+                Result.E[I] = Expect(this, Float);
+            }
+        }else if(Token.Type == FileTokenType_Integer){
+            file_token First = NextToken();
+            Token = PeekToken();
+            if((Token.Type == FileTokenType_Integer) ||
+               (Token.Type == FileTokenType_Float)){
+                First = MaybeTokenIntegerToFloat(First);
+                Assert(First.Type == FileTokenType_Float);
+                Result.R = First.Float;
+                for(u32 I=1; I<4; I++){
+                    Result.E[I] = Expect(this, Float);
+                }
+            }else if(Token.Type == FileTokenType_EndArguments){
+                Result = MakeColor(First.Integer);
+            }else{
+                System->LogError("Expected ) or a number, and %s is neither!", TokenToString(Token));
+                LastError = FileReaderError_InvalidToken;
+                return Result;
+            }
+        }
+        
+        ExpectToken(FileTokenType_EndArguments);
+        HandleError(this);
+    }else{
+        LastError = FileReaderError_InvalidToken;
+        return(Result);
+    }
+    
+    return(Result);
+}
+#endif // SNAIL_JUMPY_USE_PROCESSED_ASSETS

@@ -30,7 +30,7 @@ CheckChunkID(char ID[4], char *TestID){
 }
 
 internal sound_data
-LoadWavFile(os_sound_buffer *SoundBuffer, memory_arena *Arena, const char *Path){
+LoadWavFile(memory_arena *Arena, const char *Path){
     sound_data Result = {};
     
     os_file *OSFile = OpenFile(Path, OpenFile_Read);
@@ -41,7 +41,7 @@ LoadWavFile(os_sound_buffer *SoundBuffer, memory_arena *Arena, const char *Path)
     CloseFile(OSFile);
     entire_file File = ReadEntireFile(&TransientStorageArena, Path);
     stream Stream = MakeReadStream(File.Data, File.Size);
-    wav_header *Header = ConsumeType(&Stream, wav_header);
+    wav_header *Header = StreamConsumeType(&Stream, wav_header);
     if(!CheckChunkID(Header->RIFF, "RIFF")){
         Assert(0);
     }
@@ -52,11 +52,11 @@ LoadWavFile(os_sound_buffer *SoundBuffer, memory_arena *Arena, const char *Path)
     
     wav_fmt_chunk *FmtChunk = 0;
     wav_data_chunk *DataChunk = 0;
-    while((!FmtChunk || !DataChunk) && PeekBytes(&Stream, 4)){
-        char *ChunkID = (char *)ConsumeBytes(&Stream, 4);
+    while((!FmtChunk || !DataChunk) && StreamPeekBytes(&Stream, 4)){
+        char *ChunkID = (char *)StreamConsumeBytes(&Stream, 4);
         
         if(CheckChunkID(ChunkID, "fmt ")){
-            FmtChunk = ConsumeType(&Stream, wav_fmt_chunk);
+            FmtChunk = StreamConsumeType(&Stream, wav_fmt_chunk);
             
             if(FmtChunk->FmtSize != 16){
                 Assert(0);
@@ -66,17 +66,17 @@ LoadWavFile(os_sound_buffer *SoundBuffer, memory_arena *Arena, const char *Path)
                 Assert(0);
             }
             
-            if(FmtChunk->SampleRate != SoundBuffer->SampleRate){
-                Result.BaseSpeed = (f32)FmtChunk->SampleRate / (f32)SoundBuffer->SampleRate;
+            if(FmtChunk->SampleRate != AUDIO_SAMPLES_PER_SECOND){
+                Result.BaseSpeed = (f32)FmtChunk->SampleRate / (f32)AUDIO_SAMPLES_PER_SECOND;
             }else{
                 Result.BaseSpeed = 1.0f;
             }
             
         }else if(CheckChunkID(ChunkID, "data")){
-            DataChunk = ConsumeType(&Stream, wav_data_chunk);
+            DataChunk = StreamConsumeType(&Stream, wav_data_chunk);
         }else{
-            u32 ChunkSize = *ConsumeType(&Stream, u32);
-            ConsumeBytes(&Stream, ChunkSize);
+            u32 ChunkSize = *StreamConsumeType(&Stream, u32);
+            StreamConsumeBytes(&Stream, ChunkSize);
         }
     }
     
@@ -84,7 +84,7 @@ LoadWavFile(os_sound_buffer *SoundBuffer, memory_arena *Arena, const char *Path)
     Result.SampleCount = DataChunk->DataSize/(FmtChunk->ChannelCount*FmtChunk->BitsPerSample/8);
     s16 *Buffer = PushSpecialArray(Arena, s16, Result.SampleCount*Result.ChannelCount, ZeroAndAlign(16)); 
     Result.Samples = PushSpecialArray(Arena, s16, Result.SampleCount*Result.ChannelCount, ZeroAndAlign(16)); 
-    u8 *Data_ = ConsumeBytes(&Stream, DataChunk->DataSize);
+    u8 *Data_ = StreamConsumeBytes(&Stream, DataChunk->DataSize);
     Assert(Data_);
     
     if(FmtChunk->BitsPerSample == 8){

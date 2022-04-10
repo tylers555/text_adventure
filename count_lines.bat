@@ -1,1 +1,1 @@
-@cloc --exclude-dir=third_party --no3 .
+@cloc --exclude-dir=third_party --no3 . --not-match-f=generated_.*

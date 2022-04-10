@@ -1,32 +1,19 @@
-// TODO(Tyler): Implement an allocator for the stb libraries
-#define STB_NO_STDIO
-#define STB_IMAGE_IMPLEMENTATION
-#include "third_party/stb_image.h"
-#define STB_RECT_PACK_IMPLEMENTATION
-#include "third_party/stb_rect_pack.h"
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "third_party/stb_truetype.h"
-#define STB_SPRINTF_IMPLEMENTATION
-#include "third_party/stb_sprintf.h"
+
+#ifdef DO_RELEASE_BUILD
+#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
+#else
+#define SNAIL_JUMPY_DEBUG_BUILD
+//#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
+#endif
 
 #include "main.h"
 
 //~ Engine variables
-global state_change_data StateChangeData;
+global game_state *DEBUG;
+global u64 DebugInitTime;
 
 global menu_state MenuState;
-
-global string_manager Strings;
-
-global asset_system AssetSystem;
-
-global game_renderer GameRenderer;
-
-global audio_mixer AudioMixer;
-
 global ta_system TextAdventure;
-
-global u64 DebugInitTime;
 
 global game_mode GameMode = GameMode_None;
 
@@ -38,14 +25,14 @@ String(const char *S){
 
 //~ Includes
 #include "logging.cpp"
-#include "render.cpp"
 #include "stream.cpp"
 #include "file_processing.cpp"
+#include "render.cpp"
 #include "wav.cpp"
 #include "asset.cpp"
+#include "text_adventure.cpp"
 #include "asset_loading.cpp"
 #include "audio_mixer.cpp"
-#include "text_adventure.cpp"
 #include "commands.cpp"
 
 #include "debug.cpp"
@@ -56,10 +43,10 @@ String(const char *S){
 //~ 
 
 internal void
-InitializeGame(){
+InitializeGame(game_state *State){
+    DEBUG = State;
     u64 Start = OSGetMicroseconds();
     
-    stbi_set_flip_vertically_on_load(true);
     {
         umw Size = Megabytes(256);
         void *Memory = AllocateVirtualMemory(Size);
@@ -71,23 +58,18 @@ InitializeGame(){
         Assert(Memory);
         InitializeArena(&TransientStorageArena, Memory, Size);
     }
-    InitializeRendererBackend();
-    GameRenderer.Initialize(&PermanentStorageArena, OSInput.WindowSize);
     
+    InitializeRendererBackend();
+    State->Renderer.Initialize(&PermanentStorageArena, OSInput.WindowSize);
+    State->Renderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, PINK);
+    State->Mixer.Initialize(&PermanentStorageArena);
     
     Strings.Initialize(&PermanentStorageArena);
-    
     TextAdventure.Initialize(&PermanentStorageArena);
+    State->Assets.Initialize(&PermanentStorageArena);
     
-    //~ Load things
-    LoadedImageTable = PushHashTable<const char *, image>(&PermanentStorageArena, 256);
-    AssetSystem.Initialize(&PermanentStorageArena);
+    State->Assets.LoadAssetFile(ASSET_FILE_PATH);
     
-    AudioMixer.Initialize(&PermanentStorageArena);
-    AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
-    //AudioMixer.PlaySound(AssetSystem.GetSoundEffect(String("test_music")), MixerSoundFlag_Music|MixerSoundFlag_Loop, 1.0f);
-    
-    GameRenderer.NewFrame(&TransientStorageArena, OSInput.WindowSize, PINK);
     DebugInitTime = OSGetMicroseconds()-Start;
 }
 
@@ -99,7 +81,7 @@ DoDefaultHotkeys(){
 }
 
 internal void
-GameUpdateAndRender(){
+GameUpdateAndRender(game_state *State){
     if(GameMode == GameMode_None){
         GameMode = GameMode_MainGame;
     }
@@ -111,31 +93,18 @@ GameUpdateAndRender(){
     
     switch(GameMode){
         case GameMode_Menu: {
-            UpdateAndRenderMenu(&GameRenderer);
+            UpdateAndRenderMenu(&State->Renderer);
         }break;
         case GameMode_MainGame: {
-            UpdateAndRenderMainGame(&GameRenderer, &AudioMixer, &AssetSystem, &OSInput);
+            UpdateAndRenderMainGame(&State->Renderer, &State->Mixer, &State->Assets, &OSInput);
         }break;
     }
     
-    RendererRenderAll(&GameRenderer);
+    RendererRenderAll(&State->Renderer);
     
-    AssetSystem.LoadAssetFile(ASSET_FILE_PATH);
+    State->Assets.LoadAssetFile(ASSET_FILE_PATH);
     Counter += OSInput.dTime;
     FrameCounter++;
-    //~ Other
-    if(StateChangeData.DidChange){
-        switch(StateChangeData.NewMode){
-            case GameMode_Menu: {
-                GameMode = GameMode_Menu;
-            }break;
-            case GameMode_MainGame: {
-                GameMode = GameMode_MainGame; 
-            }break;
-        }
-        
-        StateChangeData = {};
-    }
     
     if(FrameCounter == 1){
         u64 FirstFrameTime = OSGetMicroseconds()-Start;
@@ -143,12 +112,6 @@ GameUpdateAndRender(){
         f32 Time = (f32)DebugInitTime/1000000.0f;
         LogMessage("Time to initialize: %f | First frame: %f", Time, FirstFrameTime);
     }
-}
-
-internal inline void
-ChangeState(game_mode NewMode){
-    StateChangeData.DidChange = true;
-    StateChangeData.NewMode = NewMode;
 }
 
 //~ Text input

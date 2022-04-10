@@ -1,13 +1,21 @@
 #if !defined(SNAIL_JUMPY_H)
 #define SNAIL_JUMPY_H
 
-// TODO(Tyler): Do this in build.bat
-#define SNAIL_JUMPY_DEBUG_BUILD
+// TODO(Tyler): Implement an allocator for the stb libraries
+#define STB_NO_STDIO
+#define STB_IMAGE_IMPLEMENTATION
+#include "third_party/stb_image.h"
+#define STB_RECT_PACK_IMPLEMENTATION
+#include "third_party/stb_rect_pack.h"
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "third_party/stb_truetype.h"
+#define STB_SPRINTF_IMPLEMENTATION
+#include "third_party/stb_sprintf.h"
 
 #include "basics.h"
-#include "math.h"
+#include "basic_math.h"
 #include "intrinsics.h"
-#include "generated.h"
+#include "generated_asset_id.h"
 
 //~ Constants TODO(Tyler): Several of these should be hotloaded in a variables file
 global_constant u32 DEFAULT_BUFFER_SIZE = 512;
@@ -28,7 +36,11 @@ global_constant char *STARTUP_LEVEL = "Debug";
 
 global_constant u32 MINIMUM_WINDOW_WIDTH  = 800;
 global_constant u32 MINIMUM_WINDOW_HEIGHT = 600;
-global_constant const char *WINDOW_NAME = "Toe Tac Tic";
+global_constant const char *WINDOW_NAME = "Murkwell";
+global_constant const char *NORMAL_WINDOW_ICON_PATH = "other_data/map_colored.ico";
+global_constant const char *SMALL_WINDOW_ICON_PATH = "other_data/map_colored.ico";
+
+global_constant s32 AUDIO_SAMPLES_PER_SECOND = 48000;
 
 //~ TODO(Tyler): Things that need a better place to go
 
@@ -77,11 +89,6 @@ enum game_mode {
     GameMode_MainGame,
 };
 
-struct state_change_data {
-    b8 DidChange;
-    game_mode NewMode;
-};
-
 //~ Includes
 #include "random.h"
 #include "helpers.cpp"
@@ -91,15 +98,19 @@ struct state_change_data {
 #include "stack.cpp"
 #include "hash_table.cpp"
 #include "strings.cpp"
-#include "render.h"
 #include "file_processing.h"
+#include "render.h"
 #include "asset.h" 
 #include "audio_mixer.h"
 
 #include "game.h"
 #include "menu.h"
 
-//~ Forward declarations
-internal inline void ChangeState(game_mode NewMode);
+//~ 
+struct game_state {
+    asset_system Assets;
+    game_renderer Renderer;
+    audio_mixer Mixer;
+};
 
 #endif

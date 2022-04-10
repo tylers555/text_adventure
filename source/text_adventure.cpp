@@ -1,4 +1,45 @@
 
+//~ TA IDs
+internal inline ta_id 
+MakeTAID(u64 ID){
+    ta_id Result;
+    Result.ID = ID;
+    return Result;
+}
+
+internal inline ta_id 
+MakeTAID(string S){
+    ta_id Result;
+    Result.ID = S.ID;
+    return Result;
+}
+
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+internal inline ta_id
+TAItemByName(ta_system *TA, const char *S){
+    ta_id ItemID = HashTableFind(&TA->ItemNameTable, S);
+    return ItemID;
+}
+
+internal inline ta_id
+TAIDByName(ta_system *TA, const char *S){
+    ta_id ItemID = {};
+    return ItemID;
+}
+#else
+internal inline ta_id
+TAIDByName(ta_system *TA, const char *S){
+    ta_id Result = MakeTAID(Strings.GetString(S));
+    return Result;
+}
+
+internal inline ta_id
+TAItemByName(ta_system *TA, const char *S){
+    ta_id ItemID = TAIDByName(TA, S);
+    return ItemID;
+}
+#endif
+
 //~ Command processing
 internal char **
 TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
@@ -53,9 +94,9 @@ struct ta_found_items {
 };
 
 internal void 
-TAContinueFindItems(ta_system *TA, array<string> *Items, char **Words, u32 WordCount, ta_found_items *Founds){
+TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount, ta_found_items *Founds){
     for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
+        ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
         if(!Item) continue;
         
         s32 FoundWordIndex = -1;
@@ -117,7 +158,7 @@ TAContinueFindItems(ta_system *TA, array<string> *Items, char **Words, u32 WordC
 }
 
 internal ta_found_items
-TAFindItems(ta_system *TA, array<string> *Items, char **Words, u32 WordCount){
+TAFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount){
     ta_found_items Result = {};
     Result.Items = MakeDynamicArray<ta_found_item>(&TransientStorageArena, 2);
     TAContinueFindItems(TA, Items, Words, WordCount, &Result);
@@ -126,9 +167,9 @@ TAFindItems(ta_system *TA, array<string> *Items, char **Words, u32 WordCount){
 }
 
 internal inline s32
-TAFindItemByTag(ta_system *TA, array<string> *Items, asset_tag Tag){
+TAFindItemByTag(ta_system *TA, array<ta_id> *Items, asset_tag Tag){
     for(u32 J=0; J<Items->Count; J++){
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(Items, J));
+        ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, J));
         if(!Item) continue;
         if(Item->Tag == Tag) return J;
     }
@@ -145,10 +186,10 @@ TACalculateItemChoiceWeight(ta_item *Item, char **Words, u32 WordEnd){
 
 //~
 internal inline b8
-TARoomAddItem(ta_system *TA, asset_system *Assets, ta_room *Room, string Item){
+TARoomAddItem(ta_system *TA, asset_system *Assets, ta_room *Room, ta_id Item){
     if(!Room->Items){
         memory_arena *Arena = &Assets->Memory;
-        Room->Items = MakeArray<string>(Arena, TA_ROOM_DEFAULT_ITEM_COUNT);
+        Room->Items = MakeArray<ta_id>(Arena, TA_ROOM_DEFAULT_ITEM_COUNT);
     }
     
     b8 Result = ArrayMaybeAdd(&Room->Items, Item);
@@ -188,13 +229,13 @@ internal void
 TAUnlock(audio_mixer *Mixer, asset_system *Assets, ta_room *Room, asset_tag *Locked){
     Room->Dirty = true;
     *Locked = AssetTag();
-    Mixer->PlaySound(Assets->GetSoundEffect(String("open_door")));
+    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_open_door)));
 }
 
 internal b8
 TAAttemptToUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ta_room *Room, asset_tag *Locked){
     for(u32 J=0; J<TA->Inventory.Count; J++){
-        ta_item *Item = FindInHashTablePtr(&TA->ItemTable, ArrayGet(&TA->Inventory, J));
+        ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(&TA->Inventory, J));
         if(!Item) continue;
         if(HasTag(Item->Tag, AssetTag_Key)){
             if(HasTag(*Locked, AssetTag_Organ) && HasTag(Item->Tag, AssetTag_Organ)){
@@ -225,38 +266,66 @@ TAIsClosed(ta_system *TA, asset_tag Tag){
     return false;
 }
 
+internal inline ta_area
+MakeTAArea(ta_id Name, v2 Offset){
+    ta_area Result = {};;
+    Result.Name = Name;
+    Result.Offset = Offset;
+    return Result;
+}
+
+internal inline constexpr b8
+operator==(ta_id A, ta_id B){
+    b8 Result = (A.ID == B.ID);
+    return Result;
+}
+
+internal constexpr u64
+HashKey(ta_id Value) {
+    u64 Result = Value.ID;
+    return(Result);
+}
+
+internal constexpr b32
+CompareKeys(ta_id A, ta_id B){
+    b32 Result = (A == B);
+    return(Result);
+}
+
+
 //~ Theme
 internal inline console_theme
 MakeDefaultConsoleTheme(){
     console_theme Result = {};
-    Result.BasicFont = String("basic");
-    Result.TitleFont = String("basic_bold");
+    Result.BasicFont = AssetID(font_basic);
+    Result.TitleFont = AssetID(font_basic_bold);
+    Result.BackgroundColor = MakeColor(0x0a0d4aff);
+    Result.CursorColor     = MakeColor(0xf2f2f2ff);
+    Result.SelectionColor = MakeColor(0x232c8cff);
+    Result.BasicFancy     = MakeFancyFormat(MakeColor(0xf2f2f2ff), 0.0, 0.0, 0.0);
+    Result.RoomTitleFancy = MakeFancyFormat(MakeColor(0xff6969ff), 1.0, 4.0, 2.0);
+    Result.ItemFancy      = MakeFancyFormat(MakeColor(0x24e3e3ff), 0.0, 0.0, 0.0);
+    Result.RoomFancy      = MakeFancyFormat(MakeColor(0xff6969ff), 0.0, 0.0, 0.0);
+    Result.DirectionFancy = MakeFancyFormat(MakeColor(0x5eeb82ff), 0.0, 0.0, 0.0);
+    Result.MiscFancy      = MakeFancyFormat(MakeColor(0xf5d756ff), 0.0, 0.0, 0.0);
+    Result.MoodFancy      = MakeFancyFormat(MakeColor(0x59ab8aff), 0.0, 0.0, 0.0);
+    Result.ResponseFancies[0] = MakeFancyFormat(MakeColor(0x9063ffff), 0.0, 0.0, 0.0);
+    Result.ResponseFancies[1] = MakeFancyFormat(MakeColor(0xe64eccff), MakeColor(0x9063ffff), 0.0, 0.0, 0.0, 2.0, 0.2f, 0.0);
     
-    Result.BackgroundColor = BASE_BACKGROUND_COLOR;
-    
-    Result.BasicFancy     = MakeFancyFormat(BASIC_COLOR, 0.0, 0.0, 0.0);
-    //Result.BasicFancy     = MakeFancyFormat(BASIC_COLOR, ITEM_COLOR, 0.0, 0.0, 0.0, 4.0, 6.0);
-    Result.RoomTitleFancy = MakeFancyFormat(ROOM_TITLE_COLOR, 1.0,  4.0, 2.0);
-    Result.ItemFancy      = MakeFancyFormat(ITEM_COLOR, 0.0,  0.0, 0.0);
-    Result.RoomFancy      = MakeFancyFormat(ROOM_COLOR, 1.0,  3.0, .125);
-    Result.DirectionFancy = MakeFancyFormat(DIRECTION_COLOR, 0.0,  0.0, 0.0);
-    Result.DirectionFancy = MakeFancyFormat(ROOM_COLOR, 0.0,  0.0, 0.0);
-    Result.DescriptionFancies[0] = Result.BasicFancy;
+    Result.DescriptionFancies[0]= Result.BasicFancy;
     Result.DescriptionFancies[1] = Result.DirectionFancy;
     Result.DescriptionFancies[2] = Result.RoomFancy; 
     Result.DescriptionFancies[3] = Result.ItemFancy;
-    Result.DescriptionFancies[3] = Result.MiscFancy;
-    Result.ResponseFancies[0] = MakeFancyFormat(RESPONSE_COLOR, 0.0,  0.0, 0.0);
-    Result.ResponseFancies[1] = MakeFancyFormat(EMPHASIS_COLOR, 1.0, 5.0, 3.0);
-    Result.CursorColor    = WHITE;
-    Result.SelectionColor = BLUE;
+    Result.DescriptionFancies[4] = Result.MiscFancy;
+    Result.DescriptionFancies[5] = Result.MoodFancy;
+    
     
     return Result;
 }
 
 //~ 
 inline b8
-ta_system::AddItem(string Item){
+ta_system::AddItem(ta_id Item){
     b8 Result = ArrayMaybeAdd(&Inventory, Item);
     if(!Result) Respond("You are far too \002\002weak\002\001 to carry that many items!!!");
     return Result;

@@ -90,8 +90,6 @@ struct game_renderer {
     render_texture WhiteTexture;
     
     item_shader  GameShader;
-    item_shader  DefaultShader;
-    item_shader  FontShader;
     framebuffer   GameScreenFramebuffer;
     v2    OutputSize;
     color ClearColor;
@@ -139,8 +137,8 @@ internal void TextureUpload(render_texture Texture, u8 *Pixels,
 internal void DeleteTexture(render_texture Texture);
 
 // TODO(Tyler): Maybe move these into renderer backend initialization
-internal shader_program  MakeShaderProgramFromFile(const char *Path);
-internal screen_shader MakeScreenShaderFromFile(const char *Path);
+internal shader_program  MakeShaderProgramFromFileData(entire_file File);
+internal screen_shader MakeScreenShaderFromFileData(entire_file File);
 internal s32 ShaderProgramGetUniformLocation(shader_program Program, const char *Name);
 
 internal void InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2s Size);

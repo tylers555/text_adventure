@@ -3,9 +3,9 @@
 #                                 Variables
 # //////////////////////////////////////////////////////////////////////////
 
-: Theme "default"
-    basic_font "basic"
-    title_font "basic_bold"
+: Theme "theme_default"
+    basic_font "font_basic"
+    title_font "font_basic_bold"
     background_color Color(0x0a0d4aff)
     cursor_color     Color(0xf2f2f2ff)
     selection_color  Color(0x232c8cff)
@@ -26,9 +26,9 @@
 #    room       Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.5 0.0 0.0)
 #    direction  Fancy(Color(0x00ff40ff) Color(0x074F47ff) 1.0 0.5 0.0)
 
-: Theme "planty"
-    basic_font "basic"
-    title_font "basic_bold"
+: Theme "theme_planty"
+    basic_font "font_basic"
+    title_font "font_basic_bold"
     background_color Color(0x09360aff)
     basic      Fancy(Color(0xf2f2f2ff))
     room_title Fancy(Color(0xff6969ff) 1.0 4.0 2.0)
@@ -42,15 +42,15 @@
 # As such, this is a current limitation of the SJA system, and will be changed.
 : Variables
     start_game_mode "main game"
-    start_room      "Plant shop"
-    theme           "default"
+    start_room      "Bakery"
+    theme           "theme_default"
     give_item       "a town map"
  
 # //////////////////////////////////////////////////////////////////////////
 #                                  Fonts
 # //////////////////////////////////////////////////////////////////////////
 
-: Font "basic"
+: Font "font_basic"
     path "asset_fonts/basic.png"
     height 7
     padding 1
@@ -151,7 +151,7 @@
     char "y" 3
     char "z" 2
 
-: Font "basic_bold"
+: Font "font_basic_bold"
     path "asset_fonts/bold_font.png"
     height 5
     padding 1
@@ -225,7 +225,7 @@
     AMPERSAND 4
     AT_SIGN 5
 
-: Font "basic2"
+: Font "font_basic2"
     path "asset_fonts/font2.png"
     height 5
     padding 1
@@ -299,7 +299,7 @@
     AMPERSAND 4
     AT_SIGN 5
 
-: Font "basic_lowercase"
+: Font "font_basic_lowercase"
     path "asset_fonts/basic_lowercase_3.png"
     height 5
     padding 1
@@ -332,7 +332,7 @@
     Z 2
     SPACE 2
 
-: Font "fancy"
+: Font "font_fancy"
 	path  "asset_fonts/fancy_font.png"
 	height 15
 	padding 1
@@ -369,41 +369,42 @@
 #                               Sound effects
 # //////////////////////////////////////////////////////////////////////////
 
-: SoundEffect "menu_move"
+: SoundEffect "sound_menu_move"
     path "asset_sound_effects/testing/puhp_01.wav"
 
-: SoundEffect "test_music"
+: SoundEffect "sound_test_music"
     path "asset_sound_effects/osj/Music.wav"
     # path "asset_sound_effects/osj_music.wav"
 
-: SoundEffect "move"
+: SoundEffect "sound_move"
     path "asset_sound_effects/sf_wood_walk_4.wav"
+    # path "asset_sound_effects/testing/48000Hz_Test.wav"
  
-: SoundEffect "open_door"
+: SoundEffect "sound_open_door"
     path "asset_sound_effects/sf_open_door_1.wav"
 
-: SoundEffect "open_map"
+: SoundEffect "sound_open_map"
     path "asset_sound_effects/testing/glide_00.wav"
 
-: SoundEffect "close_map"
+: SoundEffect "sound_close_map"
     path "asset_sound_effects/testing/drop_00.wav"
 
-: SoundEffect "item_taken"
+: SoundEffect "sound_item_taken"
     path "asset_sound_effects/sf_take.wav"
 
-: SoundEffect "item_bought"
+: SoundEffect "sound_item_bought"
     path "asset_sound_effects/sf_coin_5.wav"
 
-: SoundEffect "item_dropped"
+: SoundEffect "sound_item_dropped"
     path "asset_sound_effects/sf_drop.wav"
 
-: SoundEffect "item_eaten"
+: SoundEffect "sound_item_eaten"
     path "asset_sound_effects/sf_eat_2.wav"
 
-: SoundEffect "organ_play_broken"
+: SoundEffect "sound_organ_play_broken"
     path "asset_sound_effects/osj/LoseFX.wav"
 
-: SoundEffect "organ_play_repaired"
+: SoundEffect "sound_organ_play_repaired"
     path "asset_sound_effects/osj/PowerMusic.wav"
 
 # //////////////////////////////////////////////////////////////////////////
@@ -954,7 +955,7 @@
 
 : TAItem "organ console" Tag("organ" "static")
     Array("organ" "organs" "console" "consoles")
-    adjectives Array("organ")
+    adjectives Array("organ" "once" "great")
     description Tag("examine" "broken")
         "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
         "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
@@ -1045,12 +1046,12 @@
 : TARoom "Cathedral organ console" Tag("organ")
     area "Cathedral"
     description Tag("broken")
-        "A once-great \3pipe organ\0 sits in neglected despair. "
+        "A \3once-great pipe organ\0 sits in neglected despair. "
         "It looks to be missing some parts. "
         "There is a small scrap of paper sitting on the manual. "
         "The paper reads: 'Please fix the organ' "
     description Tag("repaired")
-        "A great pipe organ stands tall. It looks to be getting regular use."
+        "A \3great pipe organ\0 stands tall. It looks to be getting regular use."
     description Tag("adjacents")
         "this room connects to \2the altar\0 in the \1west\0, "
         "\n\2the nave\0 in the \1southwest\0, "

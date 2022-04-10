@@ -2,16 +2,17 @@
 void
 asset_system::Initialize(memory_arena *Arena){
     Memory = MakeArena(Arena, Megabytes(128));
-    SoundEffects = PushHashTable<string, asset_sound_effect>(Arena, MAX_ASSETS_PER_TYPE);
-    Fonts        = PushHashTable<string, asset_font>(Arena, MAX_ASSETS_PER_TYPE);
+#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+    SoundEffectTable = MakeHashTable<string, asset_sound_effect>(Arena, MAX_ASSETS_PER_TYPE);
+    FontTable        = MakeHashTable<string, asset_font>(Arena, MAX_ASSETS_PER_TYPE);
+    InitializeLoader(Arena);
+#endif
     
     //~ Dummy assets
     u8 InvalidColor[] = {0xff, 0x00, 0xff, 0xff};
     render_texture InvalidTexture = MakeTexture();
     TextureUpload(InvalidTexture, InvalidColor, 1, 1);
-    
-    InitializeLoader(Arena);
-    LoadAssetFile(ASSET_FILE_PATH);
+    stbi_set_flip_vertically_on_load(true);
 }
 
 //~ Asset tags
@@ -53,13 +54,14 @@ HasTag(asset_tag Tag, asset_tag_id ID){
     return Result;
 }
 
+#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
 //~ Sound effects
 
 asset_sound_effect *
-asset_system::GetSoundEffect(string Name){
+asset_system::GetSoundEffectByString(string Name){
     asset_sound_effect *Result = 0;
     if(Name.ID){
-        asset_sound_effect *Asset = FindInHashTablePtr(&SoundEffects, Name);
+        asset_sound_effect *Asset = HashTableFindPtr(&SoundEffectTable, Name);
         if(Asset) Result = Asset;
     }
     return(Result);
@@ -67,14 +69,15 @@ asset_system::GetSoundEffect(string Name){
 
 //~ Fonts
 asset_font *
-asset_system::GetFont(string Name){
+asset_system::GetFontByString(string Name){
     asset_font *Result = 0;
     if(Name.ID){
-        asset_font *Asset = FindInHashTablePtr(&Fonts, Name);
+        asset_font *Asset = HashTableFindPtr(&FontTable, Name);
         if(Asset) Result = Asset;
     }
     return(Result);
 }
+#endif
 
 internal f32
 VFontRenderString(game_renderer *Renderer, asset_font *Font, v2 StartP, color Color, const char *Format, va_list VarArgs){

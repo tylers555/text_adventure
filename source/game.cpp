@@ -2,61 +2,61 @@
 //~ Text adventure system
 void
 ta_system::Initialize(memory_arena *Arena){
-    CommandTable = PushHashTable<const char *, command_func *>(Arena, 64);
-    InsertIntoHashTable(&CommandTable, "go",       CommandMove);
-    InsertIntoHashTable(&CommandTable, "move",     CommandMove);
-    InsertIntoHashTable(&CommandTable, "take",     CommandTake);
-    InsertIntoHashTable(&CommandTable, "pick",     CommandTake);
-    InsertIntoHashTable(&CommandTable, "grab",     CommandTake);
-    InsertIntoHashTable(&CommandTable, "drop",     CommandDrop);
-    InsertIntoHashTable(&CommandTable, "leave",    CommandDrop);
-    InsertIntoHashTable(&CommandTable, "buy",      CommandBuy);
-    InsertIntoHashTable(&CommandTable, "purchase", CommandBuy);
-    InsertIntoHashTable(&CommandTable, "eat",      CommandEat);
-    InsertIntoHashTable(&CommandTable, "consume",  CommandEat);
-    InsertIntoHashTable(&CommandTable, "ingest",   CommandEat);
-    InsertIntoHashTable(&CommandTable, "swallow",  CommandEat);
-    InsertIntoHashTable(&CommandTable, "bite",     CommandEat);
-    InsertIntoHashTable(&CommandTable, "munch",    CommandEat);
-    InsertIntoHashTable(&CommandTable, "play",     CommandPlay);
-    InsertIntoHashTable(&CommandTable, "examine",  CommandExamine);
-    InsertIntoHashTable(&CommandTable, "inspect",  CommandExamine);
-    InsertIntoHashTable(&CommandTable, "observe",  CommandExamine);
-    InsertIntoHashTable(&CommandTable, "look",     CommandExamine);
-    InsertIntoHashTable(&CommandTable, "unlock",   CommandUnlock);
+    CommandTable = MakeHashTable<const char *, command_func *>(Arena, 64);
+    HashTableInsert(&CommandTable, "go",       CommandMove);
+    HashTableInsert(&CommandTable, "move",     CommandMove);
+    HashTableInsert(&CommandTable, "take",     CommandTake);
+    HashTableInsert(&CommandTable, "pick",     CommandTake);
+    HashTableInsert(&CommandTable, "grab",     CommandTake);
+    HashTableInsert(&CommandTable, "drop",     CommandDrop);
+    HashTableInsert(&CommandTable, "leave",    CommandDrop);
+    HashTableInsert(&CommandTable, "buy",      CommandBuy);
+    HashTableInsert(&CommandTable, "purchase", CommandBuy);
+    HashTableInsert(&CommandTable, "eat",      CommandEat);
+    HashTableInsert(&CommandTable, "consume",  CommandEat);
+    HashTableInsert(&CommandTable, "ingest",   CommandEat);
+    HashTableInsert(&CommandTable, "swallow",  CommandEat);
+    HashTableInsert(&CommandTable, "bite",     CommandEat);
+    HashTableInsert(&CommandTable, "munch",    CommandEat);
+    HashTableInsert(&CommandTable, "play",     CommandPlay);
+    HashTableInsert(&CommandTable, "examine",  CommandExamine);
+    HashTableInsert(&CommandTable, "inspect",  CommandExamine);
+    HashTableInsert(&CommandTable, "observe",  CommandExamine);
+    HashTableInsert(&CommandTable, "look",     CommandExamine);
+    HashTableInsert(&CommandTable, "unlock",   CommandUnlock);
     
-    InsertIntoHashTable(&CommandTable, "testrepair",   CommandTestRepair);
-    InsertIntoHashTable(&CommandTable, "testaddmoney", CommandTestAddMoney);
-    InsertIntoHashTable(&CommandTable, "testsubmoney", CommandTestSubMoney);
+    HashTableInsert(&CommandTable, "testrepair",   CommandTestRepair);
+    HashTableInsert(&CommandTable, "testaddmoney", CommandTestAddMoney);
+    HashTableInsert(&CommandTable, "testsubmoney", CommandTestSubMoney);
     
-    DirectionTable = PushHashTable<const char *, direction>(Arena, 2*Direction_TOTAL);
-    InsertIntoHashTable(&DirectionTable, "north",     Direction_North);
-    InsertIntoHashTable(&DirectionTable, "northeast", Direction_NorthEast);
-    InsertIntoHashTable(&DirectionTable, "east",      Direction_East);
-    InsertIntoHashTable(&DirectionTable, "southeast", Direction_SouthEast);
-    InsertIntoHashTable(&DirectionTable, "south",     Direction_South);
-    InsertIntoHashTable(&DirectionTable, "southwest", Direction_SouthWest);
-    InsertIntoHashTable(&DirectionTable, "west",      Direction_West);
-    InsertIntoHashTable(&DirectionTable, "northwest", Direction_NorthWest);
-    InsertIntoHashTable(&DirectionTable, "up",        Direction_Up);
-    InsertIntoHashTable(&DirectionTable, "down",      Direction_Down);
-    InsertIntoHashTable(&DirectionTable, "n",  Direction_North);
-    InsertIntoHashTable(&DirectionTable, "ne", Direction_NorthEast);
-    InsertIntoHashTable(&DirectionTable, "e",  Direction_East);
-    InsertIntoHashTable(&DirectionTable, "se", Direction_SouthEast);
-    InsertIntoHashTable(&DirectionTable, "s",  Direction_South);
-    InsertIntoHashTable(&DirectionTable, "sw", Direction_SouthWest);
-    InsertIntoHashTable(&DirectionTable, "w",  Direction_West);
-    InsertIntoHashTable(&DirectionTable, "nw", Direction_NorthWest);
-    InsertIntoHashTable(&DirectionTable, "u",  Direction_Up);
-    InsertIntoHashTable(&DirectionTable, "d",  Direction_Down);
+    DirectionTable = MakeHashTable<const char *, direction>(Arena, 2*Direction_TOTAL);
+    HashTableInsert(&DirectionTable, "north",     Direction_North);
+    HashTableInsert(&DirectionTable, "northeast", Direction_NorthEast);
+    HashTableInsert(&DirectionTable, "east",      Direction_East);
+    HashTableInsert(&DirectionTable, "southeast", Direction_SouthEast);
+    HashTableInsert(&DirectionTable, "south",     Direction_South);
+    HashTableInsert(&DirectionTable, "southwest", Direction_SouthWest);
+    HashTableInsert(&DirectionTable, "west",      Direction_West);
+    HashTableInsert(&DirectionTable, "northwest", Direction_NorthWest);
+    HashTableInsert(&DirectionTable, "up",        Direction_Up);
+    HashTableInsert(&DirectionTable, "down",      Direction_Down);
+    HashTableInsert(&DirectionTable, "n",  Direction_North);
+    HashTableInsert(&DirectionTable, "ne", Direction_NorthEast);
+    HashTableInsert(&DirectionTable, "e",  Direction_East);
+    HashTableInsert(&DirectionTable, "se", Direction_SouthEast);
+    HashTableInsert(&DirectionTable, "s",  Direction_South);
+    HashTableInsert(&DirectionTable, "sw", Direction_SouthWest);
+    HashTableInsert(&DirectionTable, "w",  Direction_West);
+    HashTableInsert(&DirectionTable, "nw", Direction_NorthWest);
+    HashTableInsert(&DirectionTable, "u",  Direction_Up);
+    HashTableInsert(&DirectionTable, "d",  Direction_Down);
     
-    RoomTable = PushHashTable<string, ta_room>(Arena, 64);
-    ItemTable = PushHashTable<string, ta_item>(Arena, 128);
-    Inventory = MakeArray<string>(Arena, INVENTORY_ITEM_COUNT);
+    RoomTable = MakeHashTable<ta_id, ta_room>(Arena, ROOM_TABLE_SIZE);
+    ItemTable = MakeHashTable<ta_id, ta_item>(Arena, ITEM_TABLE_SIZE);
+    Inventory = MakeArray<ta_id>(Arena, INVENTORY_ITEM_COUNT);
     ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
     
-    ThemeTable = PushHashTable<string, console_theme>(Arena, 8);
+    ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, 8);
     Theme = MakeDefaultConsoleTheme();
     
     //~ Game specific data
@@ -81,22 +81,22 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
     
     if(!TA->CurrentRoom){
         Input->BeginTextInput();
-        TA->CurrentRoom = FindInHashTablePtr(&TA->RoomTable, TA->StartRoom);
+        TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TA->StartRoomID);
         if(!TA->CurrentRoom){
-            TA->CurrentRoom = FindInHashTablePtr(&TA->RoomTable, String("Plaza SE"));
+            TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TAIDByName(TA, "Plaza SE"));
             if(!TA->CurrentRoom){
                 LogMessage("CurrentRoom is not set!");
                 return;
             }else{
-                LogMessage("Room: '%s' does not exist!", Strings.GetString(TA->StartRoom));
+                LogMessage("Room: '%s' does not exist!", Strings.GetString(TA->StartRoomName));
             }
         }
         TA->Money = 10;
     }
     
     //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);
-    asset_font *BoldFont = Assets->GetFont(Theme->TitleFont);
-    asset_font *Font = Assets->GetFont(Theme->BasicFont);
+    asset_font *BoldFont = GetFont(Assets, Theme->TitleFont);
+    asset_font *Font = GetFont(Assets, Theme->BasicFont);
     Assert(Font);
     
     v2 WindowSize = RoundV2(Renderer->ScreenToWorld(Input->WindowSize));
@@ -104,15 +104,14 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
     //~ Area positioning
     f32 Padding = 10;
     rect WindowRect = MakeRect(V2(Padding), WindowSize-V2(Padding));
-    rect RoomDescriptionRect = RectRound(RectPercent(WindowRect, 0.0f, 0.5f, 0.6f, 1.0f));
+    rect RoomDescriptionRect = RectRound(RectPercent(WindowRect, 0.0f, 0.5f, 0.7f, 1.0f));
     RoomDescriptionRect.X1 -= Padding;
-    rect InventoryRect       = RectRound(RectPercent(WindowRect, 0.6f, 0.5f, 1.0f, 1.0f));
-    rect InputRect           = RectRound(RectPercent(WindowRect, 0.0f, 0.0f, 0.6f, 0.5f));
-    rect MapRect             = RectRound(RectPercent(WindowRect, 0.6f, 0.0f, 1.0f, 0.5f));
+    rect InventoryRect       = RectRound(RectPercent(WindowRect, 0.7f, 0.5f, 1.0f, 1.0f));
+    rect InputRect           = RectRound(RectPercent(WindowRect, 0.0f, 0.0f, 0.7f, 0.5f));
+    rect MapRect             = RectRound(RectPercent(WindowRect, 0.7f, 0.0f, 1.0f, 0.5f));
     
-    //~ Room display
     ta_room *Room = TA->CurrentRoom;
-    
+    //~ Room display
     {
         DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->Name, &RoomDescriptionRect);
         
@@ -139,7 +138,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
         if(Room->Items.Count > 0){
             b8 HasNonStatic = false;
             for(u32 I=0; I<Room->Items.Count; I++){
-                ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[I]);
+                ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
                 if(!Item) continue;
                 if(!HasTag(Item->Tag, AssetTag_Static)){
                     HasNonStatic = true; 
@@ -161,11 +160,10 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
                 }
                 
                 for(u32 I=0; I<Room->Items.Count; I++){
-                    ta_item *Item = FindInHashTablePtr(&TA->ItemTable, Room->Items[I]);
+                    ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
                     if(!Item) continue;
                     if(HasTag(Item->Tag, AssetTag_Static)) continue;
-                    DoString(Renderer, Font, &Theme->ItemFancy, 1, 
-                             Strings.GetString(Room->Items[I]), &InventoryRect);
+                    DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->Name, &InventoryRect);
                 }
                 
                 InventoryRect.Y1 -= Padding;
@@ -181,15 +179,16 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
         }
         
         for(u32 I=0; I<TA->Inventory.Count; I++){
-            const char *Item = Strings.GetString(TA->Inventory[I]);
-            DoString(Renderer, Font, &Theme->ItemFancy, 1, Item, &InventoryRect);
+            ta_item *Item = HashTableFindPtr(&TA->ItemTable, TA->Inventory[I]);
+            Assert(Item);
+            DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->Name, &InventoryRect);
         }
     }
     
     //~ Map
     {
         s32 MapIndex = TAFindItemByTag(TA, &TA->Inventory, AssetTag(AssetTag_Map));
-        if(MapIndex >= 0){
+        if(MapIndex >= 0 || true){
             ta_map *Map = &TA->Map;
             render_texture Texture = Map->Texture;
             v2 BR = V2(MapRect.X1, MapRect.Y0);
@@ -254,7 +253,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
                 for(u32 I=0; I < TokenCount; I++){
                     char *Word = Tokens[I];
                     CStringMakeLower(Word);
-                    Func = FindInHashTable(&TA->CommandTable, (const char *)Word);
+                    Func = HashTableFind(&TA->CommandTable, (const char *)Word);
                     if(Func) break;
                 }
                 if(Func){

@@ -226,9 +226,7 @@ ConsumeWhiteSpace(char *Result){
 // TODO(Tyler): I'm not sure how this should be structured, when we begin to
 // use multiple rendering APIs
 internal shader_program
-MakeShaderProgramFromFile(const char *Path){
-    entire_file File = ReadEntireFile(&TransientStorageArena, Path);
-    
+MakeShaderProgramFromFileData(entire_file File){
     char *VertexSource = 0;
     s32 VertexLength = 0;
     char *FragmentSource = 0;
@@ -272,8 +270,8 @@ MakeShaderProgramFromFile(const char *Path){
 }
 
 internal screen_shader
-MakeScreenShaderFromFile(const char *Path){
-    GLuint Program = MakeShaderProgramFromFile(Path);
+MakeScreenShaderFromFileData(entire_file File){
+    GLuint Program = MakeShaderProgramFromFileData(File);
     
     screen_shader Result = {};
     Result.ID = Program;

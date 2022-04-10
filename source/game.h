@@ -15,8 +15,8 @@ global_constant color RESPONSE_COLOR = MakeColor(0x9063ffff);
 global_constant color EMPHASIS_COLOR = MakeColor(0xe06ecdff);
 
 struct console_theme {
-    string BasicFont;
-    string TitleFont;
+    asset_id BasicFont;
+    asset_id TitleFont;
     
     color BackgroundColor;
     color CursorColor;
@@ -40,13 +40,17 @@ global_constant u32 MAX_COMMAND_TOKENS = 64;
 global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 global_constant u32 INVENTORY_ITEM_COUNT = 10;
 
+struct ta_id {
+    u64 ID;
+};
+
 struct ta_string {
     asset_tag Tag;
     const char Data[];
 };
 
 struct ta_area {
-    string Name;
+    ta_id Name;
     v2 Offset;
 };
 
@@ -58,6 +62,7 @@ struct ta_map {
 
 struct ta_item {
     b8 Dirty;
+    const char *Name;
     asset_tag Tag;
     u32 Cost;
     array<const char *> Aliases;
@@ -68,11 +73,11 @@ struct ta_item {
 struct ta_room {
     b8 Dirty;
     const char *Name;
-    string Area;
+    ta_id Area;
     asset_tag Tag;
     array<ta_string *> Descriptions;
-    array<string> Items;
-    string    Adjacents[Direction_TOTAL];
+    array<ta_id> Items;
+    ta_id     Adjacents[Direction_TOTAL];
     asset_tag AdjacentTags[Direction_TOTAL];
 };
 
@@ -80,25 +85,29 @@ struct ta_system;
 typedef void command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount);
 
 struct ta_system {
-    hash_table<string, console_theme> ThemeTable;
+    hash_table<ta_id, console_theme> ThemeTable;
     console_theme Theme;
     
     hash_table<const char *, command_func *> CommandTable;
     hash_table<const char *, direction>      DirectionTable;
     
-    hash_table<string, ta_room> RoomTable;
-    hash_table<string, ta_item> ItemTable;
+    hash_table<ta_id, ta_room> RoomTable;
+    hash_table<ta_id, ta_item> ItemTable;
     
-    array<string> Inventory;
+    // Used for processed assets
+    hash_table<const char *, ta_id> ItemNameTable;
     
-    string StartRoom;
+    array<ta_id> Inventory;
+    
+    ta_id StartRoomID;
+    const char *StartRoomName;
     ta_room *CurrentRoom;
     
     command_func *Callback;
     string_builder ResponseBuilder;
     
     void Initialize(memory_arena *Arena);
-    inline b8 AddItem(string Item);
+    inline b8 AddItem(ta_id Item);
     inline void ClearResponse();
     inline void Respond(const char *Format, ...);
     

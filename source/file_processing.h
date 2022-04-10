@@ -7,11 +7,8 @@ struct entire_file {
 };
 
 struct stream {
-    u8 *Buffer;
-    umw CurrentIndex;
-    umw BufferSize;
-    
-    u8 CurrentBit;
+    u8 *BufferPos;
+    u8 *BufferEnd;
 };
 
 //~ File reader
@@ -53,12 +50,24 @@ struct file_token {
     };
 };
 
-struct sja_boundary;
+struct asset_system;
 struct file_reader {
-    stream Stream;
+    u8 *FileStart;
+    u8 *FilePos;
+    u8 *FileEnd;
     u32    Line;
-    const char *Header;
     file_reader_error LastError;
+    asset_system *System;
+    
+    file_token ExpectToken(file_token_type Type);
+    
+    char *ConsumeTextIdentifier();
+    char *ConsumeTextString();
+    inline u32 ConsumeTextHexNumber();
+    v2                  ExpectTypeV2();
+    array<s32>          ExpectTypeArrayS32();
+    array<const char *> ExpectTypeArrayCString();
+    color               ExpectTypeColor();
     
     file_token NextToken();
     file_token PeekToken();

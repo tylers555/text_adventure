@@ -12,7 +12,8 @@ patterns = {
     "*.bat",
     "*.4coder",
     "*.txt",
-    "*.sja"
+    "*.sja",
+    "*.rc"
 };
 
 load_paths = {

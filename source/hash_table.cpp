@@ -37,7 +37,7 @@ CompareKeys(u64 A, u64 B){
 
 template <typename KeyType, typename ValueType>
 internal constexpr hash_table<KeyType, ValueType>
-PushHashTable(memory_arena *Arena, u32 MaxBuckets){
+MakeHashTable(memory_arena *Arena, u32 MaxBuckets){
     hash_table<KeyType, ValueType> Result = {};
     Result.MaxBuckets = MaxBuckets;
     Result.Hashes = PushArray(Arena, u64, MaxBuckets);
@@ -50,8 +50,19 @@ PushHashTable(memory_arena *Arena, u32 MaxBuckets){
 }
 
 template <typename KeyType, typename ValueType>
+internal inline void 
+HashTableCopy(hash_table<KeyType, ValueType> *OutTable, hash_table<KeyType, ValueType> *InTable){
+    Assert(OutTable->MaxBuckets >= InTable->BucketsUsed);
+    for(u32 I=0; I<InTable->MaxBuckets; I++){
+        if(InTable->Hashes[I]){
+            HashTableInsert(OutTable, InTable->Keys[I], InTable->Values[I]);
+        }
+    }
+}
+
+template <typename KeyType, typename ValueType>
 internal constexpr void
-InsertIntoHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key, ValueType Value){
+HashTableInsert(hash_table<KeyType, ValueType> *Table, KeyType Key, ValueType Value){
     //TIMED_FUNCTION();
     Assert(Table->BucketsUsed < Table->MaxBuckets);
     
@@ -79,7 +90,7 @@ InsertIntoHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key, ValueTyp
 
 template <typename KeyType, typename ValueType>
 internal ValueType *
-CreateInHashTablePtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
+HashTableAlloc(hash_table<KeyType, ValueType> *Table, KeyType Key){
     //TIMED_FUNCTION();
     Assert(Table->BucketsUsed < Table->MaxBuckets);
     
@@ -108,7 +119,7 @@ CreateInHashTablePtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
 
 template <typename KeyType, typename ValueType>
 internal constexpr ValueType *
-FindInHashTablePtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
+HashTableFindPtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
     u64 Hash = HashKey(Key);
     if(Hash == 0) Hash++; 
     
@@ -142,8 +153,8 @@ FindInHashTablePtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
 
 template <typename KeyType, typename ValueType>
 internal constexpr ValueType
-FindInHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 *Found=0){
-    ValueType *ResultPtr = FindInHashTablePtr(Table, Key);
+HashTableFind(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 *Found=0){
+    ValueType *ResultPtr = HashTableFindPtr(Table, Key);
     ValueType Result = {};
     if(ResultPtr){
         Result = *ResultPtr;
@@ -154,7 +165,7 @@ FindInHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 *Found=0)
 
 template <typename KeyType, typename ValueType>
 internal constexpr ValueType
-FindOrCreateInHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key){
+HashTableGet(hash_table<KeyType, ValueType> *Table, KeyType Key){
     Assert(Table->BucketsUsed < Table->MaxBuckets);
     
     u64 Hash = HashKey(Key);
@@ -186,7 +197,7 @@ FindOrCreateInHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key){
 // TODO(Tyler): This could be way more efficient
 template <typename KeyType, typename ValueType>
 internal constexpr ValueType *
-FindOrCreateInHashTablePtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
+HashTableGetPtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
     Assert(Table->BucketsUsed < Table->MaxBuckets);
     
     u64 Hash = HashKey(Key);
@@ -222,7 +233,7 @@ FindOrCreateInHashTablePtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
 
 template <typename KeyType, typename ValueType>
 internal constexpr b8
-RemoveFromHashTable(hash_table<KeyType, ValueType> *Table, KeyType Key){
+HashTableRemove(hash_table<KeyType, ValueType> *Table, KeyType Key){
     u64 Hash = HashKey(Key);
     if(Hash == 0){ Hash++; }
     

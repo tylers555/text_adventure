@@ -5,7 +5,7 @@ OpenPauseMenu(){
     MenuState.LastGameMode = GameMode;
     MenuState.Page = MenuPage_Pause;
     MenuState.Flags |= MenuFlag_KeyboardMode;
-    ChangeState(GameMode_Menu);
+    GameMode = GameMode_Menu;
 }
 
 internal inline void

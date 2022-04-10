@@ -5,11 +5,11 @@ void CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     
     for(u32 I=0; I < WordCount; I++){
         char *Word = Words[I];
-        direction Direction = FindInHashTable(&TA->DirectionTable, (const char *)Word);
+        direction Direction = HashTableFind(&TA->DirectionTable, (const char *)Word);
         if(!Direction) continue;
         
-        string NextRoomString = CurrentRoom->Adjacents[Direction];
-        NextRoom = FindInHashTablePtr(&TA->RoomTable, NextRoomString);
+        ta_id NextRoomString = CurrentRoom->Adjacents[Direction];
+        NextRoom = HashTableFindPtr(&TA->RoomTable, NextRoomString);
         if(!NextRoom){
             TA->Respond("Why would you want move that way!?\nDoing so would be quite \002\002foolish\002\001!");
             return;
@@ -37,7 +37,7 @@ void CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     }
     TA->CurrentRoom = NextRoom;
     
-    Mixer->PlaySound(Assets->GetSoundEffect(String("move")));
+    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
 }
 
 void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
@@ -78,7 +78,7 @@ void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
         if(!Description) return;
         TA->Respond(Description->Data);
-        Mixer->PlaySound(Assets->GetSoundEffect(String("item_taken")));
+        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
     }
 }
 
@@ -106,7 +106,7 @@ void CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         
         if(TARoomAddItem(TA, Assets, Room, TA->Inventory[Index-RemovedItems])) ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
         RemovedItems++;
-        Mixer->PlaySound(Assets->GetSoundEffect(String("item_dropped")));
+        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_dropped)));
     }
 }
 
@@ -158,7 +158,7 @@ void CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
         ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
         if(!Description) continue;
         TA->Respond(Description->Data);
-        Mixer->PlaySound(Assets->GetSoundEffect(String("item_bought")));
+        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
     }
 }
 
@@ -191,14 +191,14 @@ void CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
         TA->Respond(Description->Data);
         
         if(HasTag(Item->Tag, AssetTag_Bread)){
-            TA->AddItem(String("bread crumbs"));
+            TA->AddItem(TAItemByName(TA, "bread crumbs"));
         }
         
         ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
         RemovedItems++;
     }
     
-    Mixer->PlaySound(Assets->GetSoundEffect(String("item_eaten")));
+    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_eaten)));
 }
 
 void CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
@@ -225,11 +225,11 @@ void CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         
         asset_tag Tag = AssetTag(AssetTag_Play);
         if(HasTag(Item->Tag, AssetTag_Organ)){
-            string Sound;
-            if(TA->OrganState == AssetTag_Broken) Sound = String("organ_play_broken");
-            else                                  Sound = String("organ_play_repaired");
-            Mixer->PlaySound(Assets->GetSoundEffect(Sound));
-            Tag = AssetTag(AssetTag_Play, TA->OrganState);
+            asset_id Sound;
+            if(TA->OrganState == AssetTag_Broken) Sound = AssetID(sound_organ_play_broken);
+            else                                  Sound = AssetID(sound_organ_play_repaired);
+            Mixer->PlaySound(GetSoundEffect(Assets, Sound));
+            Tag.B = (u8)TA->OrganState;
         }
         
         ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
@@ -282,6 +282,10 @@ void CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char
             TA->Respond("you can't unlock that!");
         }
     }
+}
+
+void CommandWait(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    
 }
 
 //~ Testing commands

@@ -64,6 +64,45 @@ union asset_tag {
     u32 All;
 };
 
+//~ Asset ID
+struct asset_id {
+    u64 ID;
+};
+
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+internal inline asset_id
+MakeAssetID(u32 ID){
+    asset_id Result;
+    Result.ID = ID;
+    return Result;
+}
+
+#define AssetID(Name) MakeAssetID(AssetID_##Name)
+#define GetSoundEffect(Assets, ID_) &(Assets)->SoundEffects[ID_.ID]
+#define GetFont(Assets, ID_) &(Assets)->Fonts[ID_.ID]
+#else // !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+internal inline asset_id
+MakeAssetID(string ID){
+    asset_id Result;
+    Result.ID = ID.ID;
+    return Result;
+}
+
+internal inline asset_id
+MakeAssetID(const char *S){
+    return MakeAssetID(Strings.GetString(S));
+}
+
+#define AssetID(Name) MakeAssetID(#Name)
+#define AssetIDName(ID_) Strings.GetString(MakeString((ID_).ID))
+#define GetSoundEffect(Assets, ID_) (Assets)->GetSoundEffectByString(MakeString(ID_.ID))
+#define GetFont(Assets, ID_) (Assets)->GetFontByString(MakeString(ID_.ID))
+
+global_constant u32 ROOM_TABLE_SIZE = 64;
+global_constant u32 ITEM_TABLE_SIZE = 128;
+
+#endif
+
 //~ Sound effects
 struct sound_data {
     s16 *Samples;
@@ -141,13 +180,18 @@ struct asset_system {
     //~ Asset stuff
     memory_arena Memory;
     
-    hash_table<string, asset_sound_effect> SoundEffects;
-    hash_table<string, asset_font> Fonts;
-    
     void Initialize(memory_arena *Arena);
     
-    asset_sound_effect *GetSoundEffect(string Name);
-    asset_font *GetFont(string Name);
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+    asset_sound_effect SoundEffects[AssetSoundEffect_TOTAL];
+    asset_font         Fonts[AssetFont_TOTAL];
+#else
+    hash_table<string, asset_sound_effect> SoundEffectTable;
+    hash_table<string, asset_font> FontTable;
+    
+    asset_sound_effect *GetSoundEffectByString(string Name);
+    asset_font *GetFontByString(string Name);
+    
     
     //~ Logging 
     const char *CurrentCommand;
@@ -161,15 +205,13 @@ struct asset_system {
     u64 LastFileWriteTime;
     hash_table<const char *, char>         ASCIITable;
     hash_table<const char *, asset_tag_id> TagTable;
+    hash_table<const char *, image> LoadedImageTable;
     
     file_reader Reader;
-    file_token ExpectToken(file_token_type Type);
-    u32        ExpectPositiveInteger_();
     
-    v2                  ExpectTypeV2();
-    array<s32>          ExpectTypeArrayS32();
-    array<const char *> ExpectTypeArrayCString();
-    color               ExpectTypeColor();
+    u32 ExpectPositiveInteger_();
+    image *LoadImage(const char *Path);
+    
     fancy_font_format   ExpectTypeFancy();
     asset_tag           MaybeExpectTag();
     
@@ -177,7 +219,6 @@ struct asset_system {
     
     b8 DoAttribute(const char *String, const char *Attribute);
     
-    void LoadAssetFile(const char *Path);
     b8 ProcessCommand();
     b8 ProcessIgnore();
     
@@ -191,6 +232,29 @@ struct asset_system {
     b8 ProcessTARoom();
     b8 ProcessTAItem();
     b8 ProcessTAMap();
+#endif
+    
+    void LoadAssetFile(const char *Path);
+    
+    //~ Processed assets loading
+    void LoadProcessedAssets(void *Data, u32 DataSize);
 };
+
+struct asset_processor_texture {
+    u8 *Pixels;
+    u32 Width;
+    u32 Height;
+    u32 Channels;
+};
+
+struct asset_processor {
+    array<asset_processor_texture> Textures;
+};
+
+#pragma pack(push, 1)
+struct sjap_header {
+    char SJAP[4];
+};
+#pragma pack(pop)
 
 #endif //SNAIL_JUMPY_ASSET_H

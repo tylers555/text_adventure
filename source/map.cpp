@@ -1,19 +1,23 @@
+
+
+#if 0
 internal void
-UpdateAndRenderMap(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
+UpdateAndRenderMap(game_renderer *Renderer, audio_mixer *Mixer, ta_system *TA, asset_system *Assets, os_input *Input){
+    INVALID_CODE_PATH;
+    
     DO_DEBUG_INFO();
     
     if(FrameCounter == 0){
         Input->BeginTextInput();
     }
     
-    ta_system *TA = &TextAdventure;
     ta_map *Map = &TA->Map;
     console_theme *Theme = &TA->Theme;
     
     Renderer->NewFrame(&TransientStorageArena, Input->WindowSize, Theme->BackgroundColor);
     
     v2 WindowSize = RoundV2(Renderer->ScreenToWorld(Input->WindowSize));
-    asset_font *Font = Assets->GetFont(Theme->BasicFont);
+    asset_font *Font = GetFont(Assets, Theme->BasicFont);
     
     {
         render_texture Texture = Map->Texture;
@@ -78,3 +82,4 @@ UpdateAndRenderMap(game_renderer *Renderer, audio_mixer *Mixer, asset_system *As
     }
 #endif
 }
+#endif

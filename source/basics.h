@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <float.h>
-#include <math.h>
+//#include <math.h>
 
 //~ Primitive types
 typedef uint8_t  u8;
@@ -42,9 +42,9 @@ typedef double f64;
 #define BEGIN_STRING(X) #X
 
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
-#define Assert(Expr) {if (!(Expr)) __debugbreak();};
+#define Assert(Expr) {if (!(Expr)) __debugbreak();}
 #else
-#define Assert(Expr) {};
+#define Assert(Expr) {(Expr);}
 #endif
 
 #define INVALID_CODE_PATH   Assert(0)
