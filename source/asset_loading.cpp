@@ -77,10 +77,12 @@ asset_system::InitializeLoader(memory_arena *Arena){
     
     TagTable = MakeHashTable<const char *, asset_tag_id>(Arena, AssetTag_TOTAL);
     HashTableInsert(&TagTable, "play",       AssetTag_Play);
+    HashTableInsert(&TagTable, "take",       AssetTag_Take);
     HashTableInsert(&TagTable, "examine",    AssetTag_Examine);
     HashTableInsert(&TagTable, "eat",        AssetTag_Eat);
     HashTableInsert(&TagTable, "activate",   AssetTag_Activate);
-    HashTableInsert(&TagTable, "take",       AssetTag_Take);
+    HashTableInsert(&TagTable, "talk",       AssetTag_Talk);
+    HashTableInsert(&TagTable, "repair",     AssetTag_Repair);
     HashTableInsert(&TagTable, "organ",      AssetTag_Organ);
     HashTableInsert(&TagTable, "bell-tower", AssetTag_BellTower);
     HashTableInsert(&TagTable, "broken",     AssetTag_Broken);
@@ -92,11 +94,13 @@ asset_system::InitializeLoader(memory_arena *Arena){
     HashTableInsert(&TagTable, "open-night", AssetTag_OpenNight);
     HashTableInsert(&TagTable, "items",      AssetTag_Items);
     HashTableInsert(&TagTable, "adjacents",  AssetTag_Adjacents);
+    HashTableInsert(&TagTable, "sound",      AssetTag_Sound);
     HashTableInsert(&TagTable, "static",     AssetTag_Static);
-    HashTableInsert(&TagTable, "bread",      AssetTag_Bread);
     HashTableInsert(&TagTable, "key",        AssetTag_Key);
     HashTableInsert(&TagTable, "map",        AssetTag_Map);
     HashTableInsert(&TagTable, "light",      AssetTag_Light);
+    HashTableInsert(&TagTable, "fixer",      AssetTag_Fixer);
+    HashTableInsert(&TagTable, "bread",      AssetTag_Bread);
     
     LoadedImageTable = MakeHashTable<const char *, image>(Arena, 256);
 }
@@ -223,7 +227,7 @@ asset_system::MaybeExpectTag(){
             
             enum8(asset_tag_id) ID = (u8)HashTableFind(&TagTable, S);
             if(!ID){ 
-                LogError("WARNING: '%s' is not registered as a tag and it will thus be ignored.!", S);
+                LogError("WARNING: '%s' is not registered as a tag and thus will be ignored!", S);
                 //Assert(0);
                 continue;
             }
@@ -332,7 +336,6 @@ asset_system::LoadAssetFile(const char *Path){
         CloseFile(File);
         
         if(LastFileWriteTime < NewFileWriteTime){
-            u64 Start = OSGetMicroseconds();
             ArenaClear(&Memory);
             
             HitError = false;
@@ -359,9 +362,6 @@ asset_system::LoadAssetFile(const char *Path){
                 }
             }
             end_loop:;
-            
-            u64 Time = OSGetMicroseconds()-Start;
-            LogMessage("AssetLoadingTime = %f", (f32)Time/1000000.0f);
         }
         
         if(HitError){
@@ -623,14 +623,17 @@ asset_system::ProcessFont(){
 
 //~ Text adventure rooms
 b8
-asset_system::ProcessTADescription(dynamic_array<ta_string *> *Descriptions){
+asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions){
     b8 Result = false;
     
+    ta_data_type Type = TADataType_Description;
     asset_tag Tag = MaybeExpectTag();
     HandleError(&Reader);
     
     string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+    StringBuilderAddVar(&Builder, Type);
     StringBuilderAddVar(&Builder, Tag);
+    Assert(Builder.BufferSize == offsetof(ta_data, Data));
     while(true){
         file_token Token = Reader.PeekToken();
         if(Token.Type != FileTokenType_String) break;
@@ -660,7 +663,7 @@ asset_system::ProcessTADescription(dynamic_array<ta_string *> *Descriptions){
         }
     }
     
-    ta_string *Description = (ta_string *)FinalizeStringBuilder(&Memory, &Builder);
+    ta_data *Description = (ta_data *)FinalizeStringBuilder(&Memory, &Builder);
     ArrayAdd(Descriptions, Description);
     
     return true;
@@ -676,7 +679,7 @@ asset_system::ProcessTARoom(){
     Room->Name = Strings.GetPermanentString(Name);
     Room->Tag = MaybeExpectTag();
     
-    dynamic_array<ta_string *> Descriptions = MakeDynamicArray<ta_string *>(8, &TransientStorageArena);
+    dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &TransientStorageArena);
     
     u32 MaxItemCount = TA_ROOM_DEFAULT_ITEM_COUNT;
     v2s CurrentOffset = V2S(0);
@@ -689,6 +692,16 @@ asset_system::ProcessTARoom(){
         
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "data")){ 
+            if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "data_asset")){
+            ta_data *Data = PushStruct(&Memory, ta_data);
+            Data->Type = TADataType_Asset;
+            Data->Tag = MaybeExpectTag();
+            HandleError(&Reader);
+            const char *S = Expect(&Reader, String);
+            Data->Asset = MakeAssetID(Strings.GetString(S));
+            ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "area")){
             const char *S = Expect(&Reader, String);
             Room->Area = MakeTAID(Strings.GetString(S));
@@ -730,9 +743,9 @@ asset_system::ProcessTARoom(){
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     
-    Room->Descriptions = MakeArray<ta_string *>(&Memory, Descriptions.Count);
+    Room->Datas = MakeArray<ta_data *>(&Memory, Descriptions.Count);
     for(u32 I=0; I<Descriptions.Count; I++){
-        ArrayAdd(&Room->Descriptions, Descriptions[I]);
+        ArrayAdd(&Room->Datas, Descriptions[I]);
     }
     
     return true;
@@ -758,13 +771,23 @@ asset_system::ProcessTAItem(){
     }
     
     // Attributes
-    dynamic_array<ta_string *> Descriptions = MakeDynamicArray<ta_string *>(8, &TransientStorageArena);
+    dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &TransientStorageArena);
     while(true){
         file_token Token = Reader.PeekToken();
         HandleToken(Token);
         const char *Attribute = Expect(&Reader, Identifier);
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "data")){ 
+            if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "data_asset")){
+            ta_data *Data = PushStruct(&Memory, ta_data);
+            Data->Type = TADataType_Asset;
+            Data->Tag = MaybeExpectTag();
+            HandleError(&Reader);
+            const char *S = Expect(&Reader, String);
+            Data->Asset = MakeAssetID(Strings.GetString(S));
+            ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "adjectives")){
             array<const char *> Adjectives = Reader.ExpectTypeArrayCString();
             Item->Adjectives = MakeArray<const char *>(&Memory, Adjectives.Count);
@@ -776,9 +799,9 @@ asset_system::ProcessTAItem(){
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     
-    Item->Descriptions = MakeArray<ta_string *>(&Memory, Descriptions.Count);
+    Item->Datas = MakeArray<ta_data *>(&Memory, Descriptions.Count);
     for(u32 I=0; I<Descriptions.Count; I++){
-        ArrayAdd(&Item->Descriptions, Descriptions[I]);
+        ArrayAdd(&Item->Datas, Descriptions[I]);
     }
     
     return true;
@@ -832,22 +855,22 @@ asset_system::ProcessTAMap(){
 
 //~ Processed assets
 
-internal inline ta_string *
+internal inline ta_data *
 MakeTAString(memory_arena *Memory, asset_tag Tag, const char *S, u32 L){
-    ta_string *Result = (ta_string *)ArenaPush(Memory, sizeof(Tag)+L+1);
+    ta_data *Result = (ta_data *)ArenaPush(Memory, sizeof(Tag)+L+1);
     Result->Tag = Tag;
     CopyCString((char *)Result->Data, S, L);
     return Result;
 }
 
-internal inline ta_string *
+internal inline ta_data *
 MakeTAString(memory_arena *Memory, asset_tag Tag, const char *S){
     return MakeTAString(Memory, Tag, S, CStringLength(S));
 }
 
-internal inline ta_string *
+internal inline ta_data *
 ReadTAString(stream *Stream){
-    ta_string *Result = (ta_string *)Stream->BufferPos;
+    ta_data *Result = (ta_data *)Stream->BufferPos;
     Assert(StreamConsumeType(Stream, asset_tag));
     Assert(StreamConsumeString(Stream));
     

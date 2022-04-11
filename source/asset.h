@@ -26,6 +26,7 @@ enum asset_tag_id {
     AssetTag_Eat,
     AssetTag_Activate,
     AssetTag_Talk,
+    AssetTag_Repair,
     
     AssetTag_Organ,
     AssetTag_BellTower,
@@ -43,12 +44,15 @@ enum asset_tag_id {
     
     AssetTag_Items,
     AssetTag_Adjacents,
+    AssetTag_Sound,
     
     AssetTag_Static,
-    AssetTag_Bread,
     AssetTag_Key,
     AssetTag_Map,
     AssetTag_Light,
+    AssetTag_Fixer,
+    
+    AssetTag_Bread,
     
     AssetTag_TOTAL
 };
@@ -173,7 +177,7 @@ MakeFancyFormat(color Color1, color Color2,
 }
 
 //~
-struct ta_string;
+struct ta_data;
 
 //~ Asset system
 struct asset_system {
@@ -228,7 +232,7 @@ struct asset_system {
     b8 ProcessSoundEffect();
     b8 ProcessFont();
     
-    b8 ProcessTADescription(dynamic_array<ta_string *> *Descriptions);
+    b8 ProcessTADescription(dynamic_array<ta_data *> *Descriptions);
     b8 ProcessTARoom();
     b8 ProcessTAItem();
     b8 ProcessTAMap();

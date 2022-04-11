@@ -40,11 +40,15 @@
 
 # I don't like this having to be after the themes, this is currently required.
 # As such, this is a current limitation of the SJA system, and will be changed.
+# It would be better to have a hash table of variable names with values.
 : Variables
     start_game_mode "main game"
-    start_room      "Bakery"
+    start_room      "Cathedral maintenance room"
     theme           "theme_default"
     give_item       "a town map"
+    give_item       "small silver key"
+    give_item       "leather sheet"
+    give_item       "organ pipes"
  
 # //////////////////////////////////////////////////////////////////////////
 #                                  Fonts
@@ -407,6 +411,12 @@
 : SoundEffect "sound_organ_play_repaired"
     path "asset_sound_effects/osj/PowerMusic.wav"
 
+: SoundEffect "sound_bellows_repaired"
+    path "asset_sound_effects/osj/PowUpFX.wav"
+
+: SoundEffect "sound_pipes_repaired"
+    path "asset_sound_effects/osj/PowUpFX.wav"
+
 # //////////////////////////////////////////////////////////////////////////
 #                              Map
 # //////////////////////////////////////////////////////////////////////////
@@ -431,6 +441,7 @@
     area "Thorn lane"   V2(61 35)
     area "Thorn lane E" V2(72 38)
     area "Thorn lane W" V2(47 36)
+    area "Tailor"       V2(61 27)
 
 # //////////////////////////////////////////////////////////////////////////
 #                                    Items
@@ -510,9 +521,21 @@
     Array("crumb" "crumb")
     adjectives Array("bread")
     description Tag("examine")
-        "It’s literally just a handful of crumbs... from bread."
+        "It's literally just a handful of crumbs... from bread."
     description Tag("eat")
         "You must be really desperate or really don’t like wasting food."
+
+: TAItem "leather sheet" Tag("fixer")
+    Array("sheet" "sheets" "leather")
+    adjectives Array("leather")
+    description Tag("examine")
+        "It's a nice sheet of tanned leather, perfect for both attire and engineering."
+
+: TAItem "organ pipes" Tag("fixer")
+    Array("pipe" "pipes")
+    adjectives Array("organ")
+    description Tag("examine")
+        "Organ pipes WIP"
 
 # //////////////////////////////////////////////////////////////////////////
 #                                   Keys
@@ -544,8 +567,6 @@
 : TARoom "Plaza SE"
     area "Plaza SE"
     description
-#        "\2A\0 BCDEFGHIJKLMNOPQRSTUVWXYZ\n"
-#        "0123456789\n"
         "There is very little here, aside from several tall and looming oak trees. "
         "The ground is damp from the rainy weather, and the blowing breeze brings a crisp chill. "
     description Tag("adjacents")
@@ -605,7 +626,7 @@
     adjacents
         north "Dark alley"
         east  "Thorn lane E"
-        south "Tailor front"
+        south "Tailor shop front"
         west  "Thorn lane W"
 
 : TARoom "Thorn lane W"
@@ -949,11 +970,36 @@
     adjacents
         down "Bar"
 
+: TARoom "Tailor shop front"
+    area "Tailor"
+    description
+        "You stand in front of a simple building. "
+        "The only thing that differentiates it is the elaborate, "
+        "flowing window curtains that block your view of what's inside."
+    description Tag("adjacents")
+    adjacents
+        north "Thorn lane"
+        south "Tailor shop"
+
+: TARoom "Tailor shop"
+    area "Tailor"
+    description
+        "Silken robes and tufted carpets hang from the beamed ceiling. "
+        "Tightly-woven suits and fluffy dresses spread across worn tables. "
+        "Looms line the wall of this frantic fabric factory. "
+        "You suspect this shop holds every textile imaginable. "
+        "A tall man glances at you over his mechanical sewing machine."
+    description Tag("adjacents")
+    description Tag("items")
+    adjacents
+        north "Tailor shop front"
+    items Array("leather sheet")
+
 # //////////////////////////////////////////////////////////////////////////
 #                              Cathedral rooms
 # //////////////////////////////////////////////////////////////////////////
 
-: TAItem "organ console" Tag("organ" "static")
+: TAItem "organ console static" Tag("organ" "static")
     Array("organ" "organs" "console" "consoles")
     adjectives Array("organ" "once" "great")
     description Tag("examine" "broken")
@@ -966,8 +1012,10 @@
         "Not all the notes sound properly, and you hear the breathy sound of leaking air."
     description Tag("play" "repaired")
         "All the notes sound with renewed strength."
+    data_asset Tag("sound" "play" "broken")   "sound_organ_play_broken"
+    data_asset Tag("sound" "play" "repaired") "sound_organ_play_repaired"
 
-: TAItem "organ bellows" Tag("organ" "static")
+: TAItem "organ bellows static" Tag("static" "broken")
     Array("bellow" "bellows")
     adjectives Array("organ")
     description Tag("examine" "broken")
@@ -975,14 +1023,20 @@
         "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
     description Tag("examine" "repaired")
         "They are in peachy keen condition!"
+    data_asset Tag("sound" "repaired") "sound_bellows_repaired"
+    data Tag("fixer")
+        "leather sheet"
 
-: TAItem "organ pipes" Tag("organ" "static")
+: TAItem "organ pipes static" Tag("static" "broken")
     Array("pipe" "pipes")
     adjectives Array("organ")    
     description Tag("examine" "broken")
         "You observe that several pipes seem to be absent."
     description Tag("examine" "repaired")
         "They are in fantastic condition. "
+    data_asset Tag("sound" "repaired") "sound_pipes_repaired"
+    data Tag("fixer")
+        "organ pipes"
 
 : TARoom "Cathedral front"
     area "Cathedral"
@@ -1060,7 +1114,7 @@
         west      "Cathedral altar"
         southwest "Cathedral nave"
         north     "Cathedral maintenance room" Tag("organ" "locked")
-    items Array("organ console")
+    items Array("organ console static")
 
 : TARoom "Cathedral maintenance room" Tag("organ")
     area "Cathedral"
@@ -1075,7 +1129,7 @@
         "The only exit is a door in the \1south\0 that leads to \2the organ console\0."
     adjacents
         south "Cathedral organ console"
-    items Array("organ bellows" "organ pipes")
+    items Array("organ bellows static" "organ pipes static")
 
 # //////////////////////////////////////////////////////////////////////////
 #                              Bell tower rooms

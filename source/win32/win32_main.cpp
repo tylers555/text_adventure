@@ -510,7 +510,7 @@ WinMain(HINSTANCE Instance,
             
             OSInput.dTime = SecondsElapsed;
         }else if(SecondsElapsed > TargetSecondsPerFrame){
-            LogMessage("Missed FPS %f", SecondsElapsed);
+            //LogMessage("Missed FPS %f", SecondsElapsed);
             OSInput.dTime = SecondsElapsed;
             if(OSInput.dTime > MAXIMUM_SECONDS_PER_FRAME){
                 OSInput.dTime = MAXIMUM_SECONDS_PER_FRAME;

@@ -21,6 +21,6 @@ AssetID_font_basic_lowercase = 4,
 AssetID_font_fancy = 5,
 AssetFont_TOTAL = 6,
 };
-global_constant u32 ROOM_TABLE_SIZE = 36;
-global_constant u32 ITEM_TABLE_SIZE = 29;
+global_constant u32 ROOM_TABLE_SIZE = 38;
+global_constant u32 ITEM_TABLE_SIZE = 30;
 #endif // GENERATED_ASSET_ID_H

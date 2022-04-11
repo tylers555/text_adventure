@@ -44,9 +44,19 @@ struct ta_id {
     u64 ID;
 };
 
-struct ta_string {
+enum ta_data_type {
+    TADataType_None,
+    TADataType_Asset,
+    TADataType_Description,
+};
+
+struct ta_data {
+    ta_data_type Type;
     asset_tag Tag;
-    const char Data[];
+    union{
+        asset_id Asset;
+        const char Data[];
+    };
 };
 
 struct ta_area {
@@ -67,7 +77,7 @@ struct ta_item {
     u32 Cost;
     array<const char *> Aliases;
     array<const char *> Adjectives;
-    array<ta_string *> Descriptions;
+    array<ta_data *> Datas;
 };
 
 struct ta_room {
@@ -75,7 +85,7 @@ struct ta_room {
     const char *Name;
     ta_id Area;
     asset_tag Tag;
-    array<ta_string *> Descriptions;
+    array<ta_data *> Datas;
     array<ta_id> Items;
     ta_id     Adjacents[Direction_TOTAL];
     asset_tag AdjacentTags[Direction_TOTAL];

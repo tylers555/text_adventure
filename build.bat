@@ -10,8 +10,11 @@ set LIBRARIES= User32.lib Gdi32.lib Opengl32.lib Comdlg32.lib Ole32.lib Winmm.li
 set COMPILE_OPTIONS=%COMPILE_OPTIONS% /Od
 REM set COMPILE_OPTIONS=%COMPILE_OPTIONS% /O2 /DDO_RELEASE_BUILD
 
-REM rm *.pdb
 pushd "build"
+
+goto build_game
+
+:asset_processor
 cl %COMPILE_OPTIONS% %DEBUG_OPTIONS% %INCLUDE_PATHS% /Fe:Win32AssetProcessor.exe ..\source\win32\win32_asset_processor.cpp /link %LINK_OPTIONS% %LIBRARY_PATHS% 
 
 pushd "..\data"
@@ -20,6 +23,7 @@ popd
 
 rc /nologo /fo .\win32_resource.res /I..\data ..\source\win32\win32_resource.rc 
 
+:build_game
 cl %COMPILE_OPTIONS% %DEBUG_OPTIONS% %INCLUDE_PATHS% /Fe:Win32TAGameDebug.exe ..\source\win32\win32_main.cpp /link %LINK_OPTIONS% %LIBRARY_PATHS% %LIBRARIES% .\win32_resource.res
 
 popd

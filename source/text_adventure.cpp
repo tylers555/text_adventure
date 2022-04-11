@@ -140,7 +140,7 @@ TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCo
                         FoundSomething = true;
                         break;
                     }else if(Weight == Found->Weight){
-                        FoundSomething = true;
+                        //FoundSomething = true;
                         Founds->IsAmbiguous = true;
                         break;
                     }
@@ -156,6 +156,16 @@ TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCo
         }
     }
 }
+
+#define HANDLE_AMBIGUOUS_FOUND_ITEMS(FoundItems, Function, Verb) \
+if(FoundItems.IsAmbiguous){ \
+TA->Respond("You will have to be more specific, what item do you want to " Verb "?\nEnter the item: "); \
+TA->Callback = Function; \
+return; \
+}
+
+#define HANDLE_FOUND_ITEMS(FoundItems, Function, Verb) \
+HANDLE_AMBIGUOUS_FOUND_ITEMS(FoundItems, Function, Verb) \
 
 internal ta_found_items
 TAFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount){
@@ -205,23 +215,29 @@ TARoomRemoveItem(ta_system *TA, ta_room *Room, u32 Index){
     ArrayOrderedRemove(&Room->Items, Index);
 }
 
-internal inline ta_string *
-TAFindDescription(array<ta_string *> *Descriptions, asset_tag Tag){
-    ta_string *Result = 0;
-    for(u32 I=0; I<Descriptions->Count; I++){
-        ta_string *Description = ArrayGet(Descriptions, I);
-        if(Description->Tag == Tag){
-            Result = Description;
+internal inline ta_data *
+TAFindData(array<ta_data *> *Datas, ta_data_type Type, asset_tag Tag){
+    ta_data *Result = 0;
+    for(u32 I=0; I<Datas->Count; I++){
+        ta_data *Data = ArrayGet(Datas, I);
+        if((Data->Type == Type) && (Data->Tag == Tag)){
+            Result = Data;
             break;
         }
     }
+    return Result;
+}
+
+internal inline ta_data *
+TAFindDescription(array<ta_data *> *Descriptions, asset_tag Tag){
+    ta_data *Result = TAFindData(Descriptions, TADataType_Description, Tag);
     
     return Result;
 }
 
-internal inline ta_string *
+internal inline ta_data *
 TARoomFindDescription(ta_room *Room, asset_tag Tag){
-    ta_string *Result = TAFindDescription(&Room->Descriptions, Tag);
+    ta_data *Result = TAFindDescription(&Room->Datas, Tag);
     return Result;
 }
 
@@ -274,6 +290,18 @@ MakeTAArea(ta_id Name, v2 Offset){
     return Result;
 }
 
+internal inline void
+TAUpdateOrganState(ta_system *TA){
+    ta_item *Bellows = HashTableFindPtr(&TA->ItemTable, TAItemByName(TA, "organ bellows static"));
+    ta_item *Pipes   = HashTableFindPtr(&TA->ItemTable, TAItemByName(TA, "organ pipes static"));
+    if(HasTag(Bellows->Tag, AssetTag_Repaired) &&
+       HasTag(Pipes->Tag, AssetTag_Repaired)){
+        TA->OrganState = AssetTag_Repaired;
+    }else{
+        TA->OrganState = AssetTag_Broken;
+    }
+}
+
 internal inline constexpr b8
 operator==(ta_id A, ta_id B){
     b8 Result = (A.ID == B.ID);
@@ -291,7 +319,6 @@ CompareKeys(ta_id A, ta_id B){
     b32 Result = (A == B);
     return(Result);
 }
-
 
 //~ Theme
 internal inline console_theme

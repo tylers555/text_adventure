@@ -44,16 +44,7 @@ void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     ta_room *Room = TA->CurrentRoom;
     
     ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words, WordCount);
-    if(FoundItems.IsAmbiguous){
-        TA->Respond("You will have to be more specific, what item do you want to take?\nEnter the item: ");
-        TA->Callback = CommandTake;
-        return;
-    }
-    
-    if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to take!");
-        return;
-    }
+    HANDLE_FOUND_ITEMS(FoundItems, CommandTake, "take");
     
     u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
@@ -63,7 +54,7 @@ void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         u32 Index = FoundItem->ItemIndex;
         
         if(HasTag(Item->Tag, AssetTag_Static)){
-            ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Take));
+            ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Take));
             TA->Respond("%s", Description->Data);
             continue;
         }else if(Item->Cost > 0){
@@ -75,7 +66,7 @@ void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         else return;
         RemovedItems++;
         
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
+        ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
         if(!Description) return;
         TA->Respond(Description->Data);
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
@@ -86,16 +77,7 @@ void CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     ta_room *Room = TA->CurrentRoom;
     
     ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
-    if(FoundItems.IsAmbiguous){
-        TA->Respond("You will have to be more specific, what item do you want to drop?\nEnter the item: ");
-        TA->Callback = CommandDrop;
-        return;
-    }
-    
-    if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to drop!");
-        return;
-    }
+    HANDLE_FOUND_ITEMS(FoundItems, CommandDrop, "drop");
     
     u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
@@ -118,16 +100,7 @@ void CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
     ta_room *Room = TA->CurrentRoom;
     
     ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words, WordCount);
-    if(FoundItems.IsAmbiguous){
-        TA->Respond("You will have to be more specific, what item do you want to buy?\nEnter the item: ");
-        TA->Callback = CommandBuy;
-        return;
-    }
-    
-    if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to buy!");
-        return;
-    }
+    HANDLE_FOUND_ITEMS(FoundItems, CommandBuy, "buy");
     
     u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
@@ -143,6 +116,14 @@ void CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
         
         if(Item->Cost == 0){
             TA->Respond("You don't have to \002\002pay\002\001 for that!");
+            if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
+            else return;
+            RemovedItems++;
+            
+            ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
+            if(!Description) continue;
+            TA->Respond(Description->Data);
+            Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
         }else if(TA->Money >= Item->Cost){
             if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
             else return;
@@ -150,31 +131,21 @@ void CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
             TA->Money -= Item->Cost;
             Item->Dirty = true;
             Item->Cost = 0;
+            
+            ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
+            if(!Description) continue;
+            TA->Respond(Description->Data);
+            Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
         }else{
             TA->Respond("You don't have enough \002\002money\002\001 for that!");
             continue;
         }
-        
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Examine));
-        if(!Description) continue;
-        TA->Respond(Description->Data);
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
     }
 }
 
 void CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
-    
-    if(FoundItems.IsAmbiguous){
-        TA->Respond("You will have to be more specific, what item do you want to eat?\nEnter the item: ");
-        TA->Callback = CommandEat;
-        return;
-    }
-    
-    if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to eat!");
-        return;
-    }
+    HANDLE_FOUND_ITEMS(FoundItems, CommandEat, "eat");
     
     u32 RemovedItems = 0;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
@@ -183,7 +154,7 @@ void CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
         ta_item *Item = FoundItem->Item;
         u32 Index = FoundItem->ItemIndex;
         
-        ta_string *Description = TAFindDescription(&Item->Descriptions, AssetTag(AssetTag_Eat));
+        ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Eat));
         if(!Description){
             TA->Respond("You can't eat \002\002that\002\001!");
             continue;
@@ -206,17 +177,7 @@ void CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     
     ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
     TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
-    
-    if(FoundItems.IsAmbiguous){
-        TA->Respond("You will have to be more specific, what item do you want to play?\nEnter the item: ");
-        TA->Callback = CommandPlay;
-        return;
-    }
-    
-    if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to play!");
-        return;
-    }
+    HANDLE_FOUND_ITEMS(FoundItems, CommandPlay, "play");
     
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
@@ -225,14 +186,14 @@ void CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         
         asset_tag Tag = AssetTag(AssetTag_Play);
         if(HasTag(Item->Tag, AssetTag_Organ)){
-            asset_id Sound;
-            if(TA->OrganState == AssetTag_Broken) Sound = AssetID(sound_organ_play_broken);
-            else                                  Sound = AssetID(sound_organ_play_repaired);
-            Mixer->PlaySound(GetSoundEffect(Assets, Sound));
+            ta_data *Sound = TAFindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, TA->OrganState));
+            if(Sound){
+                Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+            }
             Tag.B = (u8)TA->OrganState;
         }
         
-        ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
+        ta_data *Description = TAFindDescription(&Item->Datas, Tag);
         if(!Description) continue;;
         TA->Respond(Description->Data);
     }
@@ -243,17 +204,7 @@ void CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, cha
     
     ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
     TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
-    
-    if(FoundItems.IsAmbiguous){
-        TA->Respond("You will have to be more specific, what item do you want to examine?\nEnter the item: ");
-        TA->Callback = CommandExamine;
-        return;
-    }
-    
-    if(!FoundItems.Items.Count){
-        TA->Respond("I have no idea what you want to examine!");
-        return;
-    }
+    HANDLE_FOUND_ITEMS(FoundItems, CommandExamine, "examine");
     
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
@@ -261,11 +212,13 @@ void CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, cha
         ta_item *Item = FoundItem->Item;
         
         asset_tag Tag = AssetTag(AssetTag_Examine);
-        if(HasTag(Item->Tag, AssetTag_Organ)){
-            Tag = AssetTag(AssetTag_Examine, TA->OrganState);
+        if(HasTag(Item->Tag, AssetTag_Broken)){
+            Tag = AssetTag(AssetTag_Examine, AssetTag_Broken);
+        }else if(HasTag(Item->Tag, AssetTag_Repaired)){
+            Tag = AssetTag(AssetTag_Examine, AssetTag_Repaired);
         }
         
-        ta_string *Description = TAFindDescription(&Item->Descriptions, Tag);
+        ta_data *Description = TAFindDescription(&Item->Datas, Tag);
         if(!Description) continue;
         TA->Respond(Description->Data);
     }
@@ -279,7 +232,7 @@ void CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char
         if(TAAttemptToUnlock(Mixer, TA, Assets, CurrentRoom, &Tag)){
             TA->Respond("Unlocked!");
         }else{
-            TA->Respond("you can't unlock that!");
+            TA->Respond("You can't unlock that!");
         }
     }
 }
@@ -288,12 +241,53 @@ void CommandWait(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     
 }
 
-//~ Testing commands
-void CommandTestRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
-    if(TA->OrganState == AssetTag_Broken)        TA->OrganState = AssetTag_Repaired;
-    else if(TA->OrganState == AssetTag_Repaired) TA->OrganState = AssetTag_Broken;
+void CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    ta_room *Room = TA->CurrentRoom;
+    
+    ta_found_items FoundItems =  TAFindItems(TA, &TA->Inventory, Words, WordCount);
+    TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
+    
+    ta_item *Item = 0;
+    b8 FixedSomething = false;
+    for(u32 I=0; I<FoundItems.Items.Count; I++){
+        ta_found_item *FoundItem = &FoundItems.Items[I];
+        
+        Item = FoundItem->Item;
+        if(!HasTag(Item->Tag, AssetTag_Broken)){
+            continue;
+        }
+        
+        ta_data *Data = TAFindData(&Item->Datas, TADataType_Description, AssetTag(AssetTag_Fixer));
+        if(!Data){
+            TA->Respond("That cannot be fixed!");
+            continue;
+        }
+        
+        for(u32 J=0; J<TA->Inventory.Count; J++){
+            ta_id FixerItemID = TA->Inventory[J];
+            ta_item *FixerItem = HashTableFindPtr(&TA->ItemTable, FixerItemID);
+            if(!FixerItem) return;
+            if(!HasTag(FixerItem->Tag, AssetTag_Fixer)) continue;
+            if(!CompareStrings(Data->Data, FixerItem->Name)){
+                continue;
+            }
+            
+            SwitchTag(&Item->Tag, AssetTag_Broken, AssetTag_Repaired);
+            ArrayOrderedRemove(&TA->Inventory, J);
+            ta_data *Sound = TAFindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Repaired));
+            TAUpdateOrganState(TA);
+            if(!Sound) break;
+            Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+            break;
+        }
+        
+        FixedSomething = true;
+    }
+    
+    if(!FixedSomething && Item && !HasTag(Item->Tag, AssetTag_Broken)) TA->Respond("That is not broken!");
 }
 
+//~ Testing commands
 void CommandTestAddMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     TA->Money += 10;
 }

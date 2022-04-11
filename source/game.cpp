@@ -24,8 +24,9 @@ ta_system::Initialize(memory_arena *Arena){
     HashTableInsert(&CommandTable, "observe",  CommandExamine);
     HashTableInsert(&CommandTable, "look",     CommandExamine);
     HashTableInsert(&CommandTable, "unlock",   CommandUnlock);
+    HashTableInsert(&CommandTable, "repair",   CommandRepair);
+    HashTableInsert(&CommandTable, "fix",   CommandRepair);
     
-    HashTableInsert(&CommandTable, "testrepair",   CommandTestRepair);
     HashTableInsert(&CommandTable, "testaddmoney", CommandTestAddMoney);
     HashTableInsert(&CommandTable, "testsubmoney", CommandTestSubMoney);
     
@@ -115,16 +116,16 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
     {
         DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->Name, &RoomDescriptionRect);
         
-        ta_string *Description = Room->Descriptions[0];
+        ta_data *Description = Room->Datas[0];
         if(HasTag(Room->Tag, AssetTag_Organ)){
-            ta_string *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
+            ta_data *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
             if(New) Description = New;
         }
         
         DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                  Description->Data, &RoomDescriptionRect);
         
-        ta_string *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
+        ta_data *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
         if(Adjacents){
             DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                      Adjacents->Data, &RoomDescriptionRect);
@@ -149,7 +150,7 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
             if(HasNonStatic){
                 InventoryRect.Y1 -= FontLineHeight(BoldFont);
                 
-                ta_string *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
+                ta_data *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
                 if(Items){
                     f32 L = FontStringAdvance(Font, Items->Data, RectSize(InventoryRect).X).X;
                     DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 

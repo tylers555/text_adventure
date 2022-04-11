@@ -54,6 +54,22 @@ HasTag(asset_tag Tag, asset_tag_id ID){
     return Result;
 }
 
+internal inline b8 
+BothHaveTag(asset_tag A, asset_tag B, asset_tag_id ID){
+    b8 Result = HasTag(A, ID) && HasTag(B, ID);
+    return Result;
+}
+
+internal inline b8
+SwitchTag(asset_tag *ID, asset_tag_id From, asset_tag_id To){
+    if     (ID->A == From) ID->A = (u8)To;
+    else if(ID->B == From) ID->B = (u8)To;
+    else if(ID->C == From) ID->C = (u8)To;
+    else if(ID->D == From) ID->D = (u8)To;
+    else                   return false;
+    return true;
+}
+
 #if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
 //~ Sound effects
 
