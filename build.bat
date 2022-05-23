@@ -25,5 +25,3 @@ rc /nologo /fo .\win32_resource.res /I..\data ..\source\win32\win32_resource.rc
 
 :build_game
 cl %COMPILE_OPTIONS% %DEBUG_OPTIONS% %INCLUDE_PATHS% /Fe:Win32TAGameDebug.exe ..\source\win32\win32_main.cpp /link %LINK_OPTIONS% %LIBRARY_PATHS% %LIBRARIES% .\win32_resource.res
-
-popd
