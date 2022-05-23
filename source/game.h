@@ -40,25 +40,6 @@ global_constant u32 MAX_COMMAND_TOKENS = 64;
 global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 global_constant u32 INVENTORY_ITEM_COUNT = 10;
 
-struct ta_id {
-    u64 ID;
-};
-
-enum ta_data_type {
-    TADataType_None,
-    TADataType_Asset,
-    TADataType_Description,
-};
-
-struct ta_data {
-    ta_data_type Type;
-    asset_tag Tag;
-    union{
-        asset_id Asset;
-        const char Data[];
-    };
-};
-
 struct ta_area {
     ta_id Name;
     v2 Offset;

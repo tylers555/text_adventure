@@ -133,7 +133,7 @@ global memory_arena TransientStorageArena;
 //~
 
 internal void
-MoveMemory(const void *To, const void *From, umw Size) {
+MoveMemory(void *To, const void *From, umw Size){
     if(Size == 0) return;
     u8 *Temp = PushArray(&TransientStorageArena, u8, Size);
     CopyMemory(Temp, From, Size);

@@ -43,8 +43,9 @@
 # It would be better to have a hash table of variable names with values.
 : Variables
     start_game_mode "main game"
-    start_room      "Cathedral maintenance room"
+    start_room      "Shop"
     theme           "theme_default"
+    # theme "theme_planty"
     give_item       "a town map"
     give_item       "small silver key"
     give_item       "leather sheet"
@@ -710,6 +711,7 @@
     description Tag("adjacents")
         "The rugged door stands in the \1north\0"
         "\nand to the \1south\0 extends \2the dark alley\0"
+    room Tag("enter") "Plant shop"
     adjacents
         north "Plant shop"
         south "Dark alley"
@@ -756,6 +758,7 @@
         "\nthere is a short hallway leading \1northward\0 into \2the greenhouse\0."
     description Tag("items")
         "Lining the array of shelves on the walls are: "
+    room Tag("exit") "Plant shop front"
     adjacents
         north "Plant shop greenhouse"
         south "Plant shop front"
@@ -813,6 +816,7 @@
         "Wide glass windows emit a warm glow, and through the streaks of raindrops you see a few animated silhouettes of those inside. "
         "A sign over the door reads \2'Murkwell Inn'\0."
     description Tag("adjacents")
+    room Tag("enter") "Inn lobby"
     adjacents
         north "Inn lobby"
         east  "Plaza SW"
@@ -826,6 +830,7 @@
         "An old woman sits behind the front desk, engrossed in the pages of a short novel. "
         "A pretty black cat is curled around a \5vibrant ceramic plant pot\0 in the corner."
     description Tag("adjacents")
+    room Tag("exit") "Inn front"
     adjacents
         south "Inn front"
         up "Inn hallway"
@@ -836,6 +841,8 @@
     description
         "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
     description Tag("adjacents")
+    room Tag("exit") "Inn lobby"
+    room Tag("enter" "inn") "PLACEHOLDER"
     adjacents
         down "Inn lobby"
 
@@ -847,6 +854,7 @@
         "A smallish woodstove in the corner serves to heat up the room. "
         "There is a plain one-person bed. A simple candle holder is mounted to the wall. "
     description Tag("adjacents")
+    room Tag("exit") "Inn hallway"
     adjacents
         south "Inn hallway"
     items Array("room 1 window")
@@ -856,6 +864,7 @@
     description
         "The room is darker than you expected."
     description Tag("adjacents")
+    room Tag("exit") "Inn hallway"
     adjacents
         south "Inn hallway"
 
@@ -864,6 +873,7 @@
     description
         "The room is colder than you expected."
     description Tag("adjacents")
+    room Tag("exit") "Inn hallway"
     adjacents
         south "Inn hallway"
     items Array("room 3 window")
@@ -882,6 +892,7 @@
         "\n\2the bakery\0 to the \1north\0"
         "\n\2the shop\0 to the \1south\0, beyond the door,"
         "\nand \2the bar\0 stands to the \1west\0"
+    room Tag("enter") "Shop"
     adjacents
         north "Plaza SE"
         east  "Bakery front"
@@ -897,6 +908,7 @@
         "There is only a door to the \1north\0 that leads out towards the \2the front\0"
     description Tag("items")
         "Several items catch your eye:"
+    room Tag("exit") "Shop front"
     adjacents
         north "Shop front"
     items  Array("a town map" "an umbrella" "a lantern")
@@ -911,6 +923,7 @@
     description Tag("adjacents")
         "The door beckons you further \1eastward\0 into \2the bakery\0"
         "\nand \2the plaza\0 extends behind you in the \1west\0"
+    room Tag("enter") "Bakery"
     adjacents
         east "Bakery"
         west "Plaza SE"
@@ -925,6 +938,7 @@
         "\n\2the front\0 of the store lays behind you in the \1west\0"
     description Tag("items")
         "Inside the counter and perched on the shelves are: "
+    room Tag("exit") "Bakery front"
     adjacents
         west "Bakery front"
         east "Bakery kitchen"
@@ -937,7 +951,8 @@
     description Tag("adjacents")
         "\2The plaza\0 extends \1northward\0, "
         "\nand beyond the door in \1south\0 is \2the bar\0"
-    adjacents
+    room Tag("enter") "Bar" 
+   adjacents
         north "Plaza SW"
         east  "Shop front"
         south "Bar"
@@ -949,6 +964,7 @@
         "A bar."        
     description Tag("adjacents")
         "There is a door to the \1north\0 that leads towards \2the front\0."
+    room Tag("exit") "Bar front"
     adjacents
         north "Bar front"
         up    "Bar billiard room"
@@ -957,8 +973,9 @@
 : TARoom "Bar cellar"
     area "Bar"
     description
-        "Bar cellar"        
+        "There are lots of large casks filled with beer, wine, and other alcoholic beverages."
     description Tag("adjacents")
+    room Tag("exit") "Bar"
     adjacents
         up "Bar"
 
@@ -967,6 +984,7 @@
     description
         "Bar billiard room"        
     description Tag("adjacents")
+    room Tag("exit") "Bar"
     adjacents
         down "Bar"
 
@@ -977,6 +995,7 @@
         "The only thing that differentiates it is the elaborate, "
         "flowing window curtains that block your view of what's inside."
     description Tag("adjacents")
+    room Tag("enter") "Tailor shop" 
     adjacents
         north "Thorn lane"
         south "Tailor shop"
@@ -991,6 +1010,7 @@
         "A tall man glances at you over his mechanical sewing machine."
     description Tag("adjacents")
     description Tag("items")
+    room Tag("exit") "Tailer shop front"
     adjacents
         north "Tailor shop front"
     items Array("leather sheet")
@@ -1063,6 +1083,8 @@
         "\nbehind you to the \1south\0 stands \2the door\0,"
         "\nin the \1west\0 is an \2old spiral staircase\0 leading upwards"
         "\nand you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
+    room Tag("exit") "Cathedral front"
+    room Tag("enter") "Cathedral altar"
     adjacents
         north     "Cathedral altar"
         northeast "Cathedral organ console"
@@ -1077,6 +1099,7 @@
         "Behind you in the \1south\0 is \2the nave\0, "
         "\n\2the organ console\0 to the \1east\0, "
         "\nand another door leads \1west\0 towards \2the vestry\0"
+    room Tag("exit") "Cathedral nave"
     adjacents
         east  "Cathedral organ console"
         south "Cathedral nave"
@@ -1087,14 +1110,16 @@
     description
         "This appears to be a room made for official church duties. "
         "Wardrobes line the chilled stone wall, holding pristine jet-black church robes. "
-        "Other glass cabinets showcase an assortment of religious artifacts: ornate gold staffs, bejeweled silver chalices, ancient texts so old their pages have nearly disintegrated into a fine grey dust. " 
+        "Other glass cabinets showcase an assortment of religious artifacts: ornate gold staffs, "
+        "bejeweled silver chalices, ancient texts so old their pages have nearly disintegrated into a fine grey dust. " 
         "On a couch to your right you catch a glimmer of a small silver key wedged between two plump cushions."
     description Tag("adjacents")
         "Behind you in the \1south\0 is \2the nave\0, "
         "\nand a door connects to the \2the altar\0 in the \1east\0"
+    room Tag("exit") "Cathedral altar"
     adjacents
         east "Cathedral altar"
-        south "Cathedral nave"
+# TODO(Tyler)        south "Cathedral nave" 
     items Array("small silver key")
 
 : TARoom "Cathedral organ console" Tag("organ")
@@ -1121,12 +1146,13 @@
     description Tag("broken")
         "This small room is crammed full of the vital components of the organ. "
         "There are a bountiful number of \3bellows\0 to breathe air and life into the marvelous machine. "
-        "Alongside these bellows, are vast isles of these \3pipes\0, separated only by narrow paths for you to walk and repair the pipes. "
+        "Alongside these bellows, are vast aisles of these \3pipes\0, separated only by narrow paths for you to walk and repair the pipes. "
         "You are deeply unsure as to the condition of these vital components. "
     description Tag("repaired")
         "Everything is perfect!"
     description Tag("adjacents")
         "The only exit is a door in the \1south\0 that leads to \2the organ console\0."
+    room Tag("exit") "Cathedral organ console"
     adjacents
         south "Cathedral organ console"
     items Array("organ bellows static" "organ pipes static")
@@ -1145,6 +1171,7 @@
     description Tag("adjacents")
         "There is an exit leading to \2the nave\0 in the \1east\0, "
         "\nand the staircase leads \1upwards\0 to \2the programming room\0"
+    room Tag("exit") "Cathedral nave"
     adjacents
         east "Cathedral nave"
         up   "Bell tower programming room" Tag("bell-tower" "locked")
@@ -1165,6 +1192,7 @@
     description
     description Tag("adjacents")
         "There is only an open door in the \1east\0 connecting to the \2programming room\0"
+    room Tag("exit") "Bell tower storage room"
     adjacents
         east "Bell tower programming room"
 
@@ -1194,6 +1222,7 @@
 #        "Every reddish brown roof in the town appears tiny and almost insignificnat from this height. "
 #        "The surrounding canal, wears a beatiful blue and reflects the only gleam of sunlight to have penetrated the cloudy skies. "
 #        "Behind you is an incredible "
+    room Tag("exit") "Bell tower belfrey"
     description Tag("adjacents")
         ""
     adjacents

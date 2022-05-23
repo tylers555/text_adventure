@@ -1,4 +1,5 @@
-//~ Commands
+
+//~ Movement commands
 void CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *CurrentRoom = TA->CurrentRoom;
     ta_room *NextRoom = 0;
@@ -6,7 +7,11 @@ void CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     for(u32 I=0; I < WordCount; I++){
         char *Word = Words[I];
         direction Direction = HashTableFind(&TA->DirectionTable, (const char *)Word);
-        if(!Direction) continue;
+        if(!Direction){
+            
+            
+            continue;
+        }
         
         ta_id NextRoomString = CurrentRoom->Adjacents[Direction];
         NextRoom = HashTableFindPtr(&TA->RoomTable, NextRoomString);
@@ -40,6 +45,80 @@ void CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
 }
 
+void CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    ta_room *Room = TA->CurrentRoom;
+    ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Exit));
+    if(!Data){
+        TA->Respond("Where do you exit to!? TODO(Tyler): Make better");
+        return;
+    }
+    
+    for(u32 I=0; I<Direction_TOTAL; I++){
+        if(Room->Adjacents[I] == Data->TAID){
+            asset_tag *Tag = &Room->AdjacentTags[I];
+            if(HasTag(*Tag, AssetTag_Locked)){
+                if(TAAttemptToUnlock(Mixer, TA, Assets, Room, Tag)){
+                    TA->Respond("(unlocked)");
+                    break;
+                }else{
+                    TA->Respond("That way is locked, \002\002buddy-o\002\001!");
+                    return;
+                }
+            }else if(TAIsClosed(TA, *Tag)){
+                return;
+            }
+        }
+    }
+    
+    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->TAID);
+    if(!NextRoom){
+        LogMessage("That room does not exist!");
+        TA->Respond("ERROR!");
+        return;
+    }
+    
+    TA->CurrentRoom = NextRoom;
+    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
+}
+
+// TODO(Tyler): This ought to take a room to go to in some cases
+void CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    ta_room *Room = TA->CurrentRoom;
+    ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Enter));
+    if(!Data){
+        TA->Respond("There is no where to enter!? TODO(Tyler): Make better");
+        return;
+    }
+    
+    for(u32 I=0; I<Direction_TOTAL; I++){
+        if(Room->Adjacents[I] == Data->TAID){
+            asset_tag *Tag = &Room->AdjacentTags[I];
+            if(HasTag(*Tag, AssetTag_Locked)){
+                if(TAAttemptToUnlock(Mixer, TA, Assets, Room, Tag)){
+                    TA->Respond("(unlocked)");
+                    break;
+                }else{
+                    TA->Respond("That way is locked, \002\002buddy-o\002\001!");
+                    return;
+                }
+            }else if(TAIsClosed(TA, *Tag)){
+                return;
+            }
+        }
+    }
+    
+    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->TAID);
+    if(!NextRoom){
+        LogMessage("That room does not exist!");
+        TA->Respond("ERROR!");
+        return;
+    }
+    
+    TA->CurrentRoom = NextRoom;
+    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
+}
+
+//~ Item commands
 void CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     

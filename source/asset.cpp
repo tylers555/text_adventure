@@ -17,12 +17,6 @@ asset_system::Initialize(memory_arena *Arena){
 
 //~ Asset tags
 
-internal inline constexpr b8
-operator==(asset_tag A, asset_tag B){
-    b8 Result = A.All == B.All;
-    return Result;
-}
-
 internal constexpr inline asset_tag
 MakeAssetTag(asset_tag_id A = AssetTag_None, 
              asset_tag_id B = AssetTag_None, 
@@ -52,6 +46,16 @@ HasTag(asset_tag Tag, asset_tag_id ID){
                  (Tag.C == ID) ||
                  (Tag.D == ID));
     return Result;
+}
+
+internal inline b8
+CompareTags(asset_tag Base, asset_tag Target){
+    if(!Target.All) return false;
+    if(Target.A && !HasTag(Base, (asset_tag_id)Target.A)) return false;
+    if(Target.B && !HasTag(Base, (asset_tag_id)Target.B)) return false;
+    if(Target.C && !HasTag(Base, (asset_tag_id)Target.C)) return false;
+    if(Target.D && !HasTag(Base, (asset_tag_id)Target.D)) return false;
+    return true;
 }
 
 internal inline b8 

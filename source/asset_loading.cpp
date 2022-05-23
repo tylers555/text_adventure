@@ -101,6 +101,8 @@ asset_system::InitializeLoader(memory_arena *Arena){
     HashTableInsert(&TagTable, "light",      AssetTag_Light);
     HashTableInsert(&TagTable, "fixer",      AssetTag_Fixer);
     HashTableInsert(&TagTable, "bread",      AssetTag_Bread);
+    HashTableInsert(&TagTable, "exit",       AssetTag_Exit);
+    HashTableInsert(&TagTable, "enter",      AssetTag_Enter);
     
     LoadedImageTable = MakeHashTable<const char *, image>(Arena, 256);
 }
@@ -623,10 +625,9 @@ asset_system::ProcessFont(){
 
 //~ Text adventure rooms
 b8
-asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions){
+asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_data_type Type){
     b8 Result = false;
     
-    ta_data_type Type = TADataType_Description;
     asset_tag Tag = MaybeExpectTag();
     HandleError(&Reader);
     
@@ -692,8 +693,14 @@ asset_system::ProcessTARoom(){
         
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
-        }else if(DoAttribute(Attribute, "data")){ 
-            if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "room")){ 
+            ta_data *Data = PushStruct(&Memory, ta_data);
+            Data->Type = TADataType_Room;
+            Data->Tag = MaybeExpectTag();
+            HandleError(&Reader);
+            const char *S = Expect(&Reader, String);
+            Data->TAID = TAIDByName(TA, S);
+            ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "data_asset")){
             ta_data *Data = PushStruct(&Memory, ta_data);
             Data->Type = TADataType_Asset;

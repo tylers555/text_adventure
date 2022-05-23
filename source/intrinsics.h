@@ -38,7 +38,7 @@ CountLeadingOnes(u32 Value){
 }
 
 internal void
-CopyMemory(const void *To, const void *From, umw Size) {
+CopyMemory(void *To, const void *From, umw Size) {
 #if 0
     for (umw I = 0; I < Size; I++)
     {

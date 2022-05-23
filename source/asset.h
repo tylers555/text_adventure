@@ -53,6 +53,8 @@ enum asset_tag_id {
     AssetTag_Fixer,
     
     AssetTag_Bread,
+    AssetTag_Exit,
+    AssetTag_Enter,
     
     AssetTag_TOTAL
 };
@@ -177,7 +179,27 @@ MakeFancyFormat(color Color1, color Color2,
 }
 
 //~
-struct ta_data;
+
+struct ta_id {
+    u64 ID;
+};
+
+enum ta_data_type {
+    TADataType_None,
+    TADataType_Asset,
+    TADataType_Room,
+    TADataType_Description,
+};
+
+struct ta_data {
+    ta_data_type Type;
+    asset_tag Tag;
+    union{
+        asset_id Asset;
+        ta_id TAID;
+        const char Data[];
+    };
+};
 
 //~ Asset system
 struct asset_system {
@@ -232,7 +254,7 @@ struct asset_system {
     b8 ProcessSoundEffect();
     b8 ProcessFont();
     
-    b8 ProcessTADescription(dynamic_array<ta_data *> *Descriptions);
+    b8 ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_data_type Type=TADataType_Description);
     b8 ProcessTARoom();
     b8 ProcessTAItem();
     b8 ProcessTAMap();

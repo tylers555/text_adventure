@@ -181,7 +181,7 @@ TAFindItemByTag(ta_system *TA, array<ta_id> *Items, asset_tag Tag){
     for(u32 J=0; J<Items->Count; J++){
         ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, J));
         if(!Item) continue;
-        if(Item->Tag == Tag) return J;
+        if(CompareTags(Item->Tag, Tag)) return J;
     }
     
     return -1;
@@ -220,7 +220,7 @@ TAFindData(array<ta_data *> *Datas, ta_data_type Type, asset_tag Tag){
     ta_data *Result = 0;
     for(u32 I=0; I<Datas->Count; I++){
         ta_data *Data = ArrayGet(Datas, I);
-        if((Data->Type == Type) && (Data->Tag == Tag)){
+        if((Data->Type == Type) && CompareTags(Data->Tag, Tag)){
             Result = Data;
             break;
         }

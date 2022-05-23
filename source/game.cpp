@@ -5,6 +5,8 @@ ta_system::Initialize(memory_arena *Arena){
     CommandTable = MakeHashTable<const char *, command_func *>(Arena, 64);
     HashTableInsert(&CommandTable, "go",       CommandMove);
     HashTableInsert(&CommandTable, "move",     CommandMove);
+    HashTableInsert(&CommandTable, "exit",     CommandExit);
+    HashTableInsert(&CommandTable, "enter",    CommandEnter);
     HashTableInsert(&CommandTable, "take",     CommandTake);
     HashTableInsert(&CommandTable, "pick",     CommandTake);
     HashTableInsert(&CommandTable, "grab",     CommandTake);
@@ -23,9 +25,10 @@ ta_system::Initialize(memory_arena *Arena){
     HashTableInsert(&CommandTable, "inspect",  CommandExamine);
     HashTableInsert(&CommandTable, "observe",  CommandExamine);
     HashTableInsert(&CommandTable, "look",     CommandExamine);
+    HashTableInsert(&CommandTable, "see",      CommandExamine);
     HashTableInsert(&CommandTable, "unlock",   CommandUnlock);
     HashTableInsert(&CommandTable, "repair",   CommandRepair);
-    HashTableInsert(&CommandTable, "fix",   CommandRepair);
+    HashTableInsert(&CommandTable, "fix",      CommandRepair);
     
     HashTableInsert(&CommandTable, "testaddmoney", CommandTestAddMoney);
     HashTableInsert(&CommandTable, "testsubmoney", CommandTestSubMoney);
