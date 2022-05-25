@@ -38,8 +38,9 @@ TokenTypeName(file_token_type Type){
         case FileTokenType_Identifier: Result = "identifier"; break;
         case FileTokenType_String:     Result = "string"; break;
         case FileTokenType_BeginCommand: Result = ":"; break;
-        case FileTokenType_EndFile:    Result = "EOF"; break;
-        
+        case FileTokenType_EndFile:      Result = "EOF"; break;
+        case FileTokenType_BeginArguments: Result = "("; break;
+        case FileTokenType_EndArguments:   Result = ")"; break;
     }
     
     return(Result);

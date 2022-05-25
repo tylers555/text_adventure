@@ -245,6 +245,48 @@ asset_system::MaybeExpectTag(){
     return(Result);
 }
 
+ta_name
+asset_system::ExpectTypeName(){
+    ta_name Result = {};
+    
+    const char *Identifier = Expect(&Reader, Identifier);
+    if(!CompareStrings(Identifier, "Name")){
+        Reader.LastError = FileReaderError_InvalidToken;
+        return Result;
+    }
+    
+    Reader.ExpectToken(FileTokenType_BeginArguments);
+    HandleError(&Reader);
+    
+    const char *Name = Expect(&Reader, String);
+    Result.Name = Strings.GetPermanentString(Name);
+    
+    file_token Token = Reader.PeekToken();
+    if(Token.Type == FileTokenType_Identifier){
+        array<const char *> Aliases = Reader.ExpectTypeArrayCString();
+        Result.Aliases = MakeArray<const char *>(&Memory, Aliases.Count);
+        for(u32 I=0; I<Aliases.Count; I++){
+            char *Alias = ArenaPushLowerCString(&TransientStorageArena, Aliases[I]);
+            ArrayAdd(&Result.Aliases, Strings.GetPermanentString(Alias));
+        }
+    }
+    
+    Token = Reader.PeekToken();
+    if(Token.Type == FileTokenType_Identifier){
+        array<const char *> Adjectives = Reader.ExpectTypeArrayCString();
+        Result.Adjectives = MakeArray<const char *>(&Memory, Adjectives.Count);
+        for(u32 I=0; I<Adjectives.Count; I++){
+            char *Adjective = ArenaPushLowerCString(&TransientStorageArena, Adjectives[I]);
+            ArrayAdd(&Result.Adjectives, Strings.GetPermanentString(Adjective));
+        }
+    }
+    
+    Reader.ExpectToken(FileTokenType_EndArguments);
+    HandleError(&Reader);
+    
+    return Result;
+}
+
 u32
 asset_system::ExpectPositiveInteger_(){
     u32 Result = 0;
@@ -675,9 +717,10 @@ asset_system::ProcessTARoom(){
     b8 Result = false;
     ta_system *TA = &TextAdventure;
     
-    const char *Name = Expect(&Reader, String);
-    ta_room *Room = HashTableGetPtr(&TA->RoomTable, TAIDByName(TA, Name));
-    Room->Name = Strings.GetPermanentString(Name);
+    ta_name Name = ExpectTypeName();
+    HandleError(&Reader);
+    ta_room *Room = HashTableGetPtr(&TA->RoomTable, TAIDByName(TA, Name.Name));
+    Room->NameData = Name;
     Room->Tag = MaybeExpectTag();
     
     dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &TransientStorageArena);
@@ -762,20 +805,13 @@ asset_system::ProcessTARoom(){
 b8
 asset_system::ProcessTAItem(){
     b8 Result = false;
-    
     ta_system *TA = &TextAdventure;
-    const char *Name = Expect(&Reader, String);
-    ta_item *Item = HashTableGetPtr(&TA->ItemTable, TAIDByName(TA, Name));
-    Item->Name = Strings.GetPermanentString(Name);
-    Item->Tag = MaybeExpectTag();
     
-    // Aliases
-    array<const char *> Array = Reader.ExpectTypeArrayCString();
+    ta_name Name = ExpectTypeName();
     HandleError(&Reader);
-    Item->Aliases = MakeArray<const char *>(&Memory, Array.Count);
-    for(u32 I=0; I<Array.Count; I++){
-        ArrayAdd(&Item->Aliases, Strings.GetPermanentString(Array[I]));
-    }
+    ta_item *Item = HashTableGetPtr(&TA->ItemTable, TAIDByName(TA, Name.Name));
+    Item->NameData = Name;
+    Item->Tag = MaybeExpectTag();
     
     // Attributes
     dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &TransientStorageArena);
@@ -795,12 +831,6 @@ asset_system::ProcessTAItem(){
             const char *S = Expect(&Reader, String);
             Data->Asset = MakeAssetID(Strings.GetString(S));
             ArrayAdd(&Descriptions, Data);
-        }else if(DoAttribute(Attribute, "adjectives")){
-            array<const char *> Adjectives = Reader.ExpectTypeArrayCString();
-            Item->Adjectives = MakeArray<const char *>(&Memory, Adjectives.Count);
-            for(u32 I=0; I<Adjectives.Count; I++){
-                ArrayAdd(&Item->Adjectives, Strings.GetPermanentString(Adjectives[I]));
-            }
         }else if(DoAttribute(Attribute, "cost")){
             if(!Item->Dirty) Item->Cost = ExpectPositiveInteger();
         }else{ LogInvalidAttribute(Attribute); return false; }

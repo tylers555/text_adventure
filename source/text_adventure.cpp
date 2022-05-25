@@ -93,65 +93,85 @@ struct ta_found_items {
     b8 IsAmbiguous;
 };
 
+struct ta_compare_name {
+    s32 FoundWordIndex;
+    s32 Weight;
+};
+
+internal inline ta_compare_name
+MakeTACompareName(){
+    ta_compare_name Result;
+    Result.FoundWordIndex = -1;
+    Result.Weight = 0;
+    return Result;
+}
+
+internal inline ta_compare_name
+TACompareWordsAndName(ta_name *NameData, char **Words, u32 WordCount){
+    ta_compare_name Result = MakeTACompareName();
+    for(u32 WordIndex=0; WordIndex<WordCount; WordIndex++){
+        const char *Word = Words[WordIndex];
+        
+        b8 JustFoundAdjective = false;
+        for(u32 AdjectiveIndex=0; AdjectiveIndex<NameData->Adjectives.Count; AdjectiveIndex++){
+            const char *Adjective = NameData->Adjectives[AdjectiveIndex];
+            if(CompareWords(Word, Adjective)){
+                JustFoundAdjective = true;
+                break;
+            }
+        }
+        
+        b8 JustFoundAlias = false;
+        for(u32 AliasIndex=0; AliasIndex<NameData->Aliases.Count; AliasIndex++){
+            const char *Alias = NameData->Aliases[AliasIndex];
+            if(CompareWords(Word, Alias)){
+                Result.FoundWordIndex = WordIndex;
+                JustFoundAlias = true;
+                break;
+            }
+        }
+        
+        if(JustFoundAlias  || JustFoundAdjective) Result.Weight++;
+        if(!JustFoundAlias && (Result.FoundWordIndex >= 0)) break;
+    }
+    
+    return Result;
+}
+
 internal void 
 TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount, ta_found_items *Founds){
     for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
         ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
         if(!Item) continue;
         
-        s32 FoundWordIndex = -1;
-        s32 Weight = 0;
-        for(u32 WordIndex=0; WordIndex<WordCount; WordIndex++){
-            const char *Word = Words[WordIndex];
-            
-            b8 JustFoundAdjective = false;
-            for(u32 AdjectiveIndex=0; AdjectiveIndex<Item->Adjectives.Count; AdjectiveIndex++){
-                const char *Adjective = Item->Adjectives[AdjectiveIndex];
-                if(CompareWords(Word, Adjective)){
-                    JustFoundAdjective = true;
-                    break;
-                }
-            }
-            
-            b8 JustFoundAlias = false;
-            for(u32 AliasIndex=0; AliasIndex<Item->Aliases.Count; AliasIndex++){
-                const char *Alias = Item->Aliases[AliasIndex];
-                if(CompareWords(Word, Alias)){
-                    FoundWordIndex = WordIndex;
-                    JustFoundAlias = true;
-                    break;
-                }
-            }
-            
-            if(JustFoundAlias  || JustFoundAdjective) Weight++;
-            if(!JustFoundAlias && (FoundWordIndex >= 0)) break;
-        }
+        ta_compare_name Comparison = TACompareWordsAndName(&Item->NameData, Words, WordCount);
         
-        if(FoundWordIndex >= 0){
+        if(Comparison.FoundWordIndex >= 0){
             b8 FoundSomething = false;
             for(u32 J=0; J<Founds->Items.Count; J++){
                 ta_found_item *Found = &Founds->Items[J];
-                if(Found->WordIndex == (u32)FoundWordIndex){
-                    if(Weight > Found->Weight){
+                if(Found->WordIndex == (u32)Comparison.FoundWordIndex){
+                    if(Comparison.Weight > Found->Weight){
                         Found->Item = Item;
                         Found->ItemIndex = ItemIndex;
-                        Found->WordIndex = FoundWordIndex;
-                        Found->Weight = Weight;
+                        Found->WordIndex = Comparison.FoundWordIndex;
+                        Found->Weight = Comparison.Weight;
                         FoundSomething = true;
                         break;
-                    }else if(Weight == Found->Weight){
+                    }else if(Comparison.Weight == Found->Weight){
                         //FoundSomething = true;
                         Founds->IsAmbiguous = true;
                         break;
                     }
                 }
             }
+            
             if(!FoundSomething){
                 ta_found_item *Found = ArrayAlloc(&Founds->Items);
                 Found->Item = Item;
                 Found->ItemIndex = ItemIndex;
-                Found->WordIndex = FoundWordIndex;
-                Found->Weight = Weight;
+                Found->WordIndex = Comparison.FoundWordIndex;
+                Found->Weight = Comparison.Weight;
             }
         }
     }
@@ -161,7 +181,7 @@ TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCo
 if(FoundItems.IsAmbiguous){ \
 TA->Respond("You will have to be more specific, what item do you want to " Verb "?\nEnter the item: "); \
 TA->Callback = Function; \
-return; \
+return false; \
 }
 
 #define HANDLE_FOUND_ITEMS(FoundItems, Function, Verb) \
@@ -186,13 +206,6 @@ TAFindItemByTag(ta_system *TA, array<ta_id> *Items, asset_tag Tag){
     
     return -1;
 }
-
-internal inline s32
-TACalculateItemChoiceWeight(ta_item *Item, char **Words, u32 WordEnd){
-    s32 Weight = 0;
-    return Weight;
-}
-
 
 //~
 internal inline b8

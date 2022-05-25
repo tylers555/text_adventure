@@ -6,6 +6,7 @@ ta_system::Initialize(memory_arena *Arena){
     HashTableInsert(&CommandTable, "go",       CommandMove);
     HashTableInsert(&CommandTable, "move",     CommandMove);
     HashTableInsert(&CommandTable, "exit",     CommandExit);
+    HashTableInsert(&CommandTable, "leave",    CommandExit);
     HashTableInsert(&CommandTable, "enter",    CommandEnter);
     HashTableInsert(&CommandTable, "take",     CommandTake);
     HashTableInsert(&CommandTable, "pick",     CommandTake);

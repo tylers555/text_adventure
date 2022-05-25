@@ -53,17 +53,21 @@ struct ta_map {
 
 struct ta_item {
     b8 Dirty;
-    const char *Name;
+    union{
+        ta_name NameData;
+        const char *Name;
+    };
     asset_tag Tag;
     u32 Cost;
-    array<const char *> Aliases;
-    array<const char *> Adjectives;
     array<ta_data *> Datas;
 };
 
 struct ta_room {
     b8 Dirty;
-    const char *Name;
+    union{
+        ta_name NameData;
+        const char *Name;
+    };
     ta_id Area;
     asset_tag Tag;
     array<ta_data *> Datas;
@@ -73,7 +77,7 @@ struct ta_room {
 };
 
 struct ta_system;
-typedef void command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount);
+typedef b8 command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount);
 
 struct ta_system {
     hash_table<ta_id, console_theme> ThemeTable;

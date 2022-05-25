@@ -102,6 +102,17 @@ ArenaPushCString(memory_arena *Arena, const char *String){
     return(Result);
 }
 
+internal inline char *
+ArenaPushLowerCString(memory_arena *Arena, const char *S){
+    u32 L = CStringLength(S);
+    char *Result = PushArray(Arena, char, L+1);
+    for(u32 I=0; S[I]; I++){
+        Result[I] = CharToLower(S[I]);
+    }
+    Result[L] = 0;
+    return Result;
+}
+
 internal void
 ArenaClear(memory_arena *Arena){
     Arena->Used = 0;

@@ -178,7 +178,7 @@ MakeFancyFormat(color Color1, color Color2,
     return Result;
 }
 
-//~
+//~ Text adventure stuff
 
 struct ta_id {
     u64 ID;
@@ -199,6 +199,12 @@ struct ta_data {
         ta_id TAID;
         const char Data[];
     };
+};
+
+struct ta_name {
+    const char *Name;
+    array<const char *> Aliases;
+    array<const char *> Adjectives;
 };
 
 //~ Asset system
@@ -240,6 +246,7 @@ struct asset_system {
     
     fancy_font_format   ExpectTypeFancy();
     asset_tag           MaybeExpectTag();
+    ta_name             ExpectTypeName();
     
     void InitializeLoader(memory_arena *Arena);
     

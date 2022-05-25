@@ -119,6 +119,15 @@ ArraySwap(array<T> Array, u32 IndexA, u32 IndexB){
     Array[IndexB] = Temp;
 }
 
+template<typename T> internal inline array<T>
+ArrayFinalize(memory_arena *Arena, array<T> *Array){
+    array<T> Result = MakeArray<T>(Arena, Array->Count);
+    for(u32 I=0; I<Array->Count; I++){
+        *ArrayAlloc(&Result) = ArrayGet(Array, I);
+    }
+    return Result;
+}
+
 //~ Dynamic array
 template <typename T>
 struct 
