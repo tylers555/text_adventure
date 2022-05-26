@@ -71,6 +71,7 @@ InitializeGame(game_state *State){
     State->Assets.LoadAssetFile(ASSET_FILE_PATH);
     
     DebugInitTime = OSGetMicroseconds()-Start;
+    
 }
 
 //~

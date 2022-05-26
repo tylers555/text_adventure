@@ -83,8 +83,7 @@ struct ta_system {
     hash_table<ta_id, console_theme> ThemeTable;
     console_theme Theme;
     
-    hash_table<const char *, command_func *> CommandTable;
-    hash_table<const char *, direction>      DirectionTable;
+    
     
     hash_table<ta_id, ta_room> RoomTable;
     hash_table<ta_id, ta_item> ItemTable;
@@ -112,6 +111,29 @@ struct ta_system {
     
     ta_map Map;
 };
+
+#define DIRECTIONS \
+DIRECTION("north",     Direction_North) \
+DIRECTION("northeast", Direction_NorthEast) \
+DIRECTION("east",      Direction_East) \
+DIRECTION("southeast", Direction_SouthEast) \
+DIRECTION("south",     Direction_South) \
+DIRECTION("southwest", Direction_SouthWest) \
+DIRECTION("west",      Direction_West) \
+DIRECTION("northwest", Direction_NorthWest) \
+DIRECTION("up",        Direction_Up) \
+DIRECTION("down",      Direction_Down) \
+DIRECTION("n",  Direction_North) \
+DIRECTION("ne", Direction_NorthEast) \
+DIRECTION("e",  Direction_East) \
+DIRECTION("se", Direction_SouthEast) \
+DIRECTION("s",  Direction_South) \
+DIRECTION("sw", Direction_SouthWest) \
+DIRECTION("w",  Direction_West) \
+DIRECTION("nw", Direction_NorthWest) \
+DIRECTION("u",  Direction_Up) \
+DIRECTION("d",  Direction_Down) \
+
 
 internal inline void 
 TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount);

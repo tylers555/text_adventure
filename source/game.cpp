@@ -2,61 +2,6 @@
 //~ Text adventure system
 void
 ta_system::Initialize(memory_arena *Arena){
-    CommandTable = MakeHashTable<const char *, command_func *>(Arena, 64);
-    HashTableInsert(&CommandTable, "go",       CommandMove);
-    HashTableInsert(&CommandTable, "move",     CommandMove);
-    HashTableInsert(&CommandTable, "exit",     CommandExit);
-    HashTableInsert(&CommandTable, "leave",    CommandExit);
-    HashTableInsert(&CommandTable, "enter",    CommandEnter);
-    HashTableInsert(&CommandTable, "take",     CommandTake);
-    HashTableInsert(&CommandTable, "pick",     CommandTake);
-    HashTableInsert(&CommandTable, "grab",     CommandTake);
-    HashTableInsert(&CommandTable, "drop",     CommandDrop);
-    HashTableInsert(&CommandTable, "leave",    CommandDrop);
-    HashTableInsert(&CommandTable, "buy",      CommandBuy);
-    HashTableInsert(&CommandTable, "purchase", CommandBuy);
-    HashTableInsert(&CommandTable, "eat",      CommandEat);
-    HashTableInsert(&CommandTable, "consume",  CommandEat);
-    HashTableInsert(&CommandTable, "ingest",   CommandEat);
-    HashTableInsert(&CommandTable, "swallow",  CommandEat);
-    HashTableInsert(&CommandTable, "bite",     CommandEat);
-    HashTableInsert(&CommandTable, "munch",    CommandEat);
-    HashTableInsert(&CommandTable, "play",     CommandPlay);
-    HashTableInsert(&CommandTable, "examine",  CommandExamine);
-    HashTableInsert(&CommandTable, "inspect",  CommandExamine);
-    HashTableInsert(&CommandTable, "observe",  CommandExamine);
-    HashTableInsert(&CommandTable, "look",     CommandExamine);
-    HashTableInsert(&CommandTable, "see",      CommandExamine);
-    HashTableInsert(&CommandTable, "unlock",   CommandUnlock);
-    HashTableInsert(&CommandTable, "repair",   CommandRepair);
-    HashTableInsert(&CommandTable, "fix",      CommandRepair);
-    HashTableInsert(&CommandTable, "use",      CommandUse);
-    
-    HashTableInsert(&CommandTable, "testaddmoney", CommandTestAddMoney);
-    HashTableInsert(&CommandTable, "testsubmoney", CommandTestSubMoney);
-    
-    DirectionTable = MakeHashTable<const char *, direction>(Arena, 2*Direction_TOTAL);
-    HashTableInsert(&DirectionTable, "north",     Direction_North);
-    HashTableInsert(&DirectionTable, "northeast", Direction_NorthEast);
-    HashTableInsert(&DirectionTable, "east",      Direction_East);
-    HashTableInsert(&DirectionTable, "southeast", Direction_SouthEast);
-    HashTableInsert(&DirectionTable, "south",     Direction_South);
-    HashTableInsert(&DirectionTable, "southwest", Direction_SouthWest);
-    HashTableInsert(&DirectionTable, "west",      Direction_West);
-    HashTableInsert(&DirectionTable, "northwest", Direction_NorthWest);
-    HashTableInsert(&DirectionTable, "up",        Direction_Up);
-    HashTableInsert(&DirectionTable, "down",      Direction_Down);
-    HashTableInsert(&DirectionTable, "n",  Direction_North);
-    HashTableInsert(&DirectionTable, "ne", Direction_NorthEast);
-    HashTableInsert(&DirectionTable, "e",  Direction_East);
-    HashTableInsert(&DirectionTable, "se", Direction_SouthEast);
-    HashTableInsert(&DirectionTable, "s",  Direction_South);
-    HashTableInsert(&DirectionTable, "sw", Direction_SouthWest);
-    HashTableInsert(&DirectionTable, "w",  Direction_West);
-    HashTableInsert(&DirectionTable, "nw", Direction_NorthWest);
-    HashTableInsert(&DirectionTable, "u",  Direction_Up);
-    HashTableInsert(&DirectionTable, "d",  Direction_Down);
-    
     RoomTable = MakeHashTable<ta_id, ta_room>(Arena, ROOM_TABLE_SIZE);
     ItemTable = MakeHashTable<ta_id, ta_item>(Arena, ITEM_TABLE_SIZE);
     Inventory = MakeArray<ta_id>(Arena, INVENTORY_ITEM_COUNT);
@@ -69,13 +14,50 @@ ta_system::Initialize(memory_arena *Arena){
     OrganState = AssetTag_Broken;
 }
 
+
 internal inline void
 TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount){
     command_func *Func = 0;
     for(u32 I=0; I < TokenCount; I++){
         char *Word = Tokens[I];
         CStringMakeLower(Word);
-        Func = HashTableFind(&TA->CommandTable, (const char *)Word);
+        
+#define TEST_COMMAND(Name, Command) else if(CompareWords(Word, Name)) Func = Command
+        if(0);
+        TEST_COMMAND("go",       CommandMove);
+        TEST_COMMAND("move",     CommandMove);
+        TEST_COMMAND("exit",     CommandExit);
+        TEST_COMMAND("leave",    CommandExit);
+        TEST_COMMAND("enter",    CommandEnter);
+        TEST_COMMAND("take",     CommandTake);
+        TEST_COMMAND("pick",     CommandTake);
+        TEST_COMMAND("grab",     CommandTake);
+        TEST_COMMAND("drop",     CommandDrop);
+        TEST_COMMAND("leave",    CommandDrop);
+        TEST_COMMAND("buy",      CommandBuy);
+        TEST_COMMAND("purchase", CommandBuy);
+        TEST_COMMAND("eat",      CommandEat);
+        TEST_COMMAND("consume",  CommandEat);
+        TEST_COMMAND("ingest",   CommandEat);
+        TEST_COMMAND("swallow",  CommandEat);
+        TEST_COMMAND("bite",     CommandEat);
+        TEST_COMMAND("munch",    CommandEat);
+        TEST_COMMAND("play",     CommandPlay);
+        TEST_COMMAND("examine",  CommandExamine);
+        TEST_COMMAND("inspect",  CommandExamine);
+        TEST_COMMAND("observe",  CommandExamine);
+        TEST_COMMAND("look",     CommandExamine);
+        TEST_COMMAND("see",      CommandExamine);
+        TEST_COMMAND("unlock",   CommandUnlock);
+        TEST_COMMAND("repair",   CommandRepair);
+        TEST_COMMAND("fix",      CommandRepair);
+        TEST_COMMAND("use",      CommandUse);
+        
+        // Testing commands
+        TEST_COMMAND("testaddmoney", CommandTestAddMoney);
+        TEST_COMMAND("testsubmoney", CommandTestSubMoney);
+#undef TEST_COMMAND
+        
         if(Func) break;
     }
     if(Func){
@@ -84,6 +66,7 @@ TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char 
         TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
     }
 }
+
 
 //~ 
 internal inline void

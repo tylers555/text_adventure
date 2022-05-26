@@ -105,6 +105,11 @@ asset_system::InitializeLoader(memory_arena *Arena){
     HashTableInsert(&TagTable, "enter",      AssetTag_Enter);
     HashTableInsert(&TagTable, "use",        AssetTag_Use);
     
+#define DIRECTION(Name, Direction) HashTableInsert(&DirectionTable, Name, Direction);
+    DirectionTable = MakeHashTable<const char *, direction>(Arena, 2*Direction_TOTAL);
+    DIRECTIONS;
+#undef DIRECTION
+    
     LoadedImageTable = MakeHashTable<const char *, image>(Arena, 256);
 }
 
@@ -763,7 +768,7 @@ asset_system::ProcessTARoom(){
                 file_token Token = Reader.PeekToken();
                 if(Token.Type != FileTokenType_Identifier) break;
                 
-                direction Direction = HashTableFind(&TA->DirectionTable, (const char *)Token.Identifier);
+                direction Direction = HashTableFind(&DirectionTable, (const char *)Token.Identifier);
                 if(!Direction) break;
                 Expect(&Reader, Identifier);
                 

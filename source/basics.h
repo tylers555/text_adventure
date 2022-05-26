@@ -32,6 +32,7 @@ typedef double f64;
 #define local_persist   static
 #define local_constant  static const
 
+#define Swap(A, B) do { decltype(A) Temp = (A); (A) = (B); (B) = Temp; } while (0)
 #define Minimum(A, B) ((A) > (B) ? (B) : (A))
 #define Maximum(A, B) ((A) > (B) ? (A) : (B))
 #define ArrayCount(Arr) (sizeof(Arr)/sizeof(*Arr))

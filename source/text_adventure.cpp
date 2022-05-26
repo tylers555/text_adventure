@@ -69,6 +69,7 @@ TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
 
 internal inline b8
 CompareWords(const char *A, const char *B){
+#if 0
     while(*A && *B){
         if(*A != *B){
             if(CharToLower(*A) != CharToLower(*B)) return false;
@@ -77,8 +78,35 @@ CompareWords(const char *A, const char *B){
         B++;
     }
     if(*A != *B) return false;
+#endif
     
-    return true;
+    // Wagner–Fischer algorithm
+    // From: https://en.wikipedia.org/wiki/Levenshtein_distance
+    u32 M = CStringLength(A);
+    u32 N = CStringLength(B);
+    
+    s32 *V0 = PushArray(&TransientStorageArena, s32, N+1);
+    s32 *V1 = PushArray(&TransientStorageArena, s32, N+1);
+    
+    for(u32 I=0; I<=N; I++) V0[I] = I;
+    
+    for(u32 I=0; I<=M-1; I++){
+        V1[0] = I+1;
+        
+        for(u32 J=0; J<=N-1; J++){
+            u32 DeletionCost = V0[J+1] + 1;
+            u32 InsertionCost = V1[J] + 1;
+            u32 SubstitutionCost = (CharToLower(A[I]) == CharToLower(B[J])) ? V0[J] : (V0[J] + 1);
+            V1[J+1] = Minimum(Minimum(DeletionCost, InsertionCost), SubstitutionCost);
+        }
+        
+        Swap(V0, V1);
+    }
+    
+    // TODO(Tyler): This part could possibly use improvement and tuning.
+    // Parhaps a curve of some sort would be good for this?
+    f32 Result = 1.0f - ((f32)V0[N] / (f32)Maximum(M, N));
+    return (Result > 0.5f);
 }
 
 struct ta_found_item {

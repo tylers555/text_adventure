@@ -240,6 +240,7 @@ struct asset_system {
     u64 LastFileWriteTime;
     hash_table<const char *, char>         ASCIITable;
     hash_table<const char *, asset_tag_id> TagTable;
+    hash_table<const char *, direction>    DirectionTable;
     hash_table<const char *, image> LoadedImageTable;
     
     file_reader Reader;

@@ -67,7 +67,12 @@ b8 CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     
     for(u32 I=0; I < WordCount; I++){
         char *Word = Words[I];
-        direction Direction = HashTableFind(&TA->DirectionTable, (const char *)Word);
+        direction Direction = Direction_None;
+#define DIRECTION(Name, D) else if(CompareWords(Word, Name)) Direction = D;
+        if(0); 
+        DIRECTIONS
+#undef DIRECTIONS
+        
         if(!Direction){
             continue;
         }
