@@ -321,6 +321,12 @@ operator==(ta_id A, ta_id B){
     return Result;
 }
 
+internal inline constexpr b8
+operator!=(ta_id A, ta_id B){
+    b8 Result = (A.ID != B.ID);
+    return Result;
+}
+
 internal constexpr u64
 HashKey(ta_id Value) {
     u64 Result = Value.ID;

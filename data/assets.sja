@@ -43,7 +43,7 @@
 # It would be better to have a hash table of variable names with values.
 : Variables
     start_game_mode "main game"
-    start_room      "Cathedral organ console"
+    start_room      "Bakery"
     theme           "theme_default"
     # theme "theme_planty"
     give_item       "a town map"
@@ -458,6 +458,7 @@
     cost 7
     description Tag("examine")
         "Its a very dark black, and appears very durable."
+    data_command Tag("use") "open umbrella" 
 
 : TAItem Name("a lantern" Array("lantern" "lanterns")) Tag("light")
     cost 10
@@ -466,6 +467,7 @@
         "This will work nicely to light dark areas. "
     description Tag("activate")
         "The lantern flickers to life, filling the area with warm yellow glow. "
+    data_command Tag("use") "light lantern"
 
 : TAItem Name("carrot cake muffins" Array("muffin" "muffins" "cake" "cakes") Array("carrot" "cake"))
     cost 2
@@ -473,6 +475,7 @@
         "It is a grainy orange color with smooth cream cheese frosting on top."
     description Tag("eat")
         "Seemingly healthy, but wonderfully sweet; it really is quite a treat!"
+    data_command Tag("use") "eat carrot cake muffins"
 
 : TAItem Name("honeyed almond pastries" Array("pastry" "pastries") Array("honeyed" "almond"))
     cost 3
@@ -480,6 +483,7 @@
         "This many-layered shortened pastry is covered in thin slices of almond and glazed over with a thin coating of honey."
     description Tag("eat")
         "The nutritional value of this pastry might be as low as its gameplay value, but man it sure is delicious!"
+    data_command Tag("use") "eat honeyed almond pastries"
 
 : TAItem Name("cinnamon sugar churros" Array("churro" "churros") Array("cinnamon" "sugar"))
     cost 1
@@ -487,6 +491,7 @@
         "A long, ridged, dark-brown churro with a generous sprinkling of cinnamon sugar."
     description Tag("eat")
         "That was great for a quick snack!"
+    data_command Tag("use") "eat cinnamon sugar churros"
 
 : TAItem Name("chocolate croissants" Array("croissant" "croissants") Array("chocolate"))
     cost 2
@@ -494,8 +499,9 @@
         "A classic delectable. You can see the chocolate filling slightly spilling out the ends of this light croissant."
     description Tag("eat")
         "That was well worth the price of 2 coins."
+    data_command Tag("use") "eat chocolate croissants"
 
-: TAItem Name("large loaves of wheat bread" Array("bread" "loaf" "loafs" "loaves") Array("large" "wheat")) Tag("bread")
+: TAItem Name("large loaves of wheat bread" Array("bread" "loaf" "loafs" "loaves") Array("large" "wheat" "loaves")) Tag("bread")
     cost 4
     description Tag("examine")
         "The bread is warm, with a light brown crust."
@@ -503,20 +509,24 @@
         "Nothing beats fresh bread from the bakery. "
         "You feel more full—physically, and emotionally. "
         "As you eat it, the thin, crispy crust turns into bread crumbs. "
+    data_command Tag("use") "eat large loaves of wheat bread"
 
 : TAItem Name("bread crumbs" Array("crumb" "crumbs") Array("bread"))
     description Tag("examine")
         "It's literally just a handful of crumbs... from bread."
     description Tag("eat")
         "You must be really desperate or really don’t like wasting food."
+    data_command Tag("use") "eat bread crumbs"
 
 : TAItem Name("leather sheet" Array("sheet" "sheets" "leather") Array("leather")) Tag("fixer")
     description Tag("examine")
         "It's a nice sheet of tanned leather, perfect for both attire and engineering."
+    data_command Tag("use") "repair organ bellows" 
 
 : TAItem Name("organ pipes" Array("pipe" "pipes") Array("organ")) Tag("fixer")
     description Tag("examine")
         "Organ pipes WIP"
+    data_command Tag("use") "repair organ pipes" 
 
 # //////////////////////////////////////////////////////////////////////////
 #                                   Keys
@@ -675,7 +685,7 @@
     description Tag("adjacents")
         "The rugged door stands in the \1north\0"
         "\nand to the \1south\0 extends \2the dark alley\0"
-    room Tag("enter") "Plant shop"
+    data_room Tag("enter") "Plant shop"
     adjacents
         north "Plant shop"
         south "Dark alley"
@@ -714,7 +724,7 @@
         "\nthere is a short hallway leading \1northward\0 into \2the greenhouse\0."
     description Tag("items")
         "Lining the array of shelves on the walls are: "
-    room Tag("exit") "Plant shop front"
+    data_room Tag("exit") "Plant shop front"
     adjacents
         north "Plant shop greenhouse"
         south "Plant shop front"
@@ -766,7 +776,7 @@
         "Wide glass windows emit a warm glow, and through the streaks of raindrops you see a few animated silhouettes of those inside. "
         "A sign over the door reads \2'Murkwell Inn'\0."
     description Tag("adjacents")
-    room Tag("enter") "Inn lobby"
+    data_room Tag("enter") "Inn lobby"
     adjacents
         north "Inn lobby"
         east  "Southwest plaza"
@@ -780,7 +790,7 @@
         "An old woman sits behind the front desk, engrossed in the pages of a short novel. "
         "A pretty black cat is curled around a \5vibrant ceramic plant pot\0 in the corner."
     description Tag("adjacents")
-    room Tag("exit") "Inn front"
+    data_room Tag("exit") "Inn front"
     adjacents
         south "Inn front"
         up "Inn hallway"
@@ -791,8 +801,8 @@
     description
         "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
     description Tag("adjacents")
-    room Tag("exit") "Inn lobby"
-    room Tag("enter" "inn") "PLACEHOLDER"
+    data_room Tag("exit") "Inn lobby"
+    data_room Tag("enter" "inn") "PLACEHOLDER"
     adjacents
         down "Inn lobby"
 
@@ -804,7 +814,7 @@
         "A smallish woodstove in the corner serves to heat up the room. "
         "There is a plain one-person bed. A simple candle holder is mounted to the wall. "
     description Tag("adjacents")
-    room Tag("exit") "Inn hallway"
+    data_room Tag("exit") "Inn hallway"
     adjacents
         south "Inn hallway"
     items Array("room 1 window")
@@ -814,7 +824,7 @@
     description
         "The room is darker than you expected."
     description Tag("adjacents")
-    room Tag("exit") "Inn hallway"
+    data_room Tag("exit") "Inn hallway"
     adjacents
         south "Inn hallway"
 
@@ -823,7 +833,7 @@
     description
         "The room is colder than you expected."
     description Tag("adjacents")
-    room Tag("exit") "Inn hallway"
+    data_room Tag("exit") "Inn hallway"
     adjacents
         south "Inn hallway"
     items Array("room 3 window")
@@ -842,7 +852,7 @@
         "\n\2the bakery\0 to the \1north\0"
         "\n\2the shop\0 to the \1south\0, beyond the door,"
         "\nand \2the bar\0 stands to the \1west\0"
-    room Tag("enter") "Shop"
+    data_room Tag("enter") "Shop"
     adjacents
         north "Southeast plaza"
         east  "Bakery front"
@@ -858,7 +868,7 @@
         "There is only a door to the \1north\0 that leads out towards the \2the front\0"
     description Tag("items")
         "Several items catch your eye:"
-    room Tag("exit") "Shop front"
+    data_room Tag("exit") "Shop front"
     adjacents
         north "Shop front"
     items  Array("a town map" "an umbrella" "a lantern")
@@ -873,7 +883,7 @@
     description Tag("adjacents")
         "The door beckons you further \1eastward\0 into \2the bakery\0"
         "\nand \2the plaza\0 extends behind you in the \1west\0"
-    room Tag("enter") "Bakery"
+    data_room Tag("enter") "Bakery"
     adjacents
         east "Bakery"
         west "Southeast plaza"
@@ -888,7 +898,7 @@
         "\n\2the front\0 of the store lays behind you in the \1west\0"
     description Tag("items")
         "Inside the counter and perched on the shelves are: "
-    room Tag("exit") "Bakery front"
+    data_room Tag("exit") "Bakery front"
     adjacents
         west "Bakery front"
         east "Bakery kitchen"
@@ -901,7 +911,7 @@
     description Tag("adjacents")
         "\2The plaza\0 extends \1northward\0, "
         "\nand beyond the door in \1south\0 is \2the bar\0"
-    room Tag("enter") "Bar" 
+    data_room Tag("enter") "Bar" 
    adjacents
         north "Southwest plaza"
         east  "Shop front"
@@ -914,7 +924,7 @@
         "A bar."        
     description Tag("adjacents")
         "There is a door to the \1north\0 that leads towards \2the front\0."
-    room Tag("exit") "Bar front"
+    data_room Tag("exit") "Bar front"
     adjacents
         north "Bar front"
         up    "Bar billiard room"
@@ -925,7 +935,7 @@
     description
         "There are lots of large casks filled with beer, wine, and other alcoholic beverages."
     description Tag("adjacents")
-    room Tag("exit") "Bar"
+    data_room Tag("exit") "Bar"
     adjacents
         up "Bar"
 
@@ -934,7 +944,7 @@
     description
         "Bar billiard room"        
     description Tag("adjacents")
-    room Tag("exit") "Bar"
+    data_room Tag("exit") "Bar"
     adjacents
         down "Bar"
 
@@ -945,7 +955,7 @@
         "The only thing that differentiates it is the elaborate, "
         "flowing window curtains that block your view of what's inside."
     description Tag("adjacents")
-    room Tag("enter") "Tailor shop" 
+    data_room Tag("enter") "Tailor shop" 
     adjacents
         north "Thorn Lane"
         south "Tailor shop"
@@ -960,7 +970,7 @@
         "A tall man glances at you over his mechanical sewing machine."
     description Tag("adjacents")
     description Tag("items")
-    room Tag("exit") "Tailer shop front"
+    data_room Tag("exit") "Tailer shop front"
     adjacents
         north "Tailor shop front"
     items Array("leather sheet")
@@ -990,7 +1000,7 @@
     description Tag("examine" "repaired")
         "They are in peachy keen condition!"
     data_asset Tag("sound" "repaired") "sound_bellows_repaired"
-    data Tag("fixer")
+    data_item Tag("fixer")
         "leather sheet"
 
 : TAItem Name("organ pipes static" Array("pipe" "pipes") Array("organ")) Tag("static" "broken")
@@ -999,10 +1009,10 @@
     description Tag("examine" "repaired")
         "They are in fantastic condition. "
     data_asset Tag("sound" "repaired") "sound_pipes_repaired"
-    data Tag("fixer")
+    data_item Tag("fixer")
         "organ pipes"
 
-: TARoom Name("Cathedral front" Array("cathedral" "front") Array("cathedral"))
+: TARoom Name("Cathedral front" Array("cathedral" "church" "front") Array("cathedral" "church" ))
     area "Cathedral"
     description
         "The cathedral stands tall and proud right in front of you, radiating a certain holiness. "
@@ -1016,7 +1026,7 @@
         north "Cathedral nave"
         south "Southeast plaza"
 
-: TARoom Name("Cathedral nave" Array("cathedral" "nave") Array("cathedral"))
+: TARoom Name("Cathedral nave" Array("cathedral" "church" "nave") Array("cathedral" "church" ))
     area "Cathedral"
     description
         "Lines of stone pillars reach up into arches at a vaulted ceiling. "
@@ -1027,15 +1037,15 @@
         "\nbehind you to the \1south\0 stands \2the door\0,"
         "\nin the \1west\0 is an \2old spiral staircase\0 leading upwards"
         "\nand you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
-    room Tag("exit") "Cathedral front"
-    room Tag("enter") "Cathedral altar"
+    data_room Tag("exit") "Cathedral front"
+    data_room Tag("enter") "Cathedral altar"
     adjacents
         north     "Cathedral altar"
         northeast "Cathedral organ console"
         south     "Cathedral front"
         west      "Cathedral spiral staircase"
 
-: TARoom Name("Cathedral altar" Array("altar") Array("cathedral"))
+: TARoom Name("Cathedral altar" Array("altar") Array("cathedral" "church"))
     area "Cathedral"
     description
         "You cannot help but feel that you are in the presence of a spiritual being..."
@@ -1043,13 +1053,13 @@
         "Behind you in the \1south\0 is \2the nave\0, "
         "\n\2the organ console\0 to the \1east\0, "
         "\nand another door leads \1west\0 towards \2the vestry\0"
-    room Tag("exit") "Cathedral nave"
+    data_room Tag("exit") "Cathedral nave"
     adjacents
         east  "Cathedral organ console"
         south "Cathedral nave"
         west  "Cathedral vestry"
 
-: TARoom Name("Cathedral vestry" Array("vestry") Array("cathedral"))
+: TARoom Name("Cathedral vestry" Array("vestry") Array("cathedral" "church"))
     area "Cathedral"
     description
         "This appears to be a room made for official church duties. "
@@ -1060,13 +1070,13 @@
     description Tag("adjacents")
         "Behind you in the \1south\0 is \2the nave\0, "
         "\nand a door connects to the \2the altar\0 in the \1east\0"
-    room Tag("exit") "Cathedral altar"
+    data_room Tag("exit") "Cathedral altar"
     adjacents
         east "Cathedral altar"
 # TODO(Tyler)        south "Cathedral nave" 
     items Array("small silver key")
 
-: TARoom Name("Cathedral organ console" Array("console" "organ") Array("cathedral" "organ")) Tag("organ")
+: TARoom Name("Cathedral organ console" Array("console" "organ") Array("cathedral" "organ" "church")) Tag("organ")
     area "Cathedral"
     description Tag("broken")
         "A \3once-great pipe organ\0 sits in neglected despair. "
@@ -1096,7 +1106,7 @@
         "Everything is perfect!"
     description Tag("adjacents")
         "The only exit is a door in the \1south\0 that leads to \2the organ console\0."
-    room Tag("exit") "Cathedral organ console"
+    data_room Tag("exit") "Cathedral organ console"
     adjacents
         south "Cathedral organ console"
     items Array("organ bellows static" "organ pipes static")
@@ -1105,7 +1115,7 @@
 #                              Bell tower rooms
 # //////////////////////////////////////////////////////////////////////////
 
-: TARoom Name("Cathedral spiral staircase" Array("spiral" "staircase") Array("cathedral" "spiral"))
+: TARoom Name("Cathedral spiral staircase" Array("spiral" "staircase") Array("cathedral" "spiral" "church"))
     area "Bell tower"
     description
         "You work your way up the spiral staircase. "
@@ -1115,14 +1125,14 @@
     description Tag("adjacents")
         "There is an exit leading to \2the nave\0 in the \1east\0, "
         "\nand the staircase leads \1upwards\0 to \2the programming room\0"
-    room Tag("exit") "Cathedral nave"
+    data_room Tag("exit") "Cathedral nave"
     adjacents
         east "Cathedral nave"
         up   "Bell tower programming room" Tag("bell-tower" "locked")
     items Array("bell tower key")
 
-: TARoom Name("Bell tower programming room" Array("programming" "room" "bell" "tower") 
-                                            Array("bell" "tower" "programming"))
+: TARoom Name("Bell tower programming room" Array("programming" "room" "bell" "tower" "carillon") 
+                                            Array("bell" "tower" "programming" "carillon"))
     area "Bell tower"
     description
     description Tag("adjacents")
@@ -1137,7 +1147,7 @@
     description
     description Tag("adjacents")
         "There is only an open door in the \1east\0 connecting to the \2programming room\0"
-    room Tag("exit") "Bell tower storage room"
+    data_room Tag("exit") "Bell tower storage room"
     adjacents
         east "Bell tower programming room"
 
@@ -1167,7 +1177,7 @@
 #        "Every reddish brown roof in the town appears tiny and almost insignificnat from this height. "
 #        "The surrounding canal, wears a beatiful blue and reflects the only gleam of sunlight to have penetrated the cloudy skies. "
 #        "Behind you is an incredible "
-    room Tag("exit") "Bell tower belfrey"
+    data_room Tag("exit") "Bell tower belfrey"
     description Tag("adjacents")
         ""
     adjacents

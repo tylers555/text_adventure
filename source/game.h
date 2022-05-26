@@ -113,4 +113,7 @@ struct ta_system {
     ta_map Map;
 };
 
+internal inline void 
+TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount);
+
 #endif //GAME_H

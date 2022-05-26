@@ -30,6 +30,7 @@ ta_system::Initialize(memory_arena *Arena){
     HashTableInsert(&CommandTable, "unlock",   CommandUnlock);
     HashTableInsert(&CommandTable, "repair",   CommandRepair);
     HashTableInsert(&CommandTable, "fix",      CommandRepair);
+    HashTableInsert(&CommandTable, "use",      CommandUse);
     
     HashTableInsert(&CommandTable, "testaddmoney", CommandTestAddMoney);
     HashTableInsert(&CommandTable, "testsubmoney", CommandTestSubMoney);
@@ -68,6 +69,21 @@ ta_system::Initialize(memory_arena *Arena){
     OrganState = AssetTag_Broken;
 }
 
+internal inline void
+TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount){
+    command_func *Func = 0;
+    for(u32 I=0; I < TokenCount; I++){
+        char *Word = Tokens[I];
+        CStringMakeLower(Word);
+        Func = HashTableFind(&TA->CommandTable, (const char *)Word);
+        if(Func) break;
+    }
+    if(Func){
+        (*Func)(Mixer, TA, Assets, Tokens, TokenCount);
+    }else{
+        TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
+    }
+}
 
 //~ 
 internal inline void
@@ -252,20 +268,8 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
                 command_func *Callback = TA->Callback;
                 TA->Callback = 0;
                 (*Callback)(Mixer, TA, Assets, Tokens, TokenCount);
-                
             }else{
-                command_func *Func = 0;
-                for(u32 I=0; I < TokenCount; I++){
-                    char *Word = Tokens[I];
-                    CStringMakeLower(Word);
-                    Func = HashTableFind(&TA->CommandTable, (const char *)Word);
-                    if(Func) break;
-                }
-                if(Func){
-                    (*Func)(Mixer, TA, Assets, Tokens, TokenCount);
-                }else{
-                    TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
-                }
+                TADispatchCommand(Mixer, TA, Assets, Tokens, TokenCount);
             }
             Input->BeginTextInput();
         }

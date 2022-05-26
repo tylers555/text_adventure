@@ -407,7 +407,7 @@ b8 CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
 }
 
 b8 CommandWait(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
-    
+    TA->Respond("Not yet implemented!");
     return true;
 }
 
@@ -421,13 +421,13 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     b8 FixedSomething = false;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
-        
         Item = FoundItem->Item;
+        
         if(!HasTag(Item->Tag, AssetTag_Broken)){
             continue;
         }
         
-        ta_data *Data = TAFindData(&Item->Datas, TADataType_Description, AssetTag(AssetTag_Fixer));
+        ta_data *Data = TAFindData(&Item->Datas, TADataType_Item, AssetTag(AssetTag_Fixer));
         if(!Data){
             TA->Respond("That cannot be fixed!");
             continue;
@@ -435,12 +435,7 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         
         for(u32 J=0; J<TA->Inventory.Count; J++){
             ta_id FixerItemID = TA->Inventory[J];
-            ta_item *FixerItem = HashTableFindPtr(&TA->ItemTable, FixerItemID);
-            if(!FixerItem) return false;
-            if(!HasTag(FixerItem->Tag, AssetTag_Fixer)) continue;
-            if(!CompareStrings(Data->Data, FixerItem->Name)){
-                continue;
-            }
+            if(FixerItemID != Data->TAID) continue;
             
             SwitchTag(&Item->Tag, AssetTag_Broken, AssetTag_Repaired);
             ArrayOrderedRemove(&TA->Inventory, J);
@@ -457,6 +452,33 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     if(!FixedSomething && Item && !HasTag(Item->Tag, AssetTag_Broken)) TA->Respond("That is not broken!");
     
     return true;
+}
+
+b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    ta_room *Room = TA->CurrentRoom;
+    
+    ta_found_items FoundItems =  TAFindItems(TA, &TA->Inventory, Words, WordCount);
+    //TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
+    
+    for(u32 I=0; I<FoundItems.Items.Count; I++){
+        ta_found_item *FoundItem = &FoundItems.Items[I];
+        ta_item *Item = FoundItem->Item;
+        
+        ta_data *Data = TAFindData(&Item->Datas, TADataType_Command, AssetTag(AssetTag_Use));
+        if(!Data){
+            TA->Respond("I don't know how to use that!");
+            continue;
+        }
+        
+        u32 TokenCount;
+        char **Tokens = TokenizeCommand(&TransientStorageArena, Data->Data, &TokenCount);
+        TADispatchCommand(Mixer, TA, Assets, Tokens, TokenCount);
+        
+        return true;
+    }
+    
+    TA->Respond("I'm afraid you don't have that!");
+    return false;
 }
 
 //~ Testing commands

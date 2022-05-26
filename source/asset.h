@@ -55,6 +55,7 @@ enum asset_tag_id {
     AssetTag_Bread,
     AssetTag_Exit,
     AssetTag_Enter,
+    AssetTag_Use,
     
     AssetTag_TOTAL
 };
@@ -188,7 +189,9 @@ enum ta_data_type {
     TADataType_None,
     TADataType_Asset,
     TADataType_Room,
+    TADataType_Item,
     TADataType_Description,
+    TADataType_Command,
 };
 
 struct ta_data {

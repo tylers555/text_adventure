@@ -103,6 +103,7 @@ asset_system::InitializeLoader(memory_arena *Arena){
     HashTableInsert(&TagTable, "bread",      AssetTag_Bread);
     HashTableInsert(&TagTable, "exit",       AssetTag_Exit);
     HashTableInsert(&TagTable, "enter",      AssetTag_Enter);
+    HashTableInsert(&TagTable, "use",        AssetTag_Use);
     
     LoadedImageTable = MakeHashTable<const char *, image>(Arena, 256);
 }
@@ -736,7 +737,9 @@ asset_system::ProcessTARoom(){
         
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
-        }else if(DoAttribute(Attribute, "room")){ 
+        }else if(DoAttribute(Attribute, "data_command")){
+            if(!ProcessTADescription(&Descriptions, TADataType_Command)) return false;
+        }else if(DoAttribute(Attribute, "data_room")){ 
             ta_data *Data = PushStruct(&Memory, ta_data);
             Data->Type = TADataType_Room;
             Data->Tag = MaybeExpectTag();
@@ -821,8 +824,16 @@ asset_system::ProcessTAItem(){
         const char *Attribute = Expect(&Reader, Identifier);
         if(DoAttribute(Attribute, "description")){ 
             if(!ProcessTADescription(&Descriptions)) return false;
-        }else if(DoAttribute(Attribute, "data")){ 
-            if(!ProcessTADescription(&Descriptions)) return false;
+        }else if(DoAttribute(Attribute, "data_command")){
+            if(!ProcessTADescription(&Descriptions, TADataType_Command)) return false;
+        }else if(DoAttribute(Attribute, "data_item")){ 
+            ta_data *Data = PushStruct(&Memory, ta_data);
+            Data->Type = TADataType_Item;
+            Data->Tag = MaybeExpectTag();
+            HandleError(&Reader);
+            const char *S = Expect(&Reader, String);
+            Data->TAID = TAIDByName(TA, S);
+            ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "data_asset")){
             ta_data *Data = PushStruct(&Memory, ta_data);
             Data->Type = TADataType_Asset;
