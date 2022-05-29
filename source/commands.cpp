@@ -80,7 +80,7 @@ HighestMatch = Match; \
         DIRECTIONS
 #undef DIRECTIONS
         
-        if(HighestMatch < WORD_MATCH_THRESHOLD){
+        if(HighestMatch <= WORD_MATCH_THRESHOLD){
             continue;
         }
         

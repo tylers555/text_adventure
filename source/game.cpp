@@ -63,13 +63,13 @@ HighestMatch = Match; \
         TEST_COMMAND("testsubmoney", CommandTestSubMoney);
 #undef TEST_COMMAND
         
-        if(HighestMatch > WORD_MATCH_THRESHOLD) break;
+        if(HighestMatch > WORD_MATCH_THRESHOLD){
+            (*Func)(Mixer, TA, Assets, Tokens, TokenCount);
+            return;
+        }
     }
-    if(Func){
-        (*Func)(Mixer, TA, Assets, Tokens, TokenCount);
-    }else{
-        TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
-    }
+    
+    TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
 }
 
 
