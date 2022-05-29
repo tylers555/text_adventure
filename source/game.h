@@ -146,6 +146,7 @@ DIRECTION("upward",        Direction_Up) \
 DIRECTION("downward",      Direction_Down) \
 
 #define POSITIVES \
+WORD("y") \
 WORD("yes") \
 WORD("yeah") \
 WORD("yep") \
@@ -153,9 +154,10 @@ WORD("sure") \
 WORD("absolutely") \
 WORD("ok") \
 WORD("nay") \
-WORD("positive")
+WORD("positive") \
 
 #define NEGATIVES \
+WORD("n") \
 WORD("no") \
 WORD("nah") \
 WORD("nay") \
