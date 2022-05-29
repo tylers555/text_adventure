@@ -76,37 +76,12 @@ asset_system::InitializeLoader(memory_arena *Arena){
     HashTableInsert(&ASCIITable, "AT_SIGN",              '@');
     
     TagTable = MakeHashTable<const char *, asset_tag_id>(Arena, AssetTag_TOTAL);
-    HashTableInsert(&TagTable, "play",       AssetTag_Play);
-    HashTableInsert(&TagTable, "take",       AssetTag_Take);
-    HashTableInsert(&TagTable, "examine",    AssetTag_Examine);
-    HashTableInsert(&TagTable, "eat",        AssetTag_Eat);
-    HashTableInsert(&TagTable, "activate",   AssetTag_Activate);
-    HashTableInsert(&TagTable, "talk",       AssetTag_Talk);
-    HashTableInsert(&TagTable, "repair",     AssetTag_Repair);
-    HashTableInsert(&TagTable, "organ",      AssetTag_Organ);
-    HashTableInsert(&TagTable, "bell-tower", AssetTag_BellTower);
-    HashTableInsert(&TagTable, "broken",     AssetTag_Broken);
-    HashTableInsert(&TagTable, "repaired",   AssetTag_Repaired);
-    HashTableInsert(&TagTable, "locked",     AssetTag_Locked);
-    HashTableInsert(&TagTable, "open-dawn",  AssetTag_OpenDawn);
-    HashTableInsert(&TagTable, "open-noon",  AssetTag_OpenNoon);
-    HashTableInsert(&TagTable, "open-dusk",  AssetTag_OpenDusk);
-    HashTableInsert(&TagTable, "open-night", AssetTag_OpenNight);
-    HashTableInsert(&TagTable, "items",      AssetTag_Items);
-    HashTableInsert(&TagTable, "adjacents",  AssetTag_Adjacents);
-    HashTableInsert(&TagTable, "sound",      AssetTag_Sound);
-    HashTableInsert(&TagTable, "static",     AssetTag_Static);
-    HashTableInsert(&TagTable, "key",        AssetTag_Key);
-    HashTableInsert(&TagTable, "map",        AssetTag_Map);
-    HashTableInsert(&TagTable, "light",      AssetTag_Light);
-    HashTableInsert(&TagTable, "fixer",      AssetTag_Fixer);
-    HashTableInsert(&TagTable, "bread",      AssetTag_Bread);
-    HashTableInsert(&TagTable, "exit",       AssetTag_Exit);
-    HashTableInsert(&TagTable, "enter",      AssetTag_Enter);
-    HashTableInsert(&TagTable, "use",        AssetTag_Use);
+#define ASSET_TAG(S, N) HashTableInsert(&TagTable, S, AssetTag_##N);
+    ASSET_TAGS;
+#undef ASSET_TAG
     
 #define DIRECTION(Name, Direction) HashTableInsert(&DirectionTable, Name, Direction);
-    DirectionTable = MakeHashTable<const char *, direction>(Arena, 2*Direction_TOTAL);
+    DirectionTable = MakeHashTable<const char *, direction>(Arena, 3*Direction_TOTAL);
     DIRECTIONS;
 #undef DIRECTION
     

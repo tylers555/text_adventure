@@ -18,12 +18,17 @@ ta_system::Initialize(memory_arena *Arena){
 internal inline void
 TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount){
     command_func *Func = 0;
+    f32 HighestMatch = 0.0f;
     for(u32 I=0; I < TokenCount; I++){
         char *Word = Tokens[I];
         CStringMakeLower(Word);
         
-#define TEST_COMMAND(Name, Command) else if(CompareWords(Word, Name)) Func = Command
-        if(0);
+#define TEST_COMMAND(Name, Command) { f32 Match = CompareWordsPercentage(Word, Name); \
+if(Match > HighestMatch){ \
+Func = Command; \
+HighestMatch = Match; \
+} \
+}
         TEST_COMMAND("go",       CommandMove);
         TEST_COMMAND("move",     CommandMove);
         TEST_COMMAND("exit",     CommandExit);
@@ -58,7 +63,7 @@ TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char 
         TEST_COMMAND("testsubmoney", CommandTestSubMoney);
 #undef TEST_COMMAND
         
-        if(Func) break;
+        if(HighestMatch > WORD_MATCH_THRESHOLD) break;
     }
     if(Func){
         (*Func)(Mixer, TA, Assets, Tokens, TokenCount);

@@ -83,8 +83,6 @@ struct ta_system {
     hash_table<ta_id, console_theme> ThemeTable;
     console_theme Theme;
     
-    
-    
     hash_table<ta_id, ta_room> RoomTable;
     hash_table<ta_id, ta_item> ItemTable;
     
@@ -97,8 +95,11 @@ struct ta_system {
     const char *StartRoomName;
     ta_room *CurrentRoom;
     
-    command_func *Callback;
     string_builder ResponseBuilder;
+    command_func *Callback;
+    union {
+        u32 BuyItemIndex;
+    };
     
     void Initialize(memory_arena *Arena);
     inline b8 AddItem(ta_id Item);
@@ -133,7 +134,37 @@ DIRECTION("w",  Direction_West) \
 DIRECTION("nw", Direction_NorthWest) \
 DIRECTION("u",  Direction_Up) \
 DIRECTION("d",  Direction_Down) \
+DIRECTION("northward",     Direction_North) \
+DIRECTION("northeastward", Direction_NorthEast) \
+DIRECTION("eastward",      Direction_East) \
+DIRECTION("southeastward", Direction_SouthEast) \
+DIRECTION("southward",     Direction_South) \
+DIRECTION("southwestward", Direction_SouthWest) \
+DIRECTION("westward",      Direction_West) \
+DIRECTION("northwestward", Direction_NorthWest) \
+DIRECTION("upward",        Direction_Up) \
+DIRECTION("downward",      Direction_Down) \
 
+#define POSITIVES \
+WORD("yes") \
+WORD("yeah") \
+WORD("yep") \
+WORD("sure") \
+WORD("absolutely") \
+WORD("ok") \
+WORD("nay") \
+WORD("positive")
+
+#define NEGATIVES \
+WORD("no") \
+WORD("nah") \
+WORD("nay") \
+WORD("nope") \
+WORD("nada") \
+WORD("negative")
+
+
+global_constant f32 WORD_MATCH_THRESHOLD = 0.5f;
 
 internal inline void 
 TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount);

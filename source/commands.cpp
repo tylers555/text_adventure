@@ -3,29 +3,30 @@
 b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *FoundRoom = 0;
     u32 FoundIndex = 0;
-    ta_compare_name Found = MakeTACompareName();
+    ta_name_comparison Found = MakeTANameComparison();
     b8 IsAmbiguous = false;
     
     for(u32 I=0; I < Direction_TOTAL; I++){
         ta_room *Room = HashTableFindPtr(&TA->RoomTable, TA->CurrentRoom->Adjacents[I]);
         if(!Room) continue;
         
-        ta_compare_name Comparison = TACompareWordsAndName(&Room->NameData, Words, WordCount);
+        ta_name_comparison Comparison = TACompareWordsAndName(&Room->NameData, Words, WordCount);
         
         if(Comparison.FoundWordIndex >= 0){
             if(Found.FoundWordIndex >= 0){
+                // TODO(Tyler): I'm not quite sure what the behavior here ought to be yet.
                 if(Found.FoundWordIndex >= Comparison.FoundWordIndex){
                     if(Comparison.Weight > Found.Weight){
                         FoundRoom = Room;
                         FoundIndex = I;
                         Found = Comparison;
                     }else if(Comparison.Weight == Found.Weight){
-                        //FoundSomething = true;
                         IsAmbiguous = true;
+                        break;
                     }
                 }else{
-                    // TODO(Tyler): Handle this!
-                    Assert(0);
+                    IsAmbiguous = true;
+                    break;
                 }
             }else{
                 FoundRoom = Room;
@@ -37,7 +38,7 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ch
     
     if(IsAmbiguous){
         TA->Respond("I don't know where you want to move! Please be more specific!");
-        
+        TA->Callback = HelperCommandGoTo;
         return true;
     }
     
@@ -68,12 +69,18 @@ b8 CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     for(u32 I=0; I < WordCount; I++){
         char *Word = Words[I];
         direction Direction = Direction_None;
-#define DIRECTION(Name, D) else if(CompareWords(Word, Name)) Direction = D;
-        if(0); 
+        
+        f32 HighestMatch = 0.0f;
+#define DIRECTION(Name, D) { f32 Match = CompareWordsPercentage(Word, Name); \
+if(Match > HighestMatch) { \
+Direction = D; \
+HighestMatch = Match; \
+} \
+}
         DIRECTIONS
 #undef DIRECTIONS
         
-        if(!Direction){
+        if(HighestMatch < WORD_MATCH_THRESHOLD){
             continue;
         }
         
@@ -198,6 +205,49 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
 }
 
 //~ Item commands
+
+b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    ta_room *Room = TA->CurrentRoom;
+    ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[TA->BuyItemIndex]);
+    if(!Item){
+        LogMessage("Item does not exist!");
+        TA->Respond("ERROR: Item does not exist!");
+        return false;
+    }
+    
+    f32 PositiveWeight = 0.0f;
+    f32 NegativeWeight = 0.0f;
+    for(u32 I=0; I<WordCount; I++){
+        const char *Word = Words[I];
+#define WORD(Name) { f32 M = CompareWordsPercentage(Word, Name); if(M > PositiveWeight) PositiveWeight = M; }
+        POSITIVES
+#undef WORD
+#define WORD(Name) { f32 M = CompareWordsPercentage(Word, Name); if(M > NegativeWeight) NegativeWeight = M; }
+        NEGATIVES
+#undef WORD
+    }
+    
+    if(Maximum(PositiveWeight, NegativeWeight) <= WORD_MATCH_THRESHOLD){
+        TA->Respond("Do you want to buy %s, yes or no?", Item->Name);
+        TA->Callback = CallbackConfirmBuy;
+    }else if(PositiveWeight > NegativeWeight){
+        if(TA->AddItem(Room->Items[TA->BuyItemIndex])) TARoomRemoveItem(TA, Room, TA->BuyItemIndex);
+        else return false;
+        TA->Money -= Item->Cost;
+        Item->Dirty = true;
+        Item->Cost = 0;
+        
+        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
+        
+        ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
+        if(Description) TA->Respond(Description->Data);
+    }else{
+        TA->Respond("Item not bought!");
+    }
+    
+    return true;
+}
+
 b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
@@ -217,7 +267,10 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
             continue;
         }else if(Item->Cost > 0){
             TA->Respond("You're going to have to \002\002buy\002\001 that!");
-            continue;
+            TA->Respond("Do you want to buy that?");
+            TA->Callback = CallbackConfirmBuy;
+            TA->BuyItemIndex = Index-RemovedItems;
+            break;
         }
         
         if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
@@ -254,12 +307,6 @@ b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     return true;
 }
 
-b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
-    Assert(0);
-    
-    return true;
-}
-
 b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
@@ -279,7 +326,7 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         }
         
         if(Item->Cost == 0){
-            TA->Respond("You don't have to \002\002pay\002\001 for that!");
+            TA->Respond("You don't have to \002\002buy\002\001 that!");
             if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
             else return false;
             RemovedItems++;
@@ -289,17 +336,10 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
             TA->Respond(Description->Data);
             Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
         }else if(TA->Money >= Item->Cost){
-            if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
-            else return false;
-            RemovedItems++;
-            TA->Money -= Item->Cost;
-            Item->Dirty = true;
-            Item->Cost = 0;
-            
-            ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
-            if(!Description) continue;
-            TA->Respond(Description->Data);
-            Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
+            TA->Respond("Are you sure you want to buy that?");
+            TA->Callback = CallbackConfirmBuy;
+            TA->BuyItemIndex = Index-RemovedItems;
+            break;
         }else{
             TA->Respond("You don't have enough \002\002money\002\001 for that!");
             continue;
@@ -335,9 +375,14 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         RemovedItems++;
     }
     
-    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_eaten)));
-    
-    return true;
+    if(RemovedItems > 0){
+        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_eaten)));
+        return true;
+    }else{
+        TA->Respond("What do you want to eat!?!?"); 
+        TA->Callback = CommandEat;
+    }
+    return false;
 }
 
 b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){

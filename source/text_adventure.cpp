@@ -54,11 +54,13 @@ TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
         
         u32 Next = SeekForward(Command, CommandLength, CurrentIndex);
         u32 WordLength = Next-CurrentIndex;
-        Assert(Count < MAX_COMMAND_TOKENS);
-        Result[Count] = PushArray(Arena, char, WordLength+1);
-        CopyMemory(Result[Count], &Command[CurrentIndex], WordLength);
-        Result[Count][WordLength] = 0;
-        Count++;
+        if(WordLength > 0){
+            Assert(Count < MAX_COMMAND_TOKENS);
+            Result[Count] = PushArray(Arena, char, WordLength+1);
+            CopyMemory(Result[Count], &Command[CurrentIndex], WordLength);
+            Result[Count][WordLength] = 0;
+            Count++;
+        }
         
         CurrentIndex = Next;
     }
@@ -67,8 +69,8 @@ TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
     return Result;
 }
 
-internal inline b8
-CompareWords(const char *A, const char *B){
+internal inline f32
+CompareWordsPercentage(const char *A, const char *B){
 #if 0
     while(*A && *B){
         if(*A != *B){
@@ -103,16 +105,20 @@ CompareWords(const char *A, const char *B){
         Swap(V0, V1);
     }
     
-    // TODO(Tyler): This part could possibly use improvement and tuning.
-    // Parhaps a curve of some sort would be good for this?
     f32 Result = 1.0f - ((f32)V0[N] / (f32)Maximum(M, N));
-    return (Result > 0.5f);
+    return Result;
+}
+
+internal inline b8
+CompareWords(const char *A, const char *B){
+    b8 Result = CompareWordsPercentage(A, B) > WORD_MATCH_THRESHOLD;
+    return Result;
 }
 
 struct ta_found_item {
     ta_item *Item;
     u32 ItemIndex;
-    s32 Weight;
+    f32 Weight;
     u32 WordIndex;
 };
 
@@ -121,46 +127,49 @@ struct ta_found_items {
     b8 IsAmbiguous;
 };
 
-struct ta_compare_name {
+struct ta_name_comparison {
     s32 FoundWordIndex;
-    s32 Weight;
+    s32 MatchingWords;
+    f32 Weight; // Sum of all the match percentages
 };
 
-internal inline ta_compare_name
-MakeTACompareName(){
-    ta_compare_name Result;
+internal inline ta_name_comparison
+MakeTANameComparison(){
+    ta_name_comparison Result = {};
     Result.FoundWordIndex = -1;
-    Result.Weight = 0;
     return Result;
 }
 
-internal inline ta_compare_name
+internal inline ta_name_comparison
 TACompareWordsAndName(ta_name *NameData, char **Words, u32 WordCount){
-    ta_compare_name Result = MakeTACompareName();
+    ta_name_comparison Result = MakeTANameComparison();
     for(u32 WordIndex=0; WordIndex<WordCount; WordIndex++){
         const char *Word = Words[WordIndex];
         
-        b8 JustFoundAdjective = false;
+        f32 AdjectiveMatch = 0.0f;
         for(u32 AdjectiveIndex=0; AdjectiveIndex<NameData->Adjectives.Count; AdjectiveIndex++){
             const char *Adjective = NameData->Adjectives[AdjectiveIndex];
-            if(CompareWords(Word, Adjective)){
-                JustFoundAdjective = true;
-                break;
+            f32 M = CompareWordsPercentage(Word, Adjective);
+            if(M > AdjectiveMatch){
+                AdjectiveMatch = M;
             }
         }
         
-        b8 JustFoundAlias = false;
+        f32 AliasMatch = 0.0f;
         for(u32 AliasIndex=0; AliasIndex<NameData->Aliases.Count; AliasIndex++){
             const char *Alias = NameData->Aliases[AliasIndex];
-            if(CompareWords(Word, Alias)){
-                Result.FoundWordIndex = WordIndex;
-                JustFoundAlias = true;
-                break;
+            f32 M = CompareWordsPercentage(Word, Alias);
+            if(M > AliasMatch){
+                AliasMatch = M;
+                if(M > WORD_MATCH_THRESHOLD) Result.FoundWordIndex = WordIndex;
             }
         }
         
-        if(JustFoundAlias  || JustFoundAdjective) Result.Weight++;
-        if(!JustFoundAlias && (Result.FoundWordIndex >= 0)) break;
+        if((AliasMatch > WORD_MATCH_THRESHOLD) || (AdjectiveMatch > WORD_MATCH_THRESHOLD)){
+            Result.MatchingWords++;
+            Result.Weight += Maximum(AliasMatch, AdjectiveMatch);
+        }
+        if((AliasMatch <= WORD_MATCH_THRESHOLD) && (Result.FoundWordIndex >= 0)) break;
     }
     
     return Result;
@@ -172,7 +181,7 @@ TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCo
         ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
         if(!Item) continue;
         
-        ta_compare_name Comparison = TACompareWordsAndName(&Item->NameData, Words, WordCount);
+        ta_name_comparison Comparison = TACompareWordsAndName(&Item->NameData, Words, WordCount);
         
         if(Comparison.FoundWordIndex >= 0){
             b8 FoundSomething = false;
@@ -233,6 +242,13 @@ TAFindItemByTag(ta_system *TA, array<ta_id> *Items, asset_tag Tag){
     }
     
     return -1;
+}
+
+internal inline b8
+DoTANameComparisonsOverlap(ta_name_comparison Old, ta_name_comparison New){
+    b8 Result = ((New.FoundWordIndex >= Old.FoundWordIndex) && 
+                 (New.FoundWordIndex < Old.FoundWordIndex+Old.Weight));
+    return Result;
 }
 
 //~

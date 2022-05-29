@@ -18,47 +18,45 @@ struct image {
 global_constant u32 SJA_MAX_ARRAY_ITEM_COUNT = 256;
 global_constant u32 MAX_ASSETS_PER_TYPE = 128;
 
+#define ASSET_TAGS \
+ASSET_TAG("play",       Play) \
+ASSET_TAG("take",       Take) \
+ASSET_TAG("examine",    Examine) \
+ASSET_TAG("eat",        Eat) \
+ASSET_TAG("activate",   Activate) \
+ASSET_TAG("talk",       Talk) \
+ASSET_TAG("repair",     Repair) \
+ASSET_TAG("organ",      Organ) \
+ASSET_TAG("bell-tower", BellTower) \
+ASSET_TAG("broken",     Broken) \
+ASSET_TAG("repaired",   Repaired) \
+ASSET_TAG("locked",     Locked) \
+ASSET_TAG("open-dawn",  OpenDawn) \
+ASSET_TAG("open-noon",  OpenNoon) \
+ASSET_TAG("open-dusk",  OpenDusk) \
+ASSET_TAG("open-night", OpenNight) \
+ASSET_TAG("items",      Items) \
+ASSET_TAG("adjacents",  Adjacents) \
+ASSET_TAG("sound",      Sound) \
+ASSET_TAG("static",     Static) \
+ASSET_TAG("key",        Key) \
+ASSET_TAG("map",        Map) \
+ASSET_TAG("light",      Light) \
+ASSET_TAG("fixer",      Fixer) \
+ASSET_TAG("bread",      Bread) \
+ASSET_TAG("exit",       Exit) \
+ASSET_TAG("enter",      Enter) \
+ASSET_TAG("use",        Use) \
+
+#define ASSET_TAG(S, N) AssetTag_##N,
 enum asset_tag_id {
     AssetTag_None = 0,
-    AssetTag_Play,
-    AssetTag_Take,
-    AssetTag_Examine,
-    AssetTag_Eat,
-    AssetTag_Activate,
-    AssetTag_Talk,
-    AssetTag_Repair,
     
-    AssetTag_Organ,
-    AssetTag_BellTower,
-    
-    AssetTag_Broken,
-    AssetTag_Repaired,
-    
-    AssetTag_Locked,
-    AssetTag_OpenDawn,
-    AssetTag_OpenNoon,
-    AssetTag_OpenDusk,
-    AssetTag_OpenNight,
-    
-    AssetTag_Dark,
-    
-    AssetTag_Items,
-    AssetTag_Adjacents,
-    AssetTag_Sound,
-    
-    AssetTag_Static,
-    AssetTag_Key,
-    AssetTag_Map,
-    AssetTag_Light,
-    AssetTag_Fixer,
-    
-    AssetTag_Bread,
-    AssetTag_Exit,
-    AssetTag_Enter,
-    AssetTag_Use,
-    
-    AssetTag_TOTAL
+    ASSET_TAGS
+        
+        AssetTag_TOTAL
 };
+#undef ASSET_TAG
 
 union asset_tag {
     struct {
