@@ -8,7 +8,6 @@ ta_system::Initialize(memory_arena *Arena){
     ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
     
     ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, 8);
-    Theme = MakeDefaultConsoleTheme();
     
     //~ Game specific data
     OrganState = AssetTag_Broken;
@@ -69,7 +68,7 @@ HighestMatch = Match; \
         }
     }
     
-    TA->Respond("That is not a valid command!\n\002\002You fool\002\001!!!");
+    TA->Respond(GetVar(Assets, invalid_command));
 }
 
 
@@ -85,19 +84,19 @@ UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_syste
     DO_DEBUG_INFO();
     
     ta_system *TA = &TextAdventure;
-    console_theme *Theme = &TA->Theme;
+    console_theme *Theme = HashTableFindPtr(&TA->ThemeTable, GetVarTAID(Assets, theme));
     Renderer->NewFrame(&TransientStorageArena, Input->WindowSize, Theme->BackgroundColor);
     
     if(!TA->CurrentRoom){
         Input->BeginTextInput();
-        TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TA->StartRoomID);
+        TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, GetVarTAID(Assets, start_room));
         if(!TA->CurrentRoom){
-            TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TAIDByName(TA, "Plaza SE"));
+            TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TAIDByName(TA, "Southeast plaza"));
             if(!TA->CurrentRoom){
                 LogMessage("CurrentRoom is not set!");
                 return;
             }else{
-                LogMessage("Room: '%s' does not exist!", Strings.GetString(TA->StartRoomName));
+                LogMessage("Room: '%s' does not exist!", GetVar(Assets, start_room));
             }
         }
         TA->Money = 10;

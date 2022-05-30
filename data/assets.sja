@@ -41,16 +41,47 @@
 # I don't like this having to be after the themes, this is currently required.
 # As such, this is a current limitation of the SJA system, and will be changed.
 # It would be better to have a hash table of variable names with values.
-: Variables
-    start_game_mode "main game"
-    start_room      "Bakery"
-    theme           "theme_default"
-    # theme "theme_planty"
+: SpecialCommands
     give_item       "a town map"
     give_item       "small silver key"
     give_item       "leather sheet"
     give_item       "organ pipes"
- 
+
+: Variables
+    ta_id "theme"           "theme_default"
+    var   "start_game_mode" "main game"
+    ta_id "start_room"      "Bakery"
+
+    var "invalid_command" "That is not a valid command!\n"
+                          "\1You fool\0!!!"
+    var "ambiguous_items" "You will have to be more specific, what item do you want to %s\n" 
+                          "Enter the item: "
+    var "room_too_small" "This room is much too \1small\0!"
+    var "pray_response" "You feel an incredible power flow around you."
+    var "goto_specific" "I don't know where you want to move! Please be mor specific!"
+    var "locked" "That way is locked, \1buddy-o\0!"
+    var "auto_unlock" "That way is locked, \1buddy-o\0!"
+    var "move_invalid_room" "Why would you want move that way!?\n"
+                            "Doing so would be quite \1foolish\0!"
+    var "move_invalid_all" "Don't you understand how to move!?\n"
+                           "You need to specify a direction or location, \1pal\0!"
+    var "exit_where" "Where do you exit to!?"
+    var "enter_where" "There is no where to enter!?"
+    var "buy_callback_prompt" "Do you want to buy %s, yes or no?"
+    var "buy_callback_no" "Item not bought!"
+    var "take_buy" "You're going to have to \1buy\0 that!"
+    var "take_buy_prompt" "Do you want to buy that?"
+    var "buy_static" "You couldn't possible hope to buy that!"
+    var "buy_free" "You don't have to \1buy\0 that!"
+    var "buy_prompt" "Are you sure you want to buy that?"
+    var "buy_too_poor" "You don't have enough \1money\0 for that!"
+    var "eat_cant" "You can't eat \1that\0!"
+    var "eat_invalid" "What do you want to eat!?!?"
+    var "repair_cant" "That can't be fixed!"
+    var "repair_not_broken" "That is not broken!"
+    var "use_dont_know" "I don't know how to use that!"
+    var "use_dont_have" "I'm afraid you don't have that!"
+
 # //////////////////////////////////////////////////////////////////////////
 #                                  Fonts
 # //////////////////////////////////////////////////////////////////////////

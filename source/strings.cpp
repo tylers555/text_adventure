@@ -50,7 +50,7 @@ struct string_manager {
     const char *GetPermanentString(const char *String);
     char *MakeBuffer();
     void  RemoveBuffer(char *Buffer);
-    template<typename T> T *GetInHashTablePtr(hash_table<string, T> *Table, const char *Key);
+    template<typename T> T *HashTableGetPtr(hash_table<string, T> *Table, const char *Key);
     template<typename T> T *HashTableFindPtr(hash_table<string, T> *Table, const char *Key);
 };
 
@@ -119,7 +119,7 @@ string_manager::RemoveBuffer(char *Buffer){
 }
 
 template<typename T> T *
-string_manager::GetInHashTablePtr(hash_table<string, T> *Table, const char *Key){
+string_manager::HashTableGetPtr(hash_table<string, T> *Table, const char *Key){
     string String = GetString(Key);
     T *Result = ::HashTableFindPtr(Table, String);
     if(!Result){

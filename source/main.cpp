@@ -84,7 +84,10 @@ DoDefaultHotkeys(){
 internal void
 GameUpdateAndRender(game_state *State){
     if(GameMode == GameMode_None){
-        GameMode = GameMode_MainGame;
+        const char *S = GetVar(&State->Assets, start_game_mode);
+        if(CompareStrings(S, "main game")) GameMode = GameMode_MainGame;
+        else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
+        else                               GameMode = GameMode_MainGame;
     }
     
     u64 Start = OSGetMicroseconds();

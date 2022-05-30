@@ -81,7 +81,6 @@ typedef b8 command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets,
 
 struct ta_system {
     hash_table<ta_id, console_theme> ThemeTable;
-    console_theme Theme;
     
     hash_table<ta_id, ta_room> RoomTable;
     hash_table<ta_id, ta_item> ItemTable;
@@ -91,8 +90,6 @@ struct ta_system {
     
     array<ta_id> Inventory;
     
-    ta_id StartRoomID;
-    const char *StartRoomName;
     ta_room *CurrentRoom;
     
     string_builder ResponseBuilder;

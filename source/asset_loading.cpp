@@ -412,6 +412,7 @@ asset_system::ProcessCommand(){
     const char *String = Expect(&Reader, Identifier);
     
     IfCommand(Ignore);
+    IfCommand(SpecialCommands);
     IfCommand(Variables);
     IfCommand(Theme);
     IfCommand(Font);
@@ -427,6 +428,28 @@ asset_system::ProcessCommand(){
 
 //~ Variables
 
+b8 asset_system::ProcessSpecialCommands(){
+    b8 Result = false;
+    ta_system *TA = &TextAdventure;
+    
+    while(true){
+        file_token Token = Reader.PeekToken();
+        HandleToken(Token);
+        const char *Attribute = Expect(&Reader, Identifier);
+        if(DoAttribute(Attribute, "give_item")){
+            const char *S = Expect(&Reader, String);
+            ta_id Item = TAIDByName(TA, S);
+            b8 FoundIt = false;
+            for(u32 I=0; I<TA->Inventory.Count; I++){
+                if(TA->Inventory[I] == Item) { FoundIt = true; break; }
+            }
+            if(!FoundIt) TA->AddItem(Item);
+        }
+    }
+    
+    return true;
+}
+
 b8
 asset_system::ProcessVariables(){
     b8 Result = false;
@@ -436,29 +459,19 @@ asset_system::ProcessVariables(){
         file_token Token = Reader.PeekToken();
         HandleToken(Token);
         const char *Attribute = Expect(&Reader, Identifier);
-        if(DoAttribute(Attribute, "start_game_mode")){
-            const char *S = Expect(&Reader, String);
-            if(GameMode == GameMode_None){
-                if(CompareStrings(S, "main game")) GameMode = GameMode_MainGame;
-                else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
-            }
-            
-        }else if(DoAttribute(Attribute, "start_room")){
-            const char *S = Expect(&Reader, String);
-            TA->StartRoomName = Strings.GetPermanentString(S);
-            TA->StartRoomID = TAIDByName(TA, S);
-        }else if(DoAttribute(Attribute, "theme")){
-            const char *S = Expect(&Reader, String);
-            console_theme *Theme = HashTableFindPtr(&TA->ThemeTable, TAIDByName(TA, S));
-            if(Theme) TA->Theme = *Theme; 
-        }else if(DoAttribute(Attribute, "give_item")){
-            const char *S = Expect(&Reader, String);
-            ta_id Item = TAIDByName(TA, S);
-            b8 FoundIt = false;
-            for(u32 I=0; I<TA->Inventory.Count; I++){
-                if(TA->Inventory[I] == Item) { FoundIt = true; break; }
-            }
-            if(!FoundIt) TA->AddItem(Item);
+        if(DoAttribute(Attribute, "var")){
+            const char *Name = Expect(&Reader, String);
+            string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+            ExpectDescriptionStrings(&Builder);
+            const char *Data = FinalizeStringBuilder(&Memory, &Builder);
+            asset_variable *Variable = Strings.HashTableGetPtr(&VariableTable, Name);
+            Variable->S = Data;
+        }else if(DoAttribute(Attribute, "ta_id")){
+            const char *Name = Expect(&Reader, String);
+            const char *Data = Expect(&Reader, String);
+            asset_variable *Variable = Strings.HashTableGetPtr(&VariableTable, Name);
+            Variable->S = Strings.GetPermanentString(Data);
+            Variable->TAID = TAIDByName(TA, Data);
         }else{ LogInvalidAttribute(Attribute); return false; }
     }
     
@@ -516,7 +529,7 @@ asset_system::ProcessSoundEffect(){
     b8 Result = false;
     
     const char *Name = Expect(&Reader, String);
-    asset_sound_effect *Sound = Strings.GetInHashTablePtr(&SoundEffectTable, Name);
+    asset_sound_effect *Sound = Strings.HashTableGetPtr(&SoundEffectTable, Name);
     if(Sound->Sound.Samples){
         ProcessIgnore();
         //LogError("Cannot change a sound after game has started");
@@ -552,7 +565,7 @@ asset_system::ProcessFont(){
     b8 Result = false;
     
     const char *Name = Expect(&Reader, String);
-    asset_font *Font = Strings.GetInHashTablePtr(&FontTable, Name);
+    asset_font *Font = Strings.HashTableGetPtr(&FontTable, Name);
     *Font = {};
     
     v2s CurrentOffset = V2S(0);
@@ -648,16 +661,9 @@ asset_system::ProcessFont(){
 
 //~ Text adventure rooms
 b8
-asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_data_type Type){
+asset_system::ExpectDescriptionStrings(string_builder *Builder){
     b8 Result = false;
     
-    asset_tag Tag = MaybeExpectTag();
-    HandleError(&Reader);
-    
-    string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
-    StringBuilderAddVar(&Builder, Type);
-    StringBuilderAddVar(&Builder, Tag);
-    Assert(Builder.BufferSize == offsetof(ta_data, Data));
     while(true){
         file_token Token = Reader.PeekToken();
         if(Token.Type != FileTokenType_String) break;
@@ -671,22 +677,37 @@ asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_da
                 char Next = S[I+1];
                 if(IsANumber(Next)){
                     Next -= '0';
-                    StringBuilderAdd(&Builder, '\002');
-                    StringBuilderAdd(&Builder, Next+1);
+                    StringBuilderAdd(Builder, '\002');
+                    StringBuilderAdd(Builder, Next+1);
                     I++;
                     continue;
                 }else if(Next == '\\') I++;
                 else if(Next == 'n'){
                     I++;
-                    StringBuilderAdd(&Builder, '\n');
+                    StringBuilderAdd(Builder, '\n');
                     continue;
                 }
             }
-            StringBuilderAdd(&Builder, C);
+            StringBuilderAdd(Builder, C);
             
         }
     }
     
+    return true;
+}
+
+b8
+asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_data_type Type){
+    b8 Result = false;
+    
+    asset_tag Tag = MaybeExpectTag();
+    HandleError(&Reader);
+    
+    string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+    StringBuilderAddVar(&Builder, Type);
+    StringBuilderAddVar(&Builder, Tag);
+    Assert(Builder.BufferSize == offsetof(ta_data, Data));
+    ExpectDescriptionStrings(&Builder);
     ta_data *Description = (ta_data *)FinalizeStringBuilder(&Memory, &Builder);
     ArrayAdd(Descriptions, Description);
     

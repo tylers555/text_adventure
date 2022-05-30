@@ -37,7 +37,7 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ch
     }
     
     if(IsAmbiguous){
-        TA->Respond("I don't know where you want to move! Please be more specific!");
+        TA->Respond(GetVar(Assets, goto_specific));
         TA->Callback = HelperCommandGoTo;
         return true;
     }
@@ -46,9 +46,9 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ch
         asset_tag *Tag = &TA->CurrentRoom->AdjacentTags[FoundIndex];
         if(HasTag(*Tag, AssetTag_Locked)){
             if(TAAttemptToUnlock(Mixer, TA, Assets, TA->CurrentRoom, Tag)){
-                TA->Respond("(unlocked)");
+                TA->Respond(GetVar(Assets, auto_unlock));
             }else{
-                TA->Respond("That way is locked, \002\002buddy-o\002\001!");
+                TA->Respond(GetVar(Assets, locked));
                 return true;
             }
         }
@@ -87,17 +87,17 @@ HighestMatch = Match; \
         ta_id NextRoomString = CurrentRoom->Adjacents[Direction];
         NextRoom = HashTableFindPtr(&TA->RoomTable, NextRoomString);
         if(!NextRoom){
-            TA->Respond("Why would you want move that way!?\nDoing so would be quite \002\002foolish\002\001!");
+            TA->Respond(GetVar(Assets, move_invalid_room));
             return false;
         }
         
         asset_tag *Tag = &CurrentRoom->AdjacentTags[Direction];
         if(HasTag(*Tag, AssetTag_Locked)){
             if(TAAttemptToUnlock(Mixer, TA, Assets, CurrentRoom, Tag)){
-                TA->Respond("(unlocked)");
+                TA->Respond(GetVar(Assets, auto_unlock));
                 break;
             }else{
-                TA->Respond("That way is locked, \002\002buddy-o\002\001!");
+                TA->Respond(GetVar(Assets, locked));
                 return false;
             }
         }else if(TAIsClosed(TA, *Tag)){
@@ -118,7 +118,7 @@ HighestMatch = Match; \
         return true;
     }
     
-    TA->Respond("Don't you understand how to move!?\nYou need to specify a direction or location, \002\002pal\002\001!");
+    TA->Respond(GetVar(Assets, move_invalid_all));
     return false;
 }
 
@@ -126,7 +126,8 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     ta_room *Room = TA->CurrentRoom;
     ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Exit));
     if(!Data){
-        TA->Respond("Where do you exit to!? TODO(Tyler): Make better");
+        // TODO(Tyler): Callback!
+        TA->Respond(GetVar(Assets, exit_where));
         return false;
     }
     
@@ -135,10 +136,10 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
             asset_tag *Tag = &Room->AdjacentTags[I];
             if(HasTag(*Tag, AssetTag_Locked)){
                 if(TAAttemptToUnlock(Mixer, TA, Assets, Room, Tag)){
-                    TA->Respond("(unlocked)");
+                    TA->Respond(GetVar(Assets, auto_unlock));
                     break;
                 }else{
-                    TA->Respond("That way is locked, \002\002buddy-o\002\001!");
+                    TA->Respond(GetVar(Assets, locked));
                     return false;
                 }
             }else if(TAIsClosed(TA, *Tag)){
@@ -170,7 +171,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
     ta_room *Room = TA->CurrentRoom;
     ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Enter));
     if(!Data){
-        TA->Respond("There is no where to enter!? TODO(Tyler): Make better");
+        TA->Respond(GetVar(Assets, enter_where));
         return false;
     }
     
@@ -179,10 +180,10 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
             asset_tag *Tag = &Room->AdjacentTags[I];
             if(HasTag(*Tag, AssetTag_Locked)){
                 if(TAAttemptToUnlock(Mixer, TA, Assets, Room, Tag)){
-                    TA->Respond("(unlocked)");
+                    TA->Respond(GetVar(Assets, auto_unlock));
                     break;
                 }else{
-                    TA->Respond("That way is locked, \002\002buddy-o\002\001!");
+                    TA->Respond(GetVar(Assets, locked));
                     return false;
                 }
             }else if(TAIsClosed(TA, *Tag)){
@@ -211,7 +212,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, c
     ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[TA->BuyItemIndex]);
     if(!Item){
         LogMessage("Item does not exist!");
-        TA->Respond("ERROR: Item does not exist!");
+        TA->Respond("ERROR!");
         return false;
     }
     
@@ -228,7 +229,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, c
     }
     
     if(Maximum(PositiveWeight, NegativeWeight) <= WORD_MATCH_THRESHOLD){
-        TA->Respond("Do you want to buy %s, yes or no?", Item->Name);
+        TA->Respond(GetVar(Assets, buy_callback_prompt), Item->Name);
         TA->Callback = CallbackConfirmBuy;
     }else if(PositiveWeight > NegativeWeight){
         if(TA->AddItem(Room->Items[TA->BuyItemIndex])) TARoomRemoveItem(TA, Room, TA->BuyItemIndex);
@@ -242,7 +243,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, c
         ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
         if(Description) TA->Respond(Description->Data);
     }else{
-        TA->Respond("Item not bought!");
+        TA->Respond(GetVar(Assets, buy_callback_no));
     }
     
     return true;
@@ -266,8 +267,8 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
             TA->Respond("%s", Description->Data);
             continue;
         }else if(Item->Cost > 0){
-            TA->Respond("You're going to have to \002\002buy\002\001 that!");
-            TA->Respond("Do you want to buy that?");
+            TA->Respond(GetVar(Assets, take_buy));
+            TA->Respond(GetVar(Assets, take_buy_prompt));
             TA->Callback = CallbackConfirmBuy;
             TA->BuyItemIndex = Index-RemovedItems;
             break;
@@ -321,12 +322,12 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         u32 Index = FoundItem->ItemIndex;
         
         if(HasTag(Item->Tag, AssetTag_Static)){
-            TA->Respond("You couldn't possible hope to buy that!");
+            TA->Respond(GetVar(Assets, buy_static));
             continue;
         }
         
         if(Item->Cost == 0){
-            TA->Respond("You don't have to \002\002buy\002\001 that!");
+            TA->Respond(GetVar(Assets, buy_free));
             if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
             else return false;
             RemovedItems++;
@@ -336,12 +337,12 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
             TA->Respond(Description->Data);
             Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
         }else if(TA->Money >= Item->Cost){
-            TA->Respond("Are you sure you want to buy that?");
+            TA->Respond(GetVar(Assets, buy_prompt));
             TA->Callback = CallbackConfirmBuy;
             TA->BuyItemIndex = Index-RemovedItems;
             break;
         }else{
-            TA->Respond("You don't have enough \002\002money\002\001 for that!");
+            TA->Respond(GetVar(Assets, buy_too_poor));
             continue;
         }
     }
@@ -362,7 +363,7 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         
         ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Eat));
         if(!Description){
-            TA->Respond("You can't eat \002\002that\002\001!");
+            TA->Respond(GetVar(Assets, eat_cant));
             continue;
         }
         TA->Respond(Description->Data);
@@ -379,7 +380,7 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_eaten)));
         return true;
     }else{
-        TA->Respond("What do you want to eat!?!?"); 
+        TA->Respond(GetVar(Assets, eat_invalid)); 
         TA->Callback = CommandEat;
     }
     return false;
@@ -447,9 +448,9 @@ b8 CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         asset_tag Tag = CurrentRoom->AdjacentTags[I];
         if(!HasTag(Tag, AssetTag_Locked)) continue;
         if(TAAttemptToUnlock(Mixer, TA, Assets, CurrentRoom, &Tag)){
-            TA->Respond("Unlocked!");
+            TA->Respond(GetVar(Assets, auto_unlock));
         }else{
-            TA->Respond("You can't unlock that!");
+            TA->Respond(GetVar(Assets, locked));
         }
     }
     
@@ -479,7 +480,7 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         
         ta_data *Data = TAFindData(&Item->Datas, TADataType_Item, AssetTag(AssetTag_Fixer));
         if(!Data){
-            TA->Respond("That cannot be fixed!");
+            TA->Respond(GetVar(Assets, repair_cant));
             continue;
         }
         
@@ -499,7 +500,7 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
         FixedSomething = true;
     }
     
-    if(!FixedSomething && Item && !HasTag(Item->Tag, AssetTag_Broken)) TA->Respond("That is not broken!");
+    if(!FixedSomething && Item && !HasTag(Item->Tag, AssetTag_Broken)) TA->Respond(GetVar(Assets, repair_not_broken));
     
     return true;
 }
@@ -516,7 +517,7 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         
         ta_data *Data = TAFindData(&Item->Datas, TADataType_Command, AssetTag(AssetTag_Use));
         if(!Data){
-            TA->Respond("I don't know how to use that!");
+            TA->Respond(GetVar(Assets, use_dont_know));
             continue;
         }
         
@@ -527,8 +528,14 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         return true;
     }
     
-    TA->Respond("I'm afraid you don't have that!");
+    TA->Respond(GetVar(Assets, use_dont_have));
     return false;
+}
+
+//~ Miscellaneous commands
+b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    
+    return true;
 }
 
 //~ Testing commands

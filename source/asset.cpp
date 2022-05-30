@@ -5,6 +5,7 @@ asset_system::Initialize(memory_arena *Arena){
 #if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
     SoundEffectTable = MakeHashTable<string, asset_sound_effect>(Arena, MAX_ASSETS_PER_TYPE);
     FontTable        = MakeHashTable<string, asset_font>(Arena, MAX_ASSETS_PER_TYPE);
+    VariableTable    = MakeHashTable<string, asset_variable>(Arena, MAX_VARIABLES);
     InitializeLoader(Arena);
 #endif
     
@@ -81,8 +82,7 @@ asset_sound_effect *
 asset_system::GetSoundEffectByString(string Name){
     asset_sound_effect *Result = 0;
     if(Name.ID){
-        asset_sound_effect *Asset = HashTableFindPtr(&SoundEffectTable, Name);
-        if(Asset) Result = Asset;
+        Result = HashTableFindPtr(&SoundEffectTable, Name);
     }
     return(Result);
 }
@@ -92,13 +92,25 @@ asset_font *
 asset_system::GetFontByString(string Name){
     asset_font *Result = 0;
     if(Name.ID){
-        asset_font *Asset = HashTableFindPtr(&FontTable, Name);
-        if(Asset) Result = Asset;
+        Result = HashTableFindPtr(&FontTable, Name);
     }
     return(Result);
 }
+
+//~ Variables
+asset_variable *
+asset_system::GetVariableByString(string Name){
+    asset_variable *Result = 0;
+    if(Name.ID){
+        Result = HashTableFindPtr(&VariableTable, Name);
+    }
+    Assert(Result);
+    return(Result);
+}
+
 #endif
 
+//~ Fonts
 internal f32
 VFontRenderString(game_renderer *Renderer, asset_font *Font, v2 StartP, color Color, const char *Format, va_list VarArgs){
     f32 Height = Font->Height+FONT_VERTICAL_SPACE;

@@ -17,6 +17,7 @@ struct image {
 
 global_constant u32 SJA_MAX_ARRAY_ITEM_COUNT = 256;
 global_constant u32 MAX_ASSETS_PER_TYPE = 128;
+global_constant u32 MAX_VARIABLES = 256;
 
 #define ASSET_TAGS \
 ASSET_TAG("play",       Play) \
@@ -26,27 +27,33 @@ ASSET_TAG("eat",        Eat) \
 ASSET_TAG("activate",   Activate) \
 ASSET_TAG("talk",       Talk) \
 ASSET_TAG("repair",     Repair) \
+ASSET_TAG("use",        Use) \
+ASSET_TAG("exit",       Exit) \
+ASSET_TAG("enter",      Enter) \
+\
 ASSET_TAG("organ",      Organ) \
 ASSET_TAG("bell-tower", BellTower) \
+ASSET_TAG("inn",        Inn) \
+\
 ASSET_TAG("broken",     Broken) \
 ASSET_TAG("repaired",   Repaired) \
+\
 ASSET_TAG("locked",     Locked) \
 ASSET_TAG("open-dawn",  OpenDawn) \
 ASSET_TAG("open-noon",  OpenNoon) \
 ASSET_TAG("open-dusk",  OpenDusk) \
 ASSET_TAG("open-night", OpenNight) \
+\
 ASSET_TAG("items",      Items) \
 ASSET_TAG("adjacents",  Adjacents) \
 ASSET_TAG("sound",      Sound) \
+\
 ASSET_TAG("static",     Static) \
 ASSET_TAG("key",        Key) \
 ASSET_TAG("map",        Map) \
 ASSET_TAG("light",      Light) \
 ASSET_TAG("fixer",      Fixer) \
 ASSET_TAG("bread",      Bread) \
-ASSET_TAG("exit",       Exit) \
-ASSET_TAG("enter",      Enter) \
-ASSET_TAG("use",        Use) \
 
 #define ASSET_TAG(S, N) AssetTag_##N,
 enum asset_tag_id {
@@ -85,6 +92,10 @@ MakeAssetID(u32 ID){
 #define AssetID(Name) MakeAssetID(AssetID_##Name)
 #define GetSoundEffect(Assets, ID_) &(Assets)->SoundEffects[ID_.ID]
 #define GetFont(Assets, ID_) &(Assets)->Fonts[ID_.ID]
+#define GetVariable(Assets, ID_) &(Assets)->Variables[ID_.ID]
+#define GetVar(Assets, ID_)     GetVariable(Assets, ID_)->S
+#define GetVarTAID(Assets, ID_) GetVariable(Assets, ID_)->TAID
+
 #else // !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
 internal inline asset_id
 MakeAssetID(string ID){
@@ -102,6 +113,9 @@ MakeAssetID(const char *S){
 #define AssetIDName(ID_) Strings.GetString(MakeString((ID_).ID))
 #define GetSoundEffect(Assets, ID_) (Assets)->GetSoundEffectByString(MakeString(ID_.ID))
 #define GetFont(Assets, ID_) (Assets)->GetFontByString(MakeString(ID_.ID))
+#define GetVariable(Assets, ID_) (Assets)->GetVariableByString(MakeString(ID_.ID))
+#define GetVar(Assets, ID_)     GetVariable(Assets, AssetID(ID_))->S
+#define GetVarTAID(Assets, ID_) GetVariable(Assets, AssetID(ID_))->TAID
 
 global_constant u32 ROOM_TABLE_SIZE = 64;
 global_constant u32 ITEM_TABLE_SIZE = 128;
@@ -208,6 +222,12 @@ struct ta_name {
     array<const char *> Adjectives;
 };
 
+//~ Variables
+struct asset_variable {
+    const char *S;
+    ta_id TAID;
+};
+
 //~ Asset system
 struct asset_system {
     //~ Asset stuff
@@ -218,13 +238,15 @@ struct asset_system {
 #if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
     asset_sound_effect SoundEffects[AssetSoundEffect_TOTAL];
     asset_font         Fonts[AssetFont_TOTAL];
+    asset_variable     Variables[AssetVariable_TOTAL];
 #else
     hash_table<string, asset_sound_effect> SoundEffectTable;
     hash_table<string, asset_font> FontTable;
+    hash_table<string, asset_variable> VariableTable;
     
     asset_sound_effect *GetSoundEffectByString(string Name);
     asset_font *GetFontByString(string Name);
-    
+    asset_variable *GetVariableByString(string Name);
     
     //~ Logging 
     const char *CurrentCommand;
@@ -257,12 +279,14 @@ struct asset_system {
     b8 ProcessCommand();
     b8 ProcessIgnore();
     
+    b8 ProcessSpecialCommands();
     b8 ProcessVariables();
     b8 ProcessTheme();
     
     b8 ProcessSoundEffect();
     b8 ProcessFont();
     
+    b8 ExpectDescriptionStrings(string_builder *Builder);
     b8 ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_data_type Type=TADataType_Description);
     b8 ProcessTARoom();
     b8 ProcessTAItem();

@@ -216,7 +216,7 @@ TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCo
 
 #define HANDLE_AMBIGUOUS_FOUND_ITEMS(FoundItems, Function, Verb) \
 if(FoundItems.IsAmbiguous){ \
-TA->Respond("You will have to be more specific, what item do you want to " Verb "?\nEnter the item: "); \
+TA->Respond(GetVar(Assets, ambiguous_items)); \
 TA->Callback = Function; \
 return false; \
 }
@@ -260,7 +260,7 @@ TARoomAddItem(ta_system *TA, asset_system *Assets, ta_room *Room, ta_id Item){
     }
     
     b8 Result = ArrayMaybeAdd(&Room->Items, Item);
-    if(!Result) TA->Respond("This room is much too \002\002small\002\001!");
+    if(!Result) TA->Respond(GetVar(Assets, room_too_small));
     Room->Dirty = true;
     return Result;
     
