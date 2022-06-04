@@ -43,7 +43,7 @@ String(const char *S){
 //~ 
 
 internal void
-InitializeGame(game_state *State){
+InitializeState(game_state *State){
     DEBUG = State;
     u64 Start = OSGetMicroseconds();
     
@@ -82,12 +82,12 @@ DoDefaultHotkeys(){
 }
 
 internal void
-GameUpdateAndRender(game_state *State){
+UpdateAndRenderState(game_state *State){
     if(GameMode == GameMode_None){
         const char *S = GetVar(&State->Assets, start_game_mode);
-        if(CompareStrings(S, "main game")) GameMode = GameMode_MainGame;
+        if(CompareStrings(S, "game")) GameMode = GameMode_Game;
         else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
-        else                               GameMode = GameMode_MainGame;
+        else                               GameMode = GameMode_Game;
     }
     
     u64 Start = OSGetMicroseconds();
@@ -99,8 +99,8 @@ GameUpdateAndRender(game_state *State){
         case GameMode_Menu: {
             UpdateAndRenderMenu(&State->Renderer);
         }break;
-        case GameMode_MainGame: {
-            UpdateAndRenderMainGame(&State->Renderer, &State->Mixer, &State->Assets, &OSInput);
+        case GameMode_Game: {
+            UpdateAndRenderGame(&State->Renderer, &State->Mixer, &State->Assets, &OSInput);
         }break;
     }
     

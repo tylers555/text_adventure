@@ -34,6 +34,7 @@ ASSET_TAG("enter",      Enter) \
 ASSET_TAG("organ",      Organ) \
 ASSET_TAG("bell-tower", BellTower) \
 ASSET_TAG("inn",        Inn) \
+ASSET_TAG("altar",      Altar) \
 \
 ASSET_TAG("broken",     Broken) \
 ASSET_TAG("repaired",   Repaired) \

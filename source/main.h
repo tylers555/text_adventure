@@ -86,7 +86,7 @@ local_constant char *DIRECTION_TABLE[Direction_TOTAL] = {
 enum game_mode {
     GameMode_None,
     GameMode_Menu,
-    GameMode_MainGame,
+    GameMode_Game,
 };
 
 //~ Includes

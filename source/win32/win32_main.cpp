@@ -445,7 +445,7 @@ WinMain(HINSTANCE Instance,
     OSInput.WindowSize = {(f32)Width, (f32)Height};
     
     //~ Initialize game
-    InitializeGame(&GameState);
+    InitializeState(&GameState);
     LogMessage("Game initialized");
     
     //~ Load processed assets
@@ -480,7 +480,7 @@ WinMain(HINSTANCE Instance,
     SwapBuffers(DeviceContext);
     while(Running){
         LARGE_INTEGER LastTime = Win32GetWallClock();
-        GameUpdateAndRender(&GameState);
+        UpdateAndRenderState(&GameState);
         
         SwapBuffers(DeviceContext);
         

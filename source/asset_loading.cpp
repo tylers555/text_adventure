@@ -681,8 +681,8 @@ asset_system::ExpectDescriptionStrings(string_builder *Builder){
                     StringBuilderAdd(Builder, Next+1);
                     I++;
                     continue;
-                }else if(Next == '\\') I++;
-                else if(Next == 'n'){
+                }else if(Next == '\\'){ I++;
+                }else if(Next == 'n'){
                     I++;
                     StringBuilderAdd(Builder, '\n');
                     continue;

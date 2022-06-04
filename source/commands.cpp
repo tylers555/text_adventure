@@ -534,6 +534,12 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
 
 //~ Miscellaneous commands
 b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    ta_room *Room = TA->CurrentRoom;
+    
+    if(HasTag(Room->Tag, AssetTag_Altar)){
+        //if();
+        TA->Respond(GetVar(Assets, pray_first));
+    }
     
     return true;
 }

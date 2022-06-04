@@ -1,7 +1,49 @@
 
-# //////////////////////////////////////////////////////////////////////////
-#                                 Variables
-# //////////////////////////////////////////////////////////////////////////
+#~ @sja_variables
+
+: SpecialCommands
+    give_item "a town map"
+    give_item "small silver key"
+    give_item "leather sheet"
+    give_item "organ pipes"
+    
+: Variables
+    ta_id "theme"           "theme_default"
+    var   "start_game_mode" "game"
+    ta_id "start_room"      "Cathedral altar"
+    
+    var "invalid_command"     "That is not a valid command!\n"
+                              "\1You fool\0!!!"
+    var "ambiguous_items"     "You will have to be more specific, what item do you want to %s\n" 
+                              "Enter the item: "
+    var "room_too_small"      "This room is much too \1small\0!"
+    var "goto_specific"       "I don't know where you want to move! Please be mor specific!"
+    var "locked"              "That way is locked, \1buddy-o\0!"
+    var "auto_unlock"         "That way is locked, \1buddy-o\0!"
+    var "move_invalid_room"   "Why would you want move that way!?\n"
+                              "Doing so would be quite \1foolish\0!"
+    var "move_invalid_all"    "Don't you understand how to move!?\n"
+                              "You need to specify a direction or location, \1pal\0!"
+    var "exit_where"          "Where do you exit to!?"
+    var "enter_where"         "There is no where to enter!?"
+    var "buy_callback_prompt" "Do you want to buy %s, yes or no?"
+    var "buy_callback_no"     "Item not bought!"
+    var "take_buy"            "You're going to have to \1buy\0 that!"
+    var "take_buy_prompt"     "Do you want to buy that?"
+    var "buy_static"          "You couldn't possible hope to buy that!"
+    var "buy_free"            "You don't have to \1buy\0 that!"
+    var "buy_prompt"          "Are you sure you want to buy that?"
+    var "buy_too_poor"        "You don't have enough \1money\0 for that!"
+    var "eat_cant"            "You can't eat \1that\0!"
+    var "eat_invalid"         "What do you want to eat!?!?"
+    var "repair_cant"         "That can't be fixed!"
+    var "repair_not_broken"   "That is not broken!"
+    var "use_dont_know"       "I don't know how to use that!"
+    var "use_dont_have"       "I'm afraid you don't have that!"
+    var "pray_first"          "You feel an incredible power flow around you, and the air becomes faintly chilly."
+    var "pray_other"          "A slight breeze stirs the room."
+    
+#~ @sja_themes
 
 : Theme "theme_default"
     basic_font "font_basic"
@@ -18,7 +60,7 @@
     mood       Fancy(Color(0x59ab8aff))
     response   Fancy(Color(0x9063ffff))
     emphasis   Fancy(Color(0xe64eccff) Color(0x9063ffff) 2.0 0.2 0.0)
-
+    
 #    room_title Fancy(Color(0xf5d756ff) Color(0xff6969ff) 1.0 4.0 2.0 0.0 2.0 1.0)
 #    item       Fancy(Color(0x24e3e3ff) Color(0x475D83ff) 1.0 0.2 0.0)
 #    room       Fancy(Color(0xffe369ff) 1.0 3.0 0.125)
@@ -37,54 +79,8 @@
     direction  Fancy(Color(0x6c38ffff))
     response   Fancy(Color(0x9063ffff))
     emphasis   Fancy(Color(0xe06ecdff) 1.0 5.0 3.0)
-
-# I don't like this having to be after the themes, this is currently required.
-# As such, this is a current limitation of the SJA system, and will be changed.
-# It would be better to have a hash table of variable names with values.
-: SpecialCommands
-    give_item       "a town map"
-    give_item       "small silver key"
-    give_item       "leather sheet"
-    give_item       "organ pipes"
-
-: Variables
-    ta_id "theme"           "theme_default"
-    var   "start_game_mode" "main game"
-    ta_id "start_room"      "Bakery"
-
-    var "invalid_command" "That is not a valid command!\n"
-                          "\1You fool\0!!!"
-    var "ambiguous_items" "You will have to be more specific, what item do you want to %s\n" 
-                          "Enter the item: "
-    var "room_too_small" "This room is much too \1small\0!"
-    var "pray_response" "You feel an incredible power flow around you."
-    var "goto_specific" "I don't know where you want to move! Please be mor specific!"
-    var "locked" "That way is locked, \1buddy-o\0!"
-    var "auto_unlock" "That way is locked, \1buddy-o\0!"
-    var "move_invalid_room" "Why would you want move that way!?\n"
-                            "Doing so would be quite \1foolish\0!"
-    var "move_invalid_all" "Don't you understand how to move!?\n"
-                           "You need to specify a direction or location, \1pal\0!"
-    var "exit_where" "Where do you exit to!?"
-    var "enter_where" "There is no where to enter!?"
-    var "buy_callback_prompt" "Do you want to buy %s, yes or no?"
-    var "buy_callback_no" "Item not bought!"
-    var "take_buy" "You're going to have to \1buy\0 that!"
-    var "take_buy_prompt" "Do you want to buy that?"
-    var "buy_static" "You couldn't possible hope to buy that!"
-    var "buy_free" "You don't have to \1buy\0 that!"
-    var "buy_prompt" "Are you sure you want to buy that?"
-    var "buy_too_poor" "You don't have enough \1money\0 for that!"
-    var "eat_cant" "You can't eat \1that\0!"
-    var "eat_invalid" "What do you want to eat!?!?"
-    var "repair_cant" "That can't be fixed!"
-    var "repair_not_broken" "That is not broken!"
-    var "use_dont_know" "I don't know how to use that!"
-    var "use_dont_have" "I'm afraid you don't have that!"
-
-# //////////////////////////////////////////////////////////////////////////
-#                                  Fonts
-# //////////////////////////////////////////////////////////////////////////
+    
+#~ @sja_fonts
 
 : Font "font_basic"
     path "asset_fonts/basic.png"
@@ -186,7 +182,7 @@
     char "x" 3
     char "y" 3
     char "z" 2
-
+    
 : Font "font_basic_bold"
     path "asset_fonts/bold_font.png"
     height 5
@@ -260,7 +256,7 @@
     DOLLAR_SIGN 3
     AMPERSAND 4
     AT_SIGN 5
-
+    
 : Font "font_basic2"
     path "asset_fonts/font2.png"
     height 5
@@ -334,7 +330,7 @@
     DOLLAR_SIGN 3
     AMPERSAND 4
     AT_SIGN 5
-
+    
 : Font "font_basic_lowercase"
     path "asset_fonts/basic_lowercase_3.png"
     height 5
@@ -367,14 +363,14 @@
     Y 3
     Z 2
     SPACE 2
-
+    
 : Font "font_fancy"
-	path  "asset_fonts/fancy_font.png"
-	height 15
-	padding 1
-	descent 5
-	A 10
-	B 9
+    path  "asset_fonts/fancy_font.png"
+    height 15
+    padding 1
+    descent 5
+    A 10
+    B 9
     C 7
     D 9
     E 7
@@ -400,97 +396,91 @@
     Y 9
     Z 11
     SPACE 10
-
-# //////////////////////////////////////////////////////////////////////////
-#                               Sound effects
-# //////////////////////////////////////////////////////////////////////////
+    
+#~ @sja_sound_effects
 
 : SoundEffect "sound_menu_move"
     path "asset_sound_effects/testing/puhp_01.wav"
-
+    
 : SoundEffect "sound_test_music"
     path "asset_sound_effects/osj/Music.wav"
     # path "asset_sound_effects/osj_music.wav"
-
+    
 : SoundEffect "sound_move"
     path "asset_sound_effects/sf_wood_walk_4.wav"
     # path "asset_sound_effects/testing/48000Hz_Test.wav"
- 
+    
 : SoundEffect "sound_open_door"
     path "asset_sound_effects/sf_open_door_1.wav"
-
+    
 : SoundEffect "sound_open_map"
     path "asset_sound_effects/testing/glide_00.wav"
-
+    
 : SoundEffect "sound_close_map"
     path "asset_sound_effects/testing/drop_00.wav"
-
+    
 : SoundEffect "sound_item_taken"
     path "asset_sound_effects/sf_take.wav"
-
+    
 : SoundEffect "sound_item_bought"
     path "asset_sound_effects/sf_coin_5.wav"
-
+    
 : SoundEffect "sound_item_dropped"
     path "asset_sound_effects/sf_drop.wav"
-
+    
 : SoundEffect "sound_item_eaten"
     path "asset_sound_effects/sf_eat_2.wav"
-
+    
 : SoundEffect "sound_organ_play_broken"
     path "asset_sound_effects/osj/LoseFX.wav"
-
+    
 : SoundEffect "sound_organ_play_repaired"
     path "asset_sound_effects/osj/PowerMusic.wav"
-
+    
 : SoundEffect "sound_bellows_repaired"
     path "asset_sound_effects/osj/PowUpFX.wav"
-
+    
 : SoundEffect "sound_pipes_repaired"
     path "asset_sound_effects/osj/PowUpFX.wav"
-
-# //////////////////////////////////////////////////////////////////////////
-#                              Map
-# //////////////////////////////////////////////////////////////////////////
+    
+#~ @sja_map
 
 : TAMap 
     path "asset_arts/map_colored.png"
-    area "Art studio"   V2(79 75)
-    area "Bakery"       V2(103 41)
-    area "Bar"          V2(83 31)
-    area "Bell tower"   V2(87 57)
-    area "Cathedral"    V2(94 52)
-    area "Concert hall" V2(45 21)
-    area "Dark alley"   V2(59 53)
-    area "Garden"       V2(109 56)
-    area "Inn"          V2(71 44)
-    area "Plant shop"   V2(60 60)
+    area "Art studio"      V2(79 75)
+    area "Bakery"          V2(103 41)
+    area "Bar"             V2(83 31)
+    area "Bell tower"      V2(87 57)
+    area "Cathedral"       V2(94 52)
+    area "Concert hall"    V2(45 21)
+    area "Dark alley"      V2(59 53)
+    area "Garden"          V2(109 56)
+    area "Inn"             V2(71 44)
+    area "Plant shop"      V2(60 60)
     area "Southeast plaza" V2(93 41)
     area "Southwest plaza" V2(84 41)
     area "Northwest plaza" V2(84 48)
-    area "Restaurant"   V2(45 45)
-    area "Shop"         V2(93 31)
-    area "Thorn Lane"   V2(61 35)
+    area "Restaurant"      V2(45 45)
+    area "Shop"            V2(93 31)
+    area "Thorn Lane"      V2(61 35)
     area "East Thorn Lane" V2(72 38)
     area "West Thorn Lane" V2(47 36)
-    area "Tailor"       V2(61 27)
-
-# //////////////////////////////////////////////////////////////////////////
-#                                    Items
-# //////////////////////////////////////////////////////////////////////////
+    area "Tailor"          V2(61 27)
+    
+#~ @sja_items
 
 : TAItem Name("a town map" Array("map" "maps") Array("town")) Tag("map")
     cost 5
     description Tag("examine")
         "This map is feels new and looks absolutely stunning. "
         "The detail found in this map is unparalled; you can see every part of town on it."
-
+    
 : TAItem Name("an umbrella" Array("umbrella" "umbrellas"))
     cost 7
     description Tag("examine")
         "Its a very dark black, and appears very durable."
     data_command Tag("use") "open umbrella" 
-
+    
 : TAItem Name("a lantern" Array("lantern" "lanterns")) Tag("light")
     cost 10
     description Tag("examine")
@@ -499,7 +489,7 @@
     description Tag("activate")
         "The lantern flickers to life, filling the area with warm yellow glow. "
     data_command Tag("use") "light lantern"
-
+    
 : TAItem Name("carrot cake muffins" Array("muffin" "muffins" "cake" "cakes") Array("carrot" "cake"))
     cost 2
     description Tag("examine")
@@ -507,7 +497,7 @@
     description Tag("eat")
         "Seemingly healthy, but wonderfully sweet; it really is quite a treat!"
     data_command Tag("use") "eat carrot cake muffins"
-
+    
 : TAItem Name("honeyed almond pastries" Array("pastry" "pastries") Array("honeyed" "almond"))
     cost 3
     description Tag("examine")
@@ -515,7 +505,7 @@
     description Tag("eat")
         "The nutritional value of this pastry might be as low as its gameplay value, but man it sure is delicious!"
     data_command Tag("use") "eat honeyed almond pastries"
-
+    
 : TAItem Name("cinnamon sugar churros" Array("churro" "churros") Array("cinnamon" "sugar"))
     cost 1
     description Tag("examine")
@@ -523,7 +513,7 @@
     description Tag("eat")
         "That was great for a quick snack!"
     data_command Tag("use") "eat cinnamon sugar churros"
-
+    
 : TAItem Name("chocolate croissants" Array("croissant" "croissants") Array("chocolate"))
     cost 2
     description Tag("examine")
@@ -531,7 +521,7 @@
     description Tag("eat")
         "That was well worth the price of 2 coins."
     data_command Tag("use") "eat chocolate croissants"
-
+    
 : TAItem Name("large loaves of wheat bread" Array("bread" "loaf" "loafs" "loaves") Array("large" "wheat" "loaves")) Tag("bread")
     cost 4
     description Tag("examine")
@@ -541,46 +531,43 @@
         "You feel more full—physically, and emotionally. "
         "As you eat it, the thin, crispy crust turns into bread crumbs. "
     data_command Tag("use") "eat large loaves of wheat bread"
-
+    
 : TAItem Name("bread crumbs" Array("crumb" "crumbs") Array("bread"))
     description Tag("examine")
         "It's literally just a handful of crumbs... from bread."
     description Tag("eat")
         "You must be really desperate or really don’t like wasting food."
     data_command Tag("use") "eat bread crumbs"
-
+    
 : TAItem Name("leather sheet" Array("sheet" "sheets" "leather") Array("leather")) Tag("fixer")
     description Tag("examine")
         "It's a nice sheet of tanned leather, perfect for both attire and engineering."
     data_command Tag("use") "repair organ bellows" 
-
+    
 : TAItem Name("organ pipes" Array("pipe" "pipes") Array("organ")) Tag("fixer")
     description Tag("examine")
         "Organ pipes WIP"
     data_command Tag("use") "repair organ pipes" 
-
-# //////////////////////////////////////////////////////////////////////////
-#                                   Keys
-# //////////////////////////////////////////////////////////////////////////
+    
+#- @sja_keys
 
 : TAItem Name("small silver key" Array("key" "keys") Array("small" "silver")) Tag("organ" "key")
     description Tag("examine")
         "The handle of the key is shaped like a music note."
-
+    
 : TAItem Name("bell tower key" Array("key" "keys") Array("bell" "tower")) Tag("bell-tower" "key")
     description Tag("examine")
         "This key is magical and currently doesn't have a description!"
-
-
-# //////////////////////////////////////////////////////////////////////////
-#                                    NPCs
-# //////////////////////////////////////////////////////////////////////////
+    
+    
+#~ @sja_npcs
 
 : Ignore "name"
 
-# //////////////////////////////////////////////////////////////////////////
-#                                 Plaza rooms
-# //////////////////////////////////////////////////////////////////////////
+
+#~ @sja_rooms
+
+#- @sja_plaza
 
 : TARoom Name("Southeast plaza" Array("plaza") Array("se" "southeast" "south" "east"))
     area "Southeast plaza"
@@ -588,41 +575,39 @@
         "There is very little here, aside from several tall and looming oak trees. "
         "The ground is damp from the rainy weather, and the blowing breeze brings a crisp chill. "
     description Tag("adjacents")
-        "\2The plaza\0 extends further \1west\0 for a great distance, "
-        "\n\2the general shop\0 stands in the \1south\0, "
-        "\n\2the bakery\0 in the \1east\0."
-        "\nand \2a monstrous cathedral\0 in the \1north\0."
+        "\2The plaza\0 extends further \1west\0 for a great distance,\n"
+        "\2the general shop\0 stands in the \1south\0,\n"
+        "\2the bakery\0 in the \1east\0.\n"
+        "and \2a monstrous cathedral\0 in the \1north\0."
     adjacents
-        west  "Southwest plaza"
-        south "Shop front"
-        east  "Bakery front"
-        north "Cathedral front"
-
+    west  "Southwest plaza"
+    south "Shop front"
+    east  "Bakery front"
+    north "Cathedral front"
+    
 : TARoom Name("Southwest plaza" Array("plaza") Array("sw" "southwest" "south" "west"))
     area "Southwest plaza"
     description
         "Southwest plaza"
     description Tag("adjacents")
-        "\2The plaza\0 extends both further \1east\0 and \1north\0 for a great distance, "
-        "\nwhile \2the bar\0 lies to the \1south\0. "
+        "\2The plaza\0 extends both further \1east\0 and \1north\0 for a great distance,\n"
+        "while \2the bar\0 lies to the \1south\0. "
     adjacents
-        north "Northwest plaza"
-        east  "Southeast plaza"
-        south "Bar front"
-        west  "East Thorn Lane"
-
+    north "Northwest plaza"
+    east  "Southeast plaza"
+    south "Bar front"
+    west  "East Thorn Lane"
+    
 : TARoom Name("Northwest plaza" Array("plaza") Array("nw" "northwest" "north" "west"))
     area "Northwest plaza"
     description
         "Northwest plaza"
     description Tag("adjacents")
-        "\2The plaza\0 extends further \1south\0 for a great distance. "
+        "\2The plaza\0 extend further \1south\0 for a great distance. "
     adjacents
-        south "Southwest plaza"
-
-# //////////////////////////////////////////////////////////////////////////
-#                              Thorn Lane rooms
-# //////////////////////////////////////////////////////////////////////////
+    south "Southwest plaza"
+    
+#- @sja_thorn_lane
 
 : TARoom Name("East Thorn Lane" Array("thorn" "lane") Array("e" "east" "thorn"))
     area "East Thorn Lane"
@@ -631,33 +616,33 @@
     description Tag("adjacents")
         "To the \1north\0, stands \2the Inn\0, tall and proud"
     adjacents
-        north "Inn front"
-        east  "Southwest plaza"
-        south "Bank front"
-        west  "Thorn Lane"
-
+    north "Inn front"
+    east  "Southwest plaza"
+    south "Bank front"
+    west  "Thorn Lane"
+    
 : TARoom Name("Thorn Lane" Array("thorn" "lane") Array("thorn"))
     area "Thorn Lane"
     description
         "Thorn Lane"
     description Tag("adjacents")
     adjacents
-        north "Dark alley"
-        east  "East Thorn Lane"
-        south "Tailor shop front"
-        west  "West Thorn Lane"
-
+    north "Dark alley"
+    east  "East Thorn Lane"
+    south "Tailor shop front"
+    west  "West Thorn Lane"
+    
 : TARoom Name("West Thorn Lane" Array("thorn" "lane") Array("w" "west" "thorn"))
     area "West Thorn Lane"
     description
         "West Thorn Lane"
     description Tag("adjacents")
     adjacents
-        north "Restaurant front"
-        east  "Thorn Lane"
-        south "Concert hall front"
-        west  "Bridge"
-
+    north "Restaurant front"
+    east  "Thorn Lane"
+    south "Concert hall front"
+    west  "Bridge"
+    
 : TARoom Name("Dark alley" Array("alley") Array("dark"))
     area "Dark alley"
     description
@@ -666,44 +651,42 @@
         "A long green vine creeps along the weathered brick, stemming from a small shop at the end of this alley. "
         "You can see a window peering down upon this alley, in the east."
     description Tag("adjacents")
-        "Behind you in the \1south\0 extends \2Thorn Lane\0 "
-        "\nand \1northward\0 stands a \2mysterious shop\0, that protrudes plentiful plants"
+        "Behind you in the \1south\0 extends \2Thorn Lane\0\n"
+        "and \1northward\0 stands a \2mysterious shop\0, that protrudes plentiful plants"
     adjacents
-        north "Plant shop front"
-        south "Thorn Lane"
-
-# //////////////////////////////////////////////////////////////////////////
-#                             Plant shop rooms 
-# //////////////////////////////////////////////////////////////////////////
+    north "Plant shop front"
+    south "Thorn Lane"
+    
+#- @sja_plant_shop 
 
 : TAItem Name("plant pot" Array("pot" "pots") Array("plant" "plants"))
     cost 3
     description Tag("examine")
         "This pot has a beatiful design painted onto it"
-
+    
 : TAItem Name("garden shovel" Array("shovel" "shovels") Array("garden" "gardening"))
     cost 5
     description Tag("examine")
         "This shovel is built to last, and sports a stunning design on the handle."
-
+    
 : TAItem Name("garden gloves" Array("glove" "gloves") Array("garden" "gardening"))
     cost 4
     description Tag("examine")
         "These gloves have an incredibly durable feel to them, "
         "and would be effective for handling any type of plant"
-
+    
 : TAItem Name("mess of vines" Array("vine" "vines") Array("mess")) Tag("static")
     description Tag("examine")
         "A \1intricate tangle of overlapping vines\0."
-
+    
 : TAItem Name("dark rugged door" Array("door" "doors") Array("dark" "rugged")) Tag("static")
     description Tag("examine")
         "A \1strong yet small door\0"
-
+    
 : TAItem Name("rusty doorknob" Array("doorknob" "doorknobs" "knob" "knobs") Array("rusty" "door")) Tag("static")
     description Tag("examine")
         "A \1small rusty doorknob\0 that appears almost \1leaflike\0"
-
+    
 : TARoom Name("Plant shop front" Array("front" "shop") Array("plant" "shop"))
     area "Plant shop"
     description
@@ -714,34 +697,34 @@
         "taking a moment to appreciate the \5rusty doorknob\0 carved into an almost leaflike shape, "
         "and can not help but feel the urge to wander inside."
     description Tag("adjacents")
-        "The rugged door stands in the \1north\0"
-        "\nand to the \1south\0 extends \2the dark alley\0"
+        "The rugged door stands in the \1north\0\n"
+        "and to the \1south\0 extends \2the dark alley\0"
     data_room Tag("enter") "Plant shop"
     adjacents
-        north "Plant shop"
-        south "Dark alley"
+    north "Plant shop"
+    south "Dark alley"
     items Array("mess of vines" "dark rugged door" "rusty doorknob")
-
+    
 : TAItem Name("silvery scindapsus" Array("scindapsus" "plant") Array("silvery")) Tag("static")
     description Tag("examine")
         "A stunning plant with leaves mixing both \1silver\0 and \1green\0."
-
+    
 : TAItem Name("dainty philodendron micans" Array("philodendron" "micans" "plant") Array("dainty" "philodendron")) Tag("static")
     description Tag("examine")
         "A \1pretty\0 and \1very lush plant\0, that drapes down from the ceiling"
-
+    
 : TAItem Name("ferns" Array("fern" "ferns")) Tag("static")
     description Tag("examine")
         "\1Small vibrant green plants\0 populating the corners of the rooms"
-
+    
 : TAItem Name("calatheas" Array("calatheas")) Tag("static")
     description Tag("examine")
         "Stunning plants with an incredible contrast of \1red\0 and \1green\0, that keep the ferns company"
-
+    
 : TAItem Name("lush green plants" Array("plants") Array("lush" "green")) Tag("static")
     description Tag("examine")
         "An \1awe-inspiring variety of plants\0 lines every inch of the room."
-
+    
 : TARoom Name("Plant shop" Array("shop") Array("plant"))
     area "Plant shop"
     description
@@ -749,19 +732,19 @@
         "yet the room secretes feelings of comfort, not fear. "
         "\5Lush green plants\0 are present everywhere, from \5dainty philodendron micans\0 draping from the ceiling, "
         "\5ferns\0 and \5calatheas\0 nestled in dull corners, and \5silvery scindapsus\0 resting in front of a large window. "
-#        "Pots, shovels, gloves, and other gardening necessities line the array of shelves present on the walls."
+    #        "Pots, shovels, gloves, and other gardening necessities line the array of shelves present on the walls."
     description Tag("adjacents")
-        "The door in the \1south\0 leads outside and"
-        "\nthere is a short hallway leading \1northward\0 into \2the greenhouse\0."
+        "The door in the \1south\0 leads outside and\n"
+        "there is a short hallway leading \1northward\0 into \2the greenhouse\0."
     description Tag("items")
         "Lining the array of shelves on the walls are: "
     data_room Tag("exit") "Plant shop front"
     adjacents
-        north "Plant shop greenhouse"
-        south "Plant shop front"
+    north "Plant shop greenhouse"
+    south "Plant shop front"
     items Array("plant pot" "garden shovel" "garden gloves" 
                 "lush green plants" "dainty philodendron micans"  "ferns" "calatheas" "silvery scindapsus")
-
+    
 : TARoom Name("Plant shop greenhouse" Array("greenhouse" "house") Array("plant" "shop" "green"))
     area "Plant shop"
     description
@@ -770,37 +753,35 @@
         "\2The shop room\0 lies towards the \1south\0, "
         "there is a trap door leading \1downwards\0"
     adjacents
-        south "Plant shop"
-
-# //////////////////////////////////////////////////////////////////////////
-#                                 Inn rooms
-# //////////////////////////////////////////////////////////////////////////
+    south "Plant shop"
+    
+#- @sja_inn
 
 : TAItem Name("vibrant ceramic plant pot" Array("pot" "pots") Array("vibrant" "ceramic" "plant")) Tag("static")
     description Tag("examine")
         "The pot is painted with a very intricate and beautiful pattern."
     description Tag("take")
         "You don't want to disturb the sleeping cat."
-
+    
 : TAItem Name("pretty black cat" Array("cat" "cats") Array("pretty" "black")) Tag("static")
     description Tag("examine")
         "The cat is a deep black color and is sleeping very peacefully"
     description Tag("take")
         "You don't want to disturb the sleeping cat."
-
+    
 : TAItem Name("room 1 window" Array("window" "windows")) Tag("static")
     description Tag("examine")
         "You have to stand on your tiptoes to get a good view out this window, "
         "and good views this was not designed for; "
         "you look straight out at a brick wall across a small dim alley. "
         "However you do notice a lush vine creeping from the left across the damp brick."    
-
+    
 : TAItem Name("room 3 window" Array("window" "windows")) Tag("static")
     description Tag("examine")
         "You have a great view of the vastness of the cathedral, "
         "and the bell tower that still towers above you, even from the second floor. "
         "For a while you enjoy watching pigeons perch on spires and fly down to the plaza to hunt for food crumbs."
-
+    
 : TARoom Name("Inn front" Array("inn" "front") Array("inn"))
     area "Inn"
     description
@@ -809,11 +790,11 @@
     description Tag("adjacents")
     data_room Tag("enter") "Inn lobby"
     adjacents
-        north "Inn lobby"
-        east  "Southwest plaza"
-        south "East Thorn Lane"
-        west  "Thorn Lane"
-
+    north "Inn lobby"
+    east  "Southwest plaza"
+    south "East Thorn Lane"
+    west  "Thorn Lane"
+    
 : TARoom Name("Inn lobby" Array("inn" "lobby") Array("inn"))
     area "Inn"
     description
@@ -823,10 +804,10 @@
     description Tag("adjacents")
     data_room Tag("exit") "Inn front"
     adjacents
-        south "Inn front"
-        up "Inn hallway"
+    south "Inn front"
+    up "Inn hallway"
     items Array("vibrant ceramic plant pot")
-
+    
 : TARoom Name("Inn hallway" Array("hallway") Array("inn"))
     area "Inn"
     description
@@ -835,8 +816,8 @@
     data_room Tag("exit") "Inn lobby"
     data_room Tag("enter" "inn") "PLACEHOLDER"
     adjacents
-        down "Inn lobby"
-
+    down "Inn lobby"
+    
 : TARoom Name("Inn room 1" Array("1" "room") Array("inn" "room"))
     area "Inn"
     description
@@ -847,9 +828,9 @@
     description Tag("adjacents")
     data_room Tag("exit") "Inn hallway"
     adjacents
-        south "Inn hallway"
+    south "Inn hallway"
     items Array("room 1 window")
-
+    
 : TARoom Name("Inn room 2" Array("2" "room") Array("inn" "room"))
     area "Inn"
     description
@@ -857,8 +838,8 @@
     description Tag("adjacents")
     data_room Tag("exit") "Inn hallway"
     adjacents
-        south "Inn hallway"
-
+    south "Inn hallway"
+    
 : TARoom Name("Inn room 3" Array("3" "room") Array("inn" "room"))
     area "Inn"
     description
@@ -866,12 +847,10 @@
     description Tag("adjacents")
     data_room Tag("exit") "Inn hallway"
     adjacents
-        south "Inn hallway"
+    south "Inn hallway"
     items Array("room 3 window")
-
-# //////////////////////////////////////////////////////////////////////////
-#                                 Shop rooms
-# //////////////////////////////////////////////////////////////////////////
+    
+#- @sja_shop
 
 : TARoom Name("Shop front" Array("shop" "front") Array("shop"))
     area "Shop"
@@ -879,17 +858,17 @@
         "A thin but sturdy wooden door is surrounded by brick on either side, welcoming you to enter. "
         "There is a large sign above the door that reads: \4'Susan's Shop'"
     description Tag("adjacents")
-        "To the \1north\0 extends \2the plaza\0,"
-        "\n\2the bakery\0 to the \1north\0"
-        "\n\2the shop\0 to the \1south\0, beyond the door,"
-        "\nand \2the bar\0 stands to the \1west\0"
+        "To the \1north\0 extends \2the plaza\0,\n"
+        "\2the bakery\0 to the \1north\0\n"
+        "\2the shop\0 to the \1south\0, beyond the door,\n"
+        "and \2the bar\0 stands to the \1west\0"
     data_room Tag("enter") "Shop"
     adjacents
-        north "Southeast plaza"
-        east  "Bakery front"
-        south "Shop"
-        west  "Bar front"
-
+    north "Southeast plaza"
+    east  "Bakery front"
+    south "Shop"
+    west  "Bar front"
+    
 : TARoom Name("Shop" Array("shop"))
     area "Shop"
     description
@@ -901,10 +880,10 @@
         "Several items catch your eye:"
     data_room Tag("exit") "Shop front"
     adjacents
-        north "Shop front"
+    north "Shop front"
     items  Array("a town map" "an umbrella" "a lantern")
-#    person "Susan"
-
+    #    person "Susan"
+    
 : TARoom Name("Bakery front" Array("bakery" "front") Array("bakery"))
     area "Bakery"
     description
@@ -912,43 +891,43 @@
         "A beautiful aroma permeates through a large area infront of the bakery. "
         "It boasts of the skillfully baked goods one would find inside. "
     description Tag("adjacents")
-        "The door beckons you further \1eastward\0 into \2the bakery\0"
-        "\nand \2the plaza\0 extends behind you in the \1west\0"
+        "The door beckons you further \1eastward\0 into \2the bakery\0,\n"
+        "and \2the plaza\0 extends behind you in the \1west\0"
     data_room Tag("enter") "Bakery"
     adjacents
-        east "Bakery"
-        west "Southeast plaza"
-
+    east "Bakery"
+    west "Southeast plaza"
+    
 : TARoom Name("Bakery" Array("bakery"))
     area "Bakery"
     description
         "A glass counter consumes the majority of the space inside the small bakery. " 
         "Behind it extends a vast kitchen, which seems to be the source of the beautiful aroma. "
     description Tag("adjacents")
-        "\2The kitchen\0 extends further \1eastward\0, while"
-        "\n\2the front\0 of the store lays behind you in the \1west\0"
+        "\2The kitchen\0 extends further \1eastward\0, while\n"
+        "\2the front\0 of the store lays behind you in the \1west\0"
     description Tag("items")
-        "Inside the counter and perched on the shelves are: "
+    "Inside the counter and perched on the shelves are: "
     data_room Tag("exit") "Bakery front"
     adjacents
-        west "Bakery front"
-        east "Bakery kitchen"
+    west "Bakery front"
+    east "Bakery kitchen"
     items Array("carrot cake muffins" "honeyed almond pastries" "cinnamon sugar churros" "chocolate croissants" "large loaves of wheat bread")
-
+    
 : TARoom Name("Bar front" Array("bar" "front") Array("bar"))
     area "Bar"
     description
         "The front of the bar. "
     description Tag("adjacents")
-        "\2The plaza\0 extends \1northward\0, "
-        "\nand beyond the door in \1south\0 is \2the bar\0"
+        "\2The plaza\0 extends \1northward\0,\n"
+        "and beyond the door in \1south\0 is \2the bar\0"
     data_room Tag("enter") "Bar" 
-   adjacents
-        north "Southwest plaza"
-        east  "Shop front"
-        south "Bar"
-        west  "East Thorn Lane"
- 
+    adjacents
+    north "Southwest plaza"
+    east  "Shop front"
+    south "Bar"
+    west  "East Thorn Lane"
+    
 : TARoom Name("Bar" Array("bar"))
     area "Bar"
     description
@@ -957,10 +936,10 @@
         "There is a door to the \1north\0 that leads towards \2the front\0."
     data_room Tag("exit") "Bar front"
     adjacents
-        north "Bar front"
-        up    "Bar billiard room"
-        down  "Bar cellar"
-
+    north "Bar front"
+    up    "Bar billiard room"
+    down  "Bar cellar"
+    
 : TARoom Name("Bar cellar" Array("cellar") Array("bar"))
     area "Bar"
     description
@@ -968,8 +947,8 @@
     description Tag("adjacents")
     data_room Tag("exit") "Bar"
     adjacents
-        up "Bar"
-
+    up "Bar"
+    
 : TARoom Name("Bar billiard room" Array("billiard" "room") Array("bar" "billiard"))
     area "Bar"
     description
@@ -977,8 +956,8 @@
     description Tag("adjacents")
     data_room Tag("exit") "Bar"
     adjacents
-        down "Bar"
-
+    down "Bar"
+    
 : TARoom Name("Tailor shop front" Array("tailor" "shop" "front") Array("tailor" "shop"))
     area "Tailor"
     description
@@ -988,9 +967,9 @@
     description Tag("adjacents")
     data_room Tag("enter") "Tailor shop" 
     adjacents
-        north "Thorn Lane"
-        south "Tailor shop"
-
+    north "Thorn Lane"
+    south "Tailor shop"
+    
 : TARoom Name("Tailor shop" Array("tailor" "shop"))
     area "Tailor"
     description
@@ -1003,12 +982,10 @@
     description Tag("items")
     data_room Tag("exit") "Tailer shop front"
     adjacents
-        north "Tailor shop front"
+    north "Tailor shop front"
     items Array("leather sheet")
-
-# //////////////////////////////////////////////////////////////////////////
-#                              Cathedral rooms
-# //////////////////////////////////////////////////////////////////////////
+    
+#- @sja_cathedral
 
 : TAItem Name("organ console static" Array("organ" "organs" "console" "consoles") Array("organ" "once" "great")) Tag("organ" "static")
     description Tag("examine" "broken")
@@ -1023,7 +1000,7 @@
         "All the notes sound with renewed strength."
     data_asset Tag("sound" "play" "broken")   "sound_organ_play_broken"
     data_asset Tag("sound" "play" "repaired") "sound_organ_play_repaired"
-
+    
 : TAItem Name("organ bellows static" Array("bellow" "bellows") Array("organ")) Tag("static" "broken")
     description Tag("examine" "broken")
         "From a swift glance at the multitude of bellows, "
@@ -1031,18 +1008,16 @@
     description Tag("examine" "repaired")
         "They are in peachy keen condition!"
     data_asset Tag("sound" "repaired") "sound_bellows_repaired"
-    data_item Tag("fixer")
-        "leather sheet"
-
+    data_item Tag("fixer")             "leather sheet"
+    
 : TAItem Name("organ pipes static" Array("pipe" "pipes") Array("organ")) Tag("static" "broken")
     description Tag("examine" "broken")
         "You observe that several pipes seem to be absent."
     description Tag("examine" "repaired")
         "They are in fantastic condition. "
     data_asset Tag("sound" "repaired") "sound_pipes_repaired"
-    data_item Tag("fixer")
-        "organ pipes"
-
+    data_item Tag("fixer")             "organ pipes"
+    
 : TARoom Name("Cathedral front" Array("cathedral" "church" "front") Array("cathedral" "church" ))
     area "Cathedral"
     description
@@ -1051,12 +1026,12 @@
         "and speaks to the cathedrals wonderous age. "
         "In the center of the door lies a heavy brass knocker. "
     description Tag("adjacents")
-        "\2The plaza\0 is behind you to the \1south\0"
-        "\nand \2the nave\0 lies \1northward\0 beyond the door."
+        "\2The plaza\0 is behind you to the \1south\0\n"
+        "and \2the nave\0 lies \1northward\0 beyond the door."
     adjacents
-        north "Cathedral nave"
-        south "Southeast plaza"
-
+    north "Cathedral nave"
+    south "Southeast plaza"
+    
 : TARoom Name("Cathedral nave" Array("cathedral" "church" "nave") Array("cathedral" "church" ))
     area "Cathedral"
     description
@@ -1064,32 +1039,32 @@
         "Despite the large stained-glass windows on either side, the cathedral is oddly dim, lit more by candelabras than natural light. "
         "There are a few rows of red-cushioned benches facing the altar. "
     description Tag("adjacents")        
-        "Further \1northward\0 lies \2the altar\0,"
-        "\nbehind you to the \1south\0 stands \2the door\0,"
-        "\nin the \1west\0 is an \2old spiral staircase\0 leading upwards"
-        "\nand you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
+        "Further \1northward\0 lies \2the altar\0,\n"
+        "behind you to the \1south\0 stands \2the door\0,\n"
+        "in the \1west\0 is an \2old spiral staircase\0 leading upwards,\n"
+        "and you are just able to glimpse \2the organ console\0 towards the \1northeast\0"
     data_room Tag("exit") "Cathedral front"
     data_room Tag("enter") "Cathedral altar"
     adjacents
-        north     "Cathedral altar"
-        northeast "Cathedral organ console"
-        south     "Cathedral front"
-        west      "Cathedral spiral staircase"
-
-: TARoom Name("Cathedral altar" Array("altar") Array("cathedral" "church"))
+    north     "Cathedral altar"
+    northeast "Cathedral organ console"
+    south     "Cathedral front"
+    west      "Cathedral spiral staircase"
+    
+: TARoom Name("Cathedral altar" Array("altar") Array("cathedral" "church")) Tag("altar")
     area "Cathedral"
     description
         "You cannot help but feel that you are in the presence of a spiritual being..."
     description Tag("adjacents")
-        "Behind you in the \1south\0 is \2the nave\0, "
-        "\n\2the organ console\0 to the \1east\0, "
-        "\nand another door leads \1west\0 towards \2the vestry\0"
+        "Behind you in the \1south\0 is \2the nave\0,\n"
+        "\2the organ console\0 to the \1east\0,\n"
+        "and another door leads \1west\0 towards \2the vestry\0"
     data_room Tag("exit") "Cathedral nave"
     adjacents
-        east  "Cathedral organ console"
-        south "Cathedral nave"
-        west  "Cathedral vestry"
-
+    east  "Cathedral organ console"
+    south "Cathedral nave"
+    west  "Cathedral vestry"
+    
 : TARoom Name("Cathedral vestry" Array("vestry") Array("cathedral" "church"))
     area "Cathedral"
     description
@@ -1099,12 +1074,12 @@
         "bejeweled silver chalices, ancient texts so old their pages have nearly disintegrated into a fine grey dust. " 
         "On a couch to your right you catch a glimmer of a small silver key wedged between two plump cushions."
     description Tag("adjacents")
-        "Behind you in the \1south\0 is \2the nave\0, "
-        "\nand a door connects to the \2the altar\0 in the \1east\0"
+        "Behind you in the \1south\0 is \2the nave\0,\n"
+        "and a door connects to the \2the altar\0 in the \1east\0"
     data_room Tag("exit") "Cathedral altar"
     adjacents
-        east "Cathedral altar"
-# TODO(Tyler)        south "Cathedral nave" 
+    east "Cathedral altar"
+    # TODO(Tyler): south "Cathedral nave" 
     items Array("small silver key")
 
 : TARoom Name("Cathedral organ console" Array("console" "organ") Array("cathedral" "organ" "church")) Tag("organ")
@@ -1117,13 +1092,13 @@
     description Tag("repaired")
         "A \3great pipe organ\0 stands tall. It looks to be getting regular use."
     description Tag("adjacents")
-        "this room connects to \2the altar\0 in the \1west\0, "
-        "\n\2the nave\0 in the \1southwest\0, "
-        "\nand \2the maintance room\0 lies beyond a door in the \1north\0."
+        "this room connects to \2the altar\0 in the \1west\0,\n"
+        "\2the nave\0 in the \1southwest\0,\n"
+        "and \2the maintance room\0 lies beyond a door in the \1north\0."
     adjacents
-        west      "Cathedral altar"
-        southwest "Cathedral nave"
-        north     "Cathedral maintenance room" Tag("organ" "locked")
+    west      "Cathedral altar"
+    southwest "Cathedral nave"
+    north     "Cathedral maintenance room" Tag("organ" "locked")
     items Array("organ console static")
 
 : TARoom Name("Cathedral maintenance room" Array("maintenance" "room") Array("cathedral" "maintenance")) Tag("organ")
@@ -1139,12 +1114,10 @@
         "The only exit is a door in the \1south\0 that leads to \2the organ console\0."
     data_room Tag("exit") "Cathedral organ console"
     adjacents
-        south "Cathedral organ console"
+    south "Cathedral organ console"
     items Array("organ bellows static" "organ pipes static")
 
-# //////////////////////////////////////////////////////////////////////////
-#                              Bell tower rooms
-# //////////////////////////////////////////////////////////////////////////
+#- @sja_bell_tower
 
 : TARoom Name("Cathedral spiral staircase" Array("spiral" "staircase") Array("cathedral" "spiral" "church"))
     area "Bell tower"
@@ -1154,24 +1127,24 @@
         "When you finally reach that top after what feels like an impossibly long time, "
         "you reach a sturdy iron door with a small keyhole."
     description Tag("adjacents")
-        "There is an exit leading to \2the nave\0 in the \1east\0, "
-        "\nand the staircase leads \1upwards\0 to \2the programming room\0"
+        "There is an exit leading to \2the nave\0 in the \1east\0,\n"
+        "and the staircase leads \1upwards\0 to \2the programming room\0"
     data_room Tag("exit") "Cathedral nave"
     adjacents
-        east "Cathedral nave"
-        up   "Bell tower programming room" Tag("bell-tower" "locked")
+    east "Cathedral nave"
+    up   "Bell tower programming room" Tag("bell-tower" "locked")
     items Array("bell tower key")
 
 : TARoom Name("Bell tower programming room" Array("programming" "room" "bell" "tower" "carillon") 
-                                            Array("bell" "tower" "programming" "carillon"))
+              Array("bell" "tower" "programming" "carillon"))
     area "Bell tower"
     description
     description Tag("adjacents")
         "There is a small open door in the \1west\0 connecting to a \2storage room\0"
     adjacents
-        west "Bell tower storage room"
-        up   "Bell tower playing room"
-        down "Cathedral spiral staircase"
+    west "Bell tower storage room"
+    up   "Bell tower playing room"
+    down "Cathedral spiral staircase"
 
 : TARoom Name("Bell tower storage room" Array("storage" "room") Array("bell" "tower" "storage"))
     area "Bell tower"
@@ -1180,23 +1153,23 @@
         "There is only an open door in the \1east\0 connecting to the \2programming room\0"
     data_room Tag("exit") "Bell tower storage room"
     adjacents
-        east "Bell tower programming room"
+    east "Bell tower programming room"
 
 : TARoom Name("Bell tower playing room" Array("playing" "room") Array("bell" "tower" "playing"))
     area "Bell tower"
     description
     description Tag("adjacents")
     adjacents
-        up   "Bell tower belfrey"
-        down "Bell tower programming room"
+    up   "Bell tower belfrey"
+    down "Bell tower programming room"
 
 : TARoom Name("Bell tower belfrey" Array("belfrey") Array("bell" "tower"))
     area "Bell tower"
     description
     description Tag("adjacents")
     adjacents
-        up   "Bell tower lookout"
-        down "Bell tower playing room"
+    up   "Bell tower lookout"
+    down "Bell tower playing room"
 
 : TARoom Name("Bell tower lookout" Array("lookout") Array("bell" "tower"))
     area "Bell tower"
@@ -1204,12 +1177,12 @@
         "As you reach the top of the ladder you are immediately confronted with a rainy gust of wind. "
         "A fierce flock of crows sits scheming on the stone railing. "
         "From this great height the people in the plaza down below look like tiny little beetles, and you watch them go about their little beetle lives."
-#        "You are monumentously high above the town and can see its vast sprawl. "
-#        "Every reddish brown roof in the town appears tiny and almost insignificnat from this height. "
-#        "The surrounding canal, wears a beatiful blue and reflects the only gleam of sunlight to have penetrated the cloudy skies. "
-#        "Behind you is an incredible "
+    #        "You are monumentously high above the town and can see its vast sprawl. "
+    #        "Every reddish brown roof in the town appears tiny and almost insignificnat from this height. "
+    #        "The surrounding canal, wears a beatiful blue and reflects the only gleam of sunlight to have penetrated the cloudy skies. "
+    #        "Behind you is an incredible "
     data_room Tag("exit") "Bell tower belfrey"
     description Tag("adjacents")
         ""
     adjacents
-        down "Bell tower belfrey"
+    down "Bell tower belfrey"

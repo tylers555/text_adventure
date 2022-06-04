@@ -56,6 +56,7 @@ HighestMatch = Match; \
         TEST_COMMAND("repair",   CommandRepair);
         TEST_COMMAND("fix",      CommandRepair);
         TEST_COMMAND("use",      CommandUse);
+        TEST_COMMAND("pray",     CommandPray);
         
         // Testing commands
         TEST_COMMAND("testaddmoney", CommandTestAddMoney);
@@ -80,7 +81,7 @@ DoString(game_renderer *Renderer, asset_font *Font, fancy_font_format *Fancies, 
 }
 
 internal void
-UpdateAndRenderMainGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
+UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
     DO_DEBUG_INFO();
     
     ta_system *TA = &TextAdventure;

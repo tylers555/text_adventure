@@ -306,7 +306,6 @@ DoControlsMenu(game_renderer *Renderer, menu_state *State, font *ItemFont, v2 P,
 internal void
 UpdateAndRenderMenu(game_renderer *Renderer){
 #if 0
-    Renderer->SetLightingConditions(WHITE, 1.0f);
     RenderRect(Renderer, SizeRect(V2(0), Renderer->ScreenToWorld(OSInput.WindowSize, ScaledItem(0))), 
                5.5f, MENU_BACKGROUND_COLOR, GameItem(0));
     
