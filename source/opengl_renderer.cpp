@@ -93,8 +93,7 @@ opengl_backend::UploadRenderData(dynamic_array<item_vertex> *Vertices,
 
 //~ Shader programs
 internal GLuint
-GLCompileShaderProgram(const char *VertexShaderSource, 
-                       const char *FragmentShaderSource){
+GLCompileShaderProgram(const char *VertexShaderSource, const char *FragmentShaderSource){
     
     GLuint VertexShader = glCreateShader(GL_VERTEX_SHADER);
     glShaderSource(VertexShader, 1, &VertexShaderSource, 0);

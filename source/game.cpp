@@ -124,22 +124,22 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
     {
         DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->Name, &RoomDescriptionRect);
         
-        ta_data *Description = Room->Datas[0];
-        if(HasTag(Room->Tag, AssetTag_Organ)){
-            ta_data *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
-            if(New) Description = New;
-        }
-        
-        DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                 Description->Data, &RoomDescriptionRect);
-        
-        ta_data *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
-        if(Adjacents){
+        if(Room->Datas.Count > 0){
+            ta_data *Description = Room->Datas[0];
+            if(HasTag(Room->Tag, AssetTag_Organ)){
+                ta_data *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
+                if(New) Description = New;
+            }
+            
             DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                     Adjacents->Data, &RoomDescriptionRect);
+                     Description->Data, &RoomDescriptionRect);
+            
+            ta_data *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
+            if(Adjacents){
+                DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
+                         Adjacents->Data, &RoomDescriptionRect);
+            }
         }
-        
-        
     }
     
     //~ Inventory

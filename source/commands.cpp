@@ -439,6 +439,17 @@ b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char 
         TA->Respond(Description->Data);
     }
     
+    if(FoundItems.Items.Count == 0){
+        if(WordCount > 1){
+            TA->Respond(GetVar(Assets, examine_invalid));
+        }else{
+            TA->Respond(GetVar(Assets, examine_none));
+            TA->Callback = CommandExamine;
+        }
+        
+        return false;
+    }
+    
     return true;
 }
 
@@ -537,8 +548,20 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     ta_room *Room = TA->CurrentRoom;
     
     if(HasTag(Room->Tag, AssetTag_Altar)){
-        //if();
-        TA->Respond(GetVar(Assets, pray_first));
+        switch(TA->PrayState){
+            case PrayState_None: {
+                TA->Respond(GetVar(Assets, pray_first));
+                TA->PrayState = PrayState_First;
+            }break;
+            case PrayState_First: {
+                TA->Respond(GetVar(Assets, pray_other));
+                TA->PrayState = PrayState_Other;
+            }break;
+            case PrayState_Other: {
+                TA->Respond(GetVar(Assets, pray_none));
+                TA->PrayState = PrayState_None;
+            }break;
+        }
     }
     
     return true;

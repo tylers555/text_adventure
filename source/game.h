@@ -34,6 +34,16 @@ struct console_theme {
 };
 internal inline console_theme MakeDefaultConsoleTheme();
 
+//~ Game specific stuff
+enum pray_state {
+    PrayState_None,
+    
+    PrayState_First,
+    PrayState_Other,
+    
+    PrayState_TOTAL,
+};
+
 //~ Text adventure stuff
 
 global_constant u32 MAX_COMMAND_TOKENS = 64;
@@ -105,6 +115,7 @@ struct ta_system {
     
     //~ Game specific data
     asset_tag_id OrganState;
+    pray_state PrayState;
     u32 Money;
     
     ta_map Map;
@@ -161,7 +172,6 @@ WORD("nay") \
 WORD("nope") \
 WORD("nada") \
 WORD("negative")
-
 
 global_constant f32 WORD_MATCH_THRESHOLD = 0.5f;
 

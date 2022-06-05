@@ -55,6 +55,8 @@ ASSET_TAG("map",        Map) \
 ASSET_TAG("light",      Light) \
 ASSET_TAG("fixer",      Fixer) \
 ASSET_TAG("bread",      Bread) \
+\
+ASSET_TAG("haunted",    Haunted)
 
 #define ASSET_TAG(S, N) AssetTag_##N,
 enum asset_tag_id {
@@ -256,6 +258,7 @@ struct asset_system {
     void BeginCommand(const char *Name);
     void LogError(const char *Format, ...);
     void LogInvalidAttribute(const char *Attribute);
+    b8 SeekNextAttribute();
     
     //~ SJA reading and parsing
     u64 LastFileWriteTime;

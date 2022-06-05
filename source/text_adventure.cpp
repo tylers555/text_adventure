@@ -251,7 +251,7 @@ DoTANameComparisonsOverlap(ta_name_comparison Old, ta_name_comparison New){
     return Result;
 }
 
-//~
+//~ Helpers
 internal inline b8
 TARoomAddItem(ta_system *TA, asset_system *Assets, ta_room *Room, ta_id Item){
     if(!Room->Items){
@@ -323,6 +323,8 @@ TAAttemptToUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ta_ro
     
     return false;
 }
+
+
 
 internal b8
 TAIsClosed(ta_system *TA, asset_tag Tag){

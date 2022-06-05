@@ -299,10 +299,13 @@ file_reader::NextToken(){
 }
 
 file_token
-file_reader::PeekToken(){
+file_reader::PeekToken(u32 N){
     u8 *SavedPos = FilePos;
     u32 SavedLine = Line;
-    file_token Result = NextToken();
+    file_token Result = {};
+    for(u32 I=0; I<N; I++){
+        Result = NextToken();
+    }
     FilePos = SavedPos;
     Line = SavedLine;
     return(Result);

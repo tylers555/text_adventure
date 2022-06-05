@@ -132,6 +132,48 @@ asset_system::LogInvalidAttribute(const char *Attribute){
     LogMessage("(%s Line: %u) Invalid attribute: %s", CurrentCommand, Reader.Line, Attribute);
 }
 
+b8
+asset_system::SeekNextAttribute(){
+    while(true){
+        file_token Token = Reader.PeekToken();
+        switch(Token.Type){
+            case FileTokenType_BeginArguments: {
+                u32 ArgumentCount = 1;
+                while(ArgumentCount){
+                    Token = Reader.PeekToken();
+                    if(Token.Type == FileTokenType_EndArguments){
+                        ArgumentCount--;
+                    }else if((Token.Type == FileTokenType_Invalid) ||
+                             (Token.Type == FileTokenType_EndFile)){
+                        return false;
+                    }
+                    Reader.NextToken();
+                }
+            }break;
+            case FileTokenType_Identifier: {
+                file_token Token = Reader.PeekToken(2);
+                if(Token.Type == FileTokenType_BeginArguments){
+                    Reader.NextToken();
+                    continue;
+                }
+                return true;
+            }break;
+            case FileTokenType_Invalid:
+            case FileTokenType_EndFile: {
+                return false;
+            }break;
+            case FileTokenType_BeginCommand: {
+                return true;
+            }break;
+        }
+        Reader.NextToken();
+    }
+}
+
+#define HANDLE_INVALID_ATTRIBUTE(Attribute) \
+LogInvalidAttribute(Attribute); \
+if(!SeekNextAttribute()) return false;
+
 fancy_font_format
 asset_system::ExpectTypeFancy(){
     fancy_font_format Result = {};
@@ -444,7 +486,7 @@ b8 asset_system::ProcessSpecialCommands(){
                 if(TA->Inventory[I] == Item) { FoundIt = true; break; }
             }
             if(!FoundIt) TA->AddItem(Item);
-        }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute);  }
     }
     
     return true;
@@ -472,7 +514,7 @@ asset_system::ProcessVariables(){
             asset_variable *Variable = Strings.HashTableGetPtr(&VariableTable, Name);
             Variable->S = Strings.GetPermanentString(Data);
             Variable->TAID = TAIDByName(TA, Data);
-        }else{ LogInvalidAttribute(Attribute); return false; }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
     return true;
@@ -509,7 +551,7 @@ asset_system::ProcessTheme(){
         }else if(DoAttribute(Attribute, "mood")){  Theme->MoodFancy = ExpectTypeFancy(); HandleError(&Reader);
         }else if(DoAttribute(Attribute, "response")){   Theme->ResponseFancies[0] = ExpectTypeFancy(); HandleError(&Reader);
         }else if(DoAttribute(Attribute, "emphasis")){   Theme->ResponseFancies[1] = ExpectTypeFancy(); HandleError(&Reader);
-        }else{ LogInvalidAttribute(Attribute); return false; }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
     Theme->DescriptionFancies[0] = Theme->BasicFancy;
@@ -553,7 +595,7 @@ asset_system::ProcessSoundEffect(){
             Sound->Sound = Data;
         }else if(DoAttribute(Attribute, "volume")){
             Sound->VolumeMultiplier = Expect(&Reader, Float);
-        }else{ LogInvalidAttribute(Attribute); return false; }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
     return true;
@@ -652,7 +694,7 @@ asset_system::ProcessFont(){
                 }
                 
                 CurrentOffset.X += Width+Padding;
-            }else{ LogInvalidAttribute(Attribute); return false; }
+            }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
         }
     }
     
@@ -794,7 +836,7 @@ asset_system::ProcessTARoom(){
                 repeat_loop:;
             }
             
-        }else{ LogInvalidAttribute(Attribute); return false; }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
     Room->Datas = MakeArray<ta_data *>(&Memory, Descriptions.Count);
@@ -845,7 +887,7 @@ asset_system::ProcessTAItem(){
             ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "cost")){
             if(!Item->Dirty) Item->Cost = ExpectPositiveInteger();
-        }else{ LogInvalidAttribute(Attribute); return false; }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
     Item->Datas = MakeArray<ta_data *>(&Memory, Descriptions.Count);
@@ -880,7 +922,7 @@ asset_system::ProcessTAMap(){
             const char *S = Expect(&Reader, String);
             Area->Name = TAIDByName(TA, S);
             Area->Offset = Reader.ExpectTypeV2();
-        }else{ LogInvalidAttribute(Attribute); return false; }
+        }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
     Map->Areas = MakeArray<ta_area>(&Memory, Areas.Count);

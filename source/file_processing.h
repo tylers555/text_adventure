@@ -70,7 +70,7 @@ struct file_reader {
     color               ExpectTypeColor();
     
     file_token NextToken();
-    file_token PeekToken();
+    file_token PeekToken(u32 N=1);
 };
 
 
