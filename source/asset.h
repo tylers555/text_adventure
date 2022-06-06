@@ -95,7 +95,7 @@ MakeAssetID(u32 ID){
 #define AssetID(Name) MakeAssetID(AssetID_##Name)
 #define GetSoundEffect(Assets, ID_) &(Assets)->SoundEffects[ID_.ID]
 #define GetFont(Assets, ID_) &(Assets)->Fonts[ID_.ID]
-#define GetVariable(Assets, ID_) &(Assets)->Variables[ID_.ID]
+#define GetVariable(Assets, ID_) (&(Assets)->Variables[AssetVariable_##ID_])
 #define GetVar(Assets, ID_)     GetVariable(Assets, ID_)->S
 #define GetVarTAID(Assets, ID_) GetVariable(Assets, ID_)->TAID
 
@@ -122,6 +122,7 @@ MakeAssetID(const char *S){
 
 global_constant u32 ROOM_TABLE_SIZE = 64;
 global_constant u32 ITEM_TABLE_SIZE = 128;
+global_constant u32 THEME_TABLE_SIZE = 8;
 
 #endif
 

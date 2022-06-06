@@ -70,6 +70,51 @@ StringBuilderAddFancyFormat(string_builder *Builder, fancy_font_format *Fancy){
                      Fancy->ColorSpeed, Fancy->ColordT, Fancy->ColorTOffset);
 }
 
+internal inline void
+StringBuilderAddTAName(string_builder *Builder, const char *S, ta_name *Name){
+    StringBuilderAdd(Builder, "%sName = \"%s\";\n", S, Name->Name);
+    StringBuilderAdd(Builder, "%sAliases = MakeFullArray<const char *>(Memory, %u);\n", 
+                     S, Name->Aliases.Count);
+    for(u32 J=0; J<Name->Aliases.Count; J++){
+        StringBuilderAdd(Builder, "%sAliases[%u] = \"%s\";\n", S, J, Name->Aliases[J]);
+    }
+    StringBuilderAdd(Builder, "%sAdjectives = MakeFullArray<const char *>(Memory, %u);\n", 
+                     S, Name->Adjectives.Count);
+    for(u32 J=0; J<Name->Adjectives.Count; J++){
+        StringBuilderAdd(Builder, "%sAdjectives[%u] = \"%s\";\n", S, J, Name->Adjectives[J]);
+    }
+}
+
+internal inline const char *
+MakeStringLiteral(const char *S){
+    string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+    StringBuilderAdd(&Builder, '"');
+    
+    u32 Length = CStringLength(S);
+    for(u32 I=0; S[I]; I++){
+        char C = S[I];
+        
+        if(C == '\n'){
+            StringBuilderAdd(&Builder, "\\n");
+            continue;
+        }else if(C == '\r'){
+            StringBuilderAdd(&Builder, "\\r");
+            continue;
+        }else if(C == '\002'){
+            I++;
+            Assert(I < Length);
+            C = S[I];
+            StringBuilderAdd(&Builder, "\\002\\00%d", C);
+            continue;
+        }
+        
+        StringBuilderAdd(&Builder, C);
+    }
+    
+    StringBuilderAdd(&Builder, '"');
+    const char *Result = EndStringBuilder(&Builder);
+    return Result;
+}
 
 internal inline void 
 AssetProcessorMain(){
@@ -113,7 +158,7 @@ AssetProcessorMain(){
     StringBuilderAdd(&EnumBuilder, 
                      "#if !defined(GENERATED_ASSET_ID_H) && defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)\n"
                      "#define GENERATED_ASSET_ID_H\n"
-                     "enum {\n", TA->StartRoomID);
+                     "enum {\n");
     
     string_builder AssetBuilder = BeginStringBuilder(&TransientStorageArena, Megabytes(2));
     StringBuilderAdd(&AssetBuilder, 
@@ -123,43 +168,8 @@ AssetProcessorMain(){
                      "InitializeProcessedAssets(asset_system *Assets, void *Data, u32 DataSize){\n"
                      "ta_system *TA = &TextAdventure;\n"
                      "memory_arena *Memory = &Assets->Memory;\n");
-    
-#define ADD_FANCY(Name) \
-StringBuilderAdd(&AssetBuilder, "TA->Theme." #Name " = "); \
-StringBuilderAddFancyFormat(&AssetBuilder, &Theme->Name); \
-StringBuilderAdd(&AssetBuilder, ";\n"); 
-    {
-        StringBuilderAdd(&AssetBuilder, "{\n");
-        //~ Theme
-        console_theme *Theme = &TA->Theme;
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.BasicFont = AssetID(%s); \n", AssetIDName(Theme->BasicFont));
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.TitleFont = AssetID(%s); \n", AssetIDName(Theme->TitleFont));
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.BackgroundColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
-                         Theme->BackgroundColor.R, Theme->BackgroundColor.G, Theme->BackgroundColor.B, Theme->BackgroundColor.A);
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.CursorColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
-                         Theme->CursorColor.R, Theme->CursorColor.G, Theme->CursorColor.B, Theme->CursorColor.A);
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.SelectionColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
-                         Theme->SelectionColor.R, Theme->SelectionColor.G, Theme->SelectionColor.B, Theme->SelectionColor.A);
-        ADD_FANCY(BasicFancy);
-        ADD_FANCY(RoomTitleFancy);
-        ADD_FANCY(ItemFancy);
-        ADD_FANCY(RoomFancy);
-        ADD_FANCY(DirectionFancy);
-        ADD_FANCY(MiscFancy);
-        ADD_FANCY(MoodFancy);
-        ADD_FANCY(ResponseFancies[0]);
-        ADD_FANCY(ResponseFancies[1]);
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.DescriptionFancies[0] = TA->Theme.BasicFancy;\n");
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.DescriptionFancies[1] = TA->Theme.DirectionFancy;\n");
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.DescriptionFancies[2] = TA->Theme.RoomFancy;\n");
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.DescriptionFancies[3] = TA->Theme.ItemFancy;\n");
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.DescriptionFancies[4] = TA->Theme.MiscFancy;\n");
-        StringBuilderAdd(&AssetBuilder, "TA->Theme.DescriptionFancies[5] = TA->Theme.MoodFancy;\n");
-        StringBuilderAdd(&AssetBuilder, "}\n");
-    }
-#undef ADD_FANCY
-    
-    //~ Sound effects
+    //~ Assets 
+    //- Sound effects
     {
         u32 Index=1;
         for(u32 I=0; I<Assets.SoundEffectTable.MaxBuckets; I++){
@@ -183,7 +193,7 @@ StringBuilderAdd(&AssetBuilder, ";\n");
         StringBuilderAdd(&EnumBuilder, (const char *)"AssetSoundEffect_TOTAL = %u,\n", Index++);
     }
     
-    //~ Fonts
+    //- Fonts
     {
         u32 Index = 1;
         for(u32 I=0; I<Assets.FontTable.MaxBuckets; I++){
@@ -216,21 +226,82 @@ StringBuilderAdd(&AssetBuilder, ";\n");
         StringBuilderAdd(&EnumBuilder, (const char *)"AssetFont_TOTAL = %u,\n", Index++);
     }
     
+    //- Variables
+    {
+        u32 Index = 1;
+        for(u32 I=0; I<Assets.VariableTable.MaxBuckets; I++){
+            string Name = Assets.VariableTable.Keys[I];
+            if(Name.ID){
+                asset_variable *Variable = &Assets.VariableTable.Values[I];
+                
+                StringBuilderAdd(&EnumBuilder, "AssetVariable_%s = %u,\n", Strings.GetString(Name), Index);
+                StringBuilderAdd(&AssetBuilder, "{\n");
+                StringBuilderAdd(&AssetBuilder, "Assets->Variables[%u].S    = %s;\n", Index, MakeStringLiteral(Variable->S));
+                StringBuilderAdd(&AssetBuilder, "Assets->Variables[%u].TAID = MakeTAID(%llu);\n", Index, Variable->TAID);
+                StringBuilderAdd(&AssetBuilder, "}\n");
+                Index++;
+            }
+        }
+        StringBuilderAdd(&EnumBuilder, (const char *)"AssetVariable_TOTAL = %u,\n", Index++);
+    }
     StringBuilderAdd(&EnumBuilder, "};\n");
+    
     
     //~ Text adventure stuff
     StringBuilderAdd(&EnumBuilder, "global_constant u32 ROOM_TABLE_SIZE = %u;\n", TA->RoomTable.BucketsUsed);
     StringBuilderAdd(&EnumBuilder, "global_constant u32 ITEM_TABLE_SIZE = %u;\n", TA->ItemTable.BucketsUsed);
+    StringBuilderAdd(&EnumBuilder, "global_constant u32 THEME_TABLE_SIZE = %u;\n", TA->ThemeTable.BucketsUsed);
     
+    hash_table<ta_id, console_theme> ThemeTable = ProcessTAIDTable(&TA->ThemeTable);
     hash_table<ta_id, ta_room> RoomTable = ProcessTAIDTable(&TA->RoomTable);
     hash_table<ta_id, ta_item> ItemTable = ProcessTAIDTable(&TA->ItemTable);
     
-    StringBuilderAdd(&AssetBuilder,
-                     "TA->StartRoomID = MakeTAID(%llu);\n"
-                     "TA->StartRoomName = \"%s\";\n",
-                     TA->StartRoomID, TA->StartRoomName);
+    //- Themes
+#define ADD_FANCY(Name) \
+StringBuilderAdd(&AssetBuilder, "Theme->" #Name " = "); \
+StringBuilderAddFancyFormat(&AssetBuilder, &Theme->Name); \
+StringBuilderAdd(&AssetBuilder, ";\n"); 
     
-    //~ TA Rooms
+    StringBuilderAdd(&AssetBuilder, "TA->ThemeTable.BucketsUsed = %u;\n", ThemeTable.BucketsUsed);
+    for(u32 I=0; I<ThemeTable.MaxBuckets; I++){
+        ta_id Name = ThemeTable.Keys[I];
+        if(Name.ID){
+            console_theme *Theme = &ThemeTable.Values[I];
+            
+            StringBuilderAdd(&AssetBuilder, "{\n");
+            StringBuilderAdd(&AssetBuilder, "TA->ThemeTable.Keys[%u] = MakeTAID(%llu);\n", I, Name);
+            StringBuilderAdd(&AssetBuilder, "TA->ThemeTable.Hashes[%u] = %llu;\n", I, ThemeTable.Hashes[I]);
+            StringBuilderAdd(&AssetBuilder, "console_theme *Theme = &TA->ThemeTable.Values[%u];\n", I);
+            StringBuilderAdd(&AssetBuilder, "Theme->BasicFont = AssetID(%s); \n", AssetIDName(Theme->BasicFont));
+            StringBuilderAdd(&AssetBuilder, "Theme->TitleFont = AssetID(%s); \n", AssetIDName(Theme->TitleFont));
+            StringBuilderAdd(&AssetBuilder, "Theme->BackgroundColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
+                             Theme->BackgroundColor.R, Theme->BackgroundColor.G, Theme->BackgroundColor.B, Theme->BackgroundColor.A);
+            StringBuilderAdd(&AssetBuilder, "Theme->CursorColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
+                             Theme->CursorColor.R, Theme->CursorColor.G, Theme->CursorColor.B, Theme->CursorColor.A);
+            StringBuilderAdd(&AssetBuilder, "Theme->SelectionColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
+                             Theme->SelectionColor.R, Theme->SelectionColor.G, Theme->SelectionColor.B, Theme->SelectionColor.A);
+            ADD_FANCY(BasicFancy);
+            ADD_FANCY(RoomTitleFancy);
+            ADD_FANCY(ItemFancy);
+            ADD_FANCY(RoomFancy);
+            ADD_FANCY(DirectionFancy);
+            ADD_FANCY(MiscFancy);
+            ADD_FANCY(MoodFancy);
+            ADD_FANCY(ResponseFancies[0]);
+            ADD_FANCY(ResponseFancies[1]);
+            StringBuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[0] = Theme->BasicFancy;\n");
+            StringBuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[1] = Theme->DirectionFancy;\n");
+            StringBuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[2] = Theme->RoomFancy;\n");
+            StringBuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[3] = Theme->ItemFancy;\n");
+            StringBuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[4] = Theme->MiscFancy;\n");
+            StringBuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[5] = Theme->MoodFancy;\n");
+            StringBuilderAdd(&AssetBuilder, "}\n");
+        }
+    }
+#undef ADD_FANCY
+    
+    //- TA Rooms
+    
     StringBuilderAdd(&AssetBuilder, "TA->RoomTable.BucketsUsed = %u;\n", RoomTable.BucketsUsed);
     for(u32 I=0; I<RoomTable.MaxBuckets; I++){
         ta_id Name = RoomTable.Keys[I];
@@ -241,18 +312,19 @@ StringBuilderAdd(&AssetBuilder, ";\n");
             StringBuilderAdd(&AssetBuilder, "TA->RoomTable.Keys[%u] = MakeTAID(%llu);\n", I, Name);
             StringBuilderAdd(&AssetBuilder, "TA->RoomTable.Hashes[%u] = %llu;\n", I, RoomTable.Hashes[I]);
             StringBuilderAdd(&AssetBuilder, "ta_room *Room = &TA->RoomTable.Values[%u];\n", I);
-            StringBuilderAdd(&AssetBuilder, "Room->Name = \"%s\";\n", Room->Name);
+            StringBuilderAddTAName(&AssetBuilder, "Room->NameData.", &Room->NameData);
             StringBuilderAdd(&AssetBuilder, "Room->Area = MakeTAID(%llu);\n", Room->Area);
             StringBuilderAdd(&AssetBuilder, "Room->Tag = MakeAssetTag((asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u);\n", 
                              Room->Tag.A, Room->Tag.B, Room->Tag.C, Room->Tag.D);
-            StringBuilderAdd(&AssetBuilder, "Room->Descriptions = MakeFullArray<ta_string *>(Memory, %u);\n", 
-                             Room->Descriptions.Count);
-            for(u32 J=0; J<Room->Descriptions.Count; J++){
-                ta_string *Description = Room->Descriptions[J];
+            StringBuilderAdd(&AssetBuilder, "Room->Datas = MakeFullArray<ta_data *>(Memory, %u);\n", 
+                             Room->Datas.Count);
+            for(u32 J=0; J<Room->Datas.Count; J++){
+                ta_data *Data = Room->Datas[J];
                 StringBuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                StringBuilderAdd(&AssetBuilder, "Room->Descriptions[%u] = (ta_string *)((u8 *)Data+%u);\n", J, SJAPBuilder.BufferSize);
-                StringBuilderAddVar(&SJAPBuilder, Room->Descriptions[J]->Tag);
-                StringBuilderAdd(&SJAPBuilder, Room->Descriptions[J]->Data);
+                StringBuilderAdd(&AssetBuilder, "Room->Datas[%u] = (ta_data *)((u8 *)Data+%u);\n", J, SJAPBuilder.BufferSize);
+                StringBuilderAddVar(&SJAPBuilder, Room->Datas[J]->Type);
+                StringBuilderAddVar(&SJAPBuilder, Room->Datas[J]->Tag);
+                StringBuilderAdd(&SJAPBuilder, Room->Datas[J]->Data);
                 StringBuilderAdd(&SJAPBuilder, '\0');
             }
             StringBuilderAdd(&AssetBuilder, "Room->Items = MakeFullArray<ta_id>(Memory, %u);\n", 
@@ -271,7 +343,7 @@ StringBuilderAdd(&AssetBuilder, ";\n");
         }
     }
     
-    //~ TA Items
+    //- TA Items
     StringBuilderAdd(&AssetBuilder, 
                      "TA->ItemNameTable = MakeHashTable<const char *, ta_id>(Memory, ITEM_TABLE_SIZE);\n");
     StringBuilderAdd(&AssetBuilder, "TA->ItemTable.BucketsUsed = %u;\n", ItemTable.BucketsUsed);
@@ -285,28 +357,18 @@ StringBuilderAdd(&AssetBuilder, ";\n");
             StringBuilderAdd(&AssetBuilder, "TA->ItemTable.Keys[%u] = MakeTAID(%llu);\n", I, Name);
             StringBuilderAdd(&AssetBuilder, "TA->ItemTable.Hashes[%u] = %llu;\n", I, ItemTable.Hashes[I]);
             StringBuilderAdd(&AssetBuilder, "ta_item *Item = &TA->ItemTable.Values[%u];\n", I);
-            StringBuilderAdd(&AssetBuilder, "Item->Name = \"%s\";\n", Item->Name);
+            StringBuilderAddTAName(&AssetBuilder, "Item->NameData.", &Item->NameData);
             StringBuilderAdd(&AssetBuilder, "Item->Tag  = MakeAssetTag((asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u);\n", 
                              Item->Tag.A, Item->Tag.B, Item->Tag.C, Item->Tag.D);
             StringBuilderAdd(&AssetBuilder, "Item->Cost = %u;\n", Item->Cost);
-            StringBuilderAdd(&AssetBuilder, "Item->Aliases = MakeFullArray<const char *>(Memory, %u);\n", 
-                             Item->Aliases.Count);
-            for(u32 J=0; J<Item->Aliases.Count; J++){
-                StringBuilderAdd(&AssetBuilder, "Item->Aliases[%u] = \"%s\";\n", J, Item->Aliases[J]);
-            }
-            StringBuilderAdd(&AssetBuilder, "Item->Adjectives = MakeFullArray<const char *>(Memory, %u);\n", 
-                             Item->Adjectives.Count);
-            for(u32 J=0; J<Item->Adjectives.Count; J++){
-                StringBuilderAdd(&AssetBuilder, "Item->Adjectives[%u] = \"%s\";\n", J, Item->Adjectives[J]);
-            }
             
-            StringBuilderAdd(&AssetBuilder, "Item->Descriptions = MakeFullArray<ta_string *>(Memory, %u);\n", 
-                             Item->Descriptions.Count);
-            for(u32 J=0; J<Item->Descriptions.Count; J++){
+            StringBuilderAdd(&AssetBuilder, "Item->Datas = MakeFullArray<ta_data *>(Memory, %u);\n", 
+                             Item->Datas.Count);
+            for(u32 J=0; J<Item->Datas.Count; J++){
                 StringBuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                StringBuilderAdd(&AssetBuilder, "Item->Descriptions[%u] = (ta_string *)((u8 *)Data+%u);\n", J, SJAPBuilder.BufferSize);
-                StringBuilderAddVar(&SJAPBuilder, Item->Descriptions[J]->Tag);
-                StringBuilderAdd(&SJAPBuilder, Item->Descriptions[J]->Data);
+                StringBuilderAdd(&AssetBuilder, "Item->Datas[%u] = (ta_data *)((u8 *)Data+%u);\n", J, SJAPBuilder.BufferSize);
+                StringBuilderAddVar(&SJAPBuilder, Item->Datas[J]->Tag);
+                StringBuilderAdd(&SJAPBuilder, Item->Datas[J]->Data);
                 StringBuilderAdd(&SJAPBuilder, '\0');
             }
             
@@ -314,7 +376,7 @@ StringBuilderAdd(&AssetBuilder, ";\n");
         }
     }
     
-    //~ TA Map
+    //- TA Map
     {
         ta_map *Map = &TA->Map;
         StringBuilderAdd(&AssetBuilder, "{\n");
@@ -365,4 +427,6 @@ StringBuilderAdd(&AssetBuilder, ";\n");
         StringBuilderToFile(&AssetBuilder, OutputFile);
         CloseFile(OutputFile);
     }
+    
+    printf("Done!\n");
 }

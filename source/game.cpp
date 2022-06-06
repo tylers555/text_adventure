@@ -4,10 +4,12 @@ void
 ta_system::Initialize(memory_arena *Arena){
     RoomTable = MakeHashTable<ta_id, ta_room>(Arena, ROOM_TABLE_SIZE);
     ItemTable = MakeHashTable<ta_id, ta_item>(Arena, ITEM_TABLE_SIZE);
+    ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, THEME_TABLE_SIZE);
+    
+    
     Inventory = MakeArray<ta_id>(Arena, INVENTORY_ITEM_COUNT);
     ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
     
-    ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, 8);
     
     // TODO(Tyler): Perhaps this could be more fancy? and clear out the older strings.
     CommandMemory = MakeArena(Arena, Megabytes(1));
@@ -244,7 +246,6 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         if((1 + (FrameCounter / 30)) % 3){
             RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, Theme->CursorColor);
         }
-        
         
         //- Previous commmands
         if(Input->KeyJustDown(KeyCode_Up, KeyFlag_Any)){

@@ -134,6 +134,7 @@ os_input::AddToBuffer(os_key_code Key){
     
     if(Key == KeyCode_NULL){
     }else if(Key < U8_MAX){
+        DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_key_press)));
         char Char = (char)Key;
         if(('A' <= Char) && (Char <= 'Z')){
             Char += 'a'-'A';
@@ -148,6 +149,7 @@ os_input::AddToBuffer(os_key_code Key){
             u32 End   = Maximum(CursorPosition, (u32)SelectionMark);
             DeleteFromBuffer(Begin, End);
             SelectionMark = -1;
+            DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace_word)));
         }
         
         if(BufferLength < DEFAULT_BUFFER_SIZE-1){
@@ -165,11 +167,15 @@ os_input::AddToBuffer(os_key_code Key){
             u32 End   = Maximum(CursorPosition, (u32)SelectionMark);
             SelectionMark = -1;
             DeleteFromBuffer(Begin, End);
+            DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace_word)));
         }else if(CursorPosition > 0){
             u32 Begin = CursorPosition-1;
             u32 End = CursorPosition;
             if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
                 Begin = SeekBackward(Buffer, CursorPosition);
+                DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace_word)));
+            }else{
+                DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace)));
             }
             DeleteFromBuffer(Begin, End);
         }
@@ -180,8 +186,12 @@ os_input::AddToBuffer(os_key_code Key){
             Begin = Minimum(CursorPosition, (u32)SelectionMark);
             End   = Maximum(CursorPosition, (u32)SelectionMark);
             SelectionMark = -1;
+            DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace_word)));
         }else if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+            DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace_word)));
             End = SeekForward(Buffer, BufferLength, CursorPosition);
+        }else{
+            DEBUG->Mixer.PlaySound(GetSoundEffect(&DEBUG->Assets, AssetID(sound_text_input_backspace)));
         }
         DeleteFromBuffer(Begin, End);
     }else if(Key == KeyCode_Left){

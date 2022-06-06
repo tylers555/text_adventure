@@ -43,7 +43,7 @@
     var "repair_not_broken"   "That is not broken!"
     var "use_dont_know"       "I don't know how to use that!"
     var "use_dont_have"       "I'm afraid you don't have that!"
-    
+
     var "pray_first" "You feel an incredible power flow around you, and the air becomes faintly chilly."
     var "pray_other" "A slight breeze stirs the room."
     var "pray_none"  "Nothing really seems to happen."
@@ -447,7 +447,17 @@
     
 : SoundEffect "sound_pipes_repaired"
     path "asset_sound_effects/osj/PowUpFX.wav"
-    
+
+
+: SoundEffect "sound_text_input_key_press"
+    path "asset_sound_effects/testing/puhp_01.wav"
+
+: SoundEffect "sound_text_input_backspace"
+    path "asset_sound_effects/testing/bloop_00.wav"
+
+: SoundEffect "sound_text_input_backspace_word"
+    path "asset_sound_effects/osj/LandFX.wav"
+
 #~ @sja_map
 
 : TAMap 
@@ -620,10 +630,11 @@
         "while \2the bar\0 lies to the \1south\0,\n"
         "and \2Thorn lane\0 in the \1west\0."
     adjacents
-        north "Northwest plaza"
-        east  "Southeast plaza"
-        south "Bar front"
-        west  "East Thorn Lane"
+        north     "Northwest plaza"
+        northeast "Garden lawn"
+        east      "Southeast plaza"
+        south     "Bar front"
+        west      "East Thorn Lane"
     items Array("Southwest plaza cathedral" "Southwest plaza bell tower")    
 
 : TARoom Name("Northwest plaza" Array("plaza") Array("nw" "northwest" "north" "west"))
@@ -709,7 +720,7 @@
     description Tag("adjacents")
         "Looking \1northward\0 you observe the \2art studio\0, \n"
         "and the \2workshop\0 to the \1west\0. \n"
-        "Behind you in the \1south\0 extends \2the plaza\0."
+        "Behind you \2the plaza\0 expands \1southward\0."
     adjacents
         north "Art studio front"
         south "Northwest plaza"
@@ -1286,3 +1297,5 @@
         ""
     adjacents
     down "Bell tower belfrey"
+
+#- @sja_garden
