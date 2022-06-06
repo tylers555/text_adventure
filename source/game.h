@@ -110,8 +110,15 @@ struct ta_system {
     
     void Initialize(memory_arena *Arena);
     inline b8 AddItem(ta_id Item);
+    
     inline void ClearResponse();
     inline void Respond(const char *Format, ...);
+    
+    memory_arena CommandMemory;
+    stack<const char *> CommandStack;
+    array<char[DEFAULT_BUFFER_SIZE]> EditingCommands;
+    u32 CurrentPeekedCommand;
+    inline void SaveCommand(const char *Command);
     
     //~ Game specific data
     asset_tag_id OrganState;

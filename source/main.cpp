@@ -256,3 +256,21 @@ inline void
 os_input::EndTextInput(){
     InputFlags &= !OSInputFlag_DoTextInput;
 }
+
+inline void 
+os_input::LoadTextInput(const char *From, u32 Length){
+    BeginTextInput();
+    CopyCString(Buffer, From, DEFAULT_BUFFER_SIZE);
+    BufferLength = Length;
+}
+
+inline void 
+os_input::LoadTextInput(const char *From){
+    LoadTextInput(From, CStringLength(From));
+}
+
+inline void 
+os_input::SaveTextInput(char *To, u32 MaxSize){
+    CopyCString(To, Buffer, DEFAULT_BUFFER_SIZE);
+    BeginTextInput();
+}

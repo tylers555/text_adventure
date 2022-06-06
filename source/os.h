@@ -342,6 +342,9 @@ struct os_input {
     inline void BeginTextInput();
     inline b8   MaybeEndTextInput();
     inline void EndTextInput();
+    inline void LoadTextInput(const char *From, u32 Length);
+    inline void LoadTextInput(const char *From);
+    inline void SaveTextInput(char *To, u32 MaxSize);
 };
 
 global os_input OSInput;

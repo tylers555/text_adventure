@@ -437,3 +437,9 @@ ta_system::Respond(const char *Format, ...){
     StringBuilderAdd(&ResponseBuilder, '\n');
     va_end(VarArgs);
 }
+
+inline void
+ta_system::SaveCommand(const char *Command){
+    const char *SavedCommand = ArenaPushCString(&CommandMemory, Command);
+    StackPush(&CommandStack, SavedCommand);
+}

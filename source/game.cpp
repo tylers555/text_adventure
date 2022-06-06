@@ -9,6 +9,11 @@ ta_system::Initialize(memory_arena *Arena){
     
     ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, 8);
     
+    // TODO(Tyler): Perhaps this could be more fancy? and clear out the older strings.
+    CommandMemory = MakeArena(Arena, Megabytes(1));
+    CommandStack = MakeStack<const char *>(Arena, 512);
+    EditingCommands = MakeArray<char[DEFAULT_BUFFER_SIZE]>(Arena, 512);
+    
     //~ Game specific data
     OrganState = AssetTag_Broken;
 }
@@ -222,30 +227,53 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         }
     }
     
-    //~ Text input rendering
+    //~ Text input
     {
+        f32 LineHeight = Font->Height+FONT_VERTICAL_SPACE;
+        char *Text = Input->Buffer;
+        f32 TotalWidth = RectWidth(InputRect);
         const char *Response = TA->ResponseBuilder.Buffer;
         DoString(Renderer, Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies),
                  Response, &InputRect);
         
-        char *Text = Input->Buffer;
         v2 InputP = V2(InputRect.X0, InputRect.Y1);
         DoString(Renderer, Font, &Theme->BasicFancy, 1, Text, &InputRect);
         
         f32 CursorHeight = Font->Height-Font->Descent;
-        f32 TotalWidth = RectWidth(InputRect);
         v2 CursorP = InputP+FontStringAdvance(Font, Input->CursorPosition, Text, TotalWidth);
-        if(((FrameCounter+30) / 30) % 3){
+        if((1 + (FrameCounter / 30)) % 3){
             RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, Theme->CursorColor);
         }
-        f32 LineHeight = Font->Height+FONT_VERTICAL_SPACE;
         
-        //~ Selection
+        
+        //- Previous commmands
+        if(Input->KeyJustDown(KeyCode_Up, KeyFlag_Any)){
+            if(TA->CurrentPeekedCommand < TA->CommandStack.Count){
+                if(TA->CurrentPeekedCommand >= TA->EditingCommands.Count) ArrayAlloc(&TA->EditingCommands);
+                Input->SaveTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
+                
+                TA->CurrentPeekedCommand++;
+                if(TA->CurrentPeekedCommand >= TA->EditingCommands.Count){
+                    Input->LoadTextInput(StackPeek(&TA->CommandStack, TA->CurrentPeekedCommand-1));
+                }else{
+                    Input->LoadTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
+                }
+            }
+        }else if(Input->KeyJustDown(KeyCode_Down, KeyFlag_Any)){
+            if(TA->CurrentPeekedCommand > 0){
+                if(TA->CurrentPeekedCommand >= TA->EditingCommands.Count) ArrayAlloc(&TA->EditingCommands);
+                Input->SaveTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
+                
+                TA->CurrentPeekedCommand--;
+                Input->LoadTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
+            }
+        }
+        
+        //- Text input selection
         if(Input->SelectionMark >= 0){
             u32 Min = Minimum((u32)Input->SelectionMark, Input->CursorPosition);
             u32 Max = Maximum((u32)Input->SelectionMark, Input->CursorPosition);
             if(Min != Max){
-                
                 font_string_metrics Metrics = FontStringMetricsRange(Font, Min, Max, Text, TotalWidth);
                 v2 StartP = V2(InputP.X, InputP.Y-Font->Descent);
                 
@@ -267,9 +295,12 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
             }
         }
         
-        //~ Command processing
+        //- Command processing
         if(Input->MaybeEndTextInput()){
             TA->ClearResponse();
+            TA->SaveCommand(Input->Buffer);
+            ArrayClear(&TA->EditingCommands);
+            
             u32 TokenCount;
             char **Tokens = TokenizeCommand(&TransientStorageArena, Input->Buffer, &TokenCount);
             if(TA->Callback){

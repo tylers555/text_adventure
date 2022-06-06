@@ -71,7 +71,7 @@ ArrayAlloc(array<T> *Array, u32 N=1){
     }else{
         Assert(0);
     }
-    *Result = {};
+    ZeroMemory(Result, sizeof(T));
     return(Result);
 }
 
