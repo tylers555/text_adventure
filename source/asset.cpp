@@ -226,9 +226,48 @@ FontLineHeight(asset_font *Font){
     return Result;
 }
 
-internal v2
-FontStringAdvance(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
-    v2 Result = V2(0);
+internal font_string_metrics
+FontStringMetricsRange(asset_font *Font, u32 Min, u32 Max, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+    Assert(Min <= Max);
+    
+    font_string_metrics Result = {};
+    u32 Length = Minimum(CStringLength(S), Max);
+    for(u32 I=0; I<Length; I++){
+        char C = S[I];
+        asset_font_glyph Glyph = Font->Table[C];
+        if(I == Min){
+            v2 Advance = Result.Advance;
+            Result = {};
+            Result.StartAdvance = Advance;
+            Result.Advance = Advance;
+        }
+        
+        if(C == ' '){
+            f32 WordAdvance = FontWordAdvance(Font, S, I);
+            if(Result.Advance.X+WordAdvance > MaxWidth){
+                Result.LineWidths[Result.LineCount++] = Result.Advance.X;
+                Result.Advance.X = 0;
+                Result.Advance.Y -= Font->Height+FONT_VERTICAL_SPACE;
+                continue;
+            }
+        }else if(Result.Advance.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
+            Result.LineWidths[Result.LineCount++] = Result.Advance.X;
+            Result.Advance.X = 0;
+            Result.Advance.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            Result.LineCount++;
+        }
+        
+        Result.Advance.X += Glyph.Width+FONT_LETTER_SPACE;
+    }
+    
+    Assert(Result.Advance.X <= MaxWidth);
+    
+    return Result;
+}
+
+internal font_string_metrics
+FontStringMetrics(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+    font_string_metrics Result = {};
     u32 Length = Minimum(CStringLength(S), N);
     for(u32 I=0; I<Length; I++){
         char C = S[I];
@@ -236,20 +275,31 @@ FontStringAdvance(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSIT
         
         if(C == ' '){
             f32 WordAdvance = FontWordAdvance(Font, S, I);
-            if(Result.X+WordAdvance > MaxWidth){
-                Result.X = 0;
-                Result.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            if(Result.Advance.X+WordAdvance > MaxWidth){
+                Result.LineWidths[Result.LineCount++] = Result.Advance.X;
+                Result.Advance.X = 0;
+                Result.Advance.Y -= Font->Height+FONT_VERTICAL_SPACE;
                 continue;
             }
-        }else if(Result.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
-            Result.X = 0;
-            Result.Y -= Font->Height+FONT_VERTICAL_SPACE;
+        }else if(Result.Advance.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
+            Result.LineWidths[Result.LineCount++] = Result.Advance.X;
+            Result.Advance.X = 0;
+            Result.Advance.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            Result.LineCount++;
         }
         
-        Result.X += Glyph.Width+FONT_LETTER_SPACE;
+        Result.Advance.X += Glyph.Width+FONT_LETTER_SPACE;
     }
     
-    Assert(Result.X <= MaxWidth);
+    Assert(Result.Advance.X <= MaxWidth);
+    
+    return Result;
+}
+
+internal v2
+FontStringAdvance(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
+    font_string_metrics Metrics = FontStringMetrics(Font, N, S, MaxWidth);
+    v2 Result = Metrics.Advance;
     
     return Result;
 }
@@ -259,7 +309,6 @@ FontStringAdvance(asset_font *Font, const char *S, f32 MaxWidth=F32_POSITIVE_INF
     v2 Result = FontStringAdvance(Font, CStringLength(S), S, MaxWidth);
     return Result;
 }
-
 
 #if 1
 internal f32

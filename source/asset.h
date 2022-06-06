@@ -194,6 +194,14 @@ MakeFancyFormat(color Color1, color Color2,
     return Result;
 }
 
+global_constant u32 FONT_STRING_MAX_LINES = 16;
+struct font_string_metrics {
+    u32 LineCount;
+    f32 LineWidths[FONT_STRING_MAX_LINES];
+    v2 StartAdvance; // Used for ranges
+    v2 Advance;
+};
+
 //~ Text adventure stuff
 
 struct ta_id {

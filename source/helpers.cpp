@@ -20,6 +20,11 @@ CopyCString(char *To, const char *From, u32 MaxSize){
     To[I] = '\0';
 }
 
+internal void
+CopyCString(char *To, const char *From){
+    CopyCString(To, From, CStringLength(From));
+}
+
 internal direction
 InverseDirection(direction Direction){
     local_constant direction Table[Direction_TOTAL] = {

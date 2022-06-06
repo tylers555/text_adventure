@@ -830,6 +830,10 @@ union rect {
         f32 X0, Y0;
         f32 X1, Y1;
     };
+    struct {
+        f32 Left,  Bottom;
+        f32 Right, Top;
+    };
 };
 
 struct rect_s32 {
@@ -979,6 +983,12 @@ internal inline v2
 RectSize(rect Rect){
     v2 Result = Rect.Max - Rect.Min;
     return(Result);
+}
+
+internal inline f32
+RectWidth(rect Rect){
+    f32 Result = Rect.Right - Rect.Left;
+    return Result;
 }
 
 internal inline b8

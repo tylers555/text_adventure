@@ -233,17 +233,38 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         DoString(Renderer, Font, &Theme->BasicFancy, 1, Text, &InputRect);
         
         f32 CursorHeight = Font->Height-Font->Descent;
-        v2 CursorP = InputP+FontStringAdvance(Font, Input->CursorPosition, Text);
+        f32 TotalWidth = RectWidth(InputRect);
+        v2 CursorP = InputP+FontStringAdvance(Font, Input->CursorPosition, Text, TotalWidth);
         if(((FrameCounter+30) / 30) % 3){
             RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, Theme->CursorColor);
         }
+        f32 LineHeight = Font->Height+FONT_VERTICAL_SPACE;
         
         //~ Selection
         if(Input->SelectionMark >= 0){
-            v2 SelectionP = InputP+FontStringAdvance(Font, Input->SelectionMark, Text);
-            f32 Width = SelectionP.X-CursorP.X;
-            RenderRect(Renderer, SizeRect(V2(CursorP.X, CursorP.Y-1), V2(Width, Font->Height+2)), 1.0, 
-                       Theme->SelectionColor);
+            u32 Min = Minimum((u32)Input->SelectionMark, Input->CursorPosition);
+            u32 Max = Maximum((u32)Input->SelectionMark, Input->CursorPosition);
+            if(Min != Max){
+                
+                font_string_metrics Metrics = FontStringMetricsRange(Font, Min, Max, Text, TotalWidth);
+                v2 StartP = V2(InputP.X, InputP.Y-Font->Descent);
+                
+                if(Metrics.LineCount == 0){
+                    f32 Width = Metrics.Advance.X-Metrics.StartAdvance.X;
+                    RenderRect(Renderer, SizeRect(StartP+Metrics.StartAdvance, V2(Width, LineHeight)), 
+                               1.0, Theme->SelectionColor);
+                }else{
+                    f32 FirstWidth = Metrics.LineWidths[0]-Metrics.StartAdvance.X;
+                    RenderRect(Renderer, SizeRect(StartP+Metrics.StartAdvance, 
+                                                  V2(FirstWidth, LineHeight)), 1.0, Theme->SelectionColor);
+                    for(u32 I=1; I<Metrics.LineCount; I++){
+                        RenderRect(Renderer, SizeRect(V2(StartP.X, StartP.Y-(LineHeight)*I), 
+                                                      V2(Metrics.LineWidths[I], LineHeight)), 1.0, Theme->SelectionColor);
+                    }
+                    RenderRect(Renderer, SizeRect(V2(StartP.X, StartP.Y+Metrics.Advance.Y), 
+                                                  V2(Metrics.Advance.X, LineHeight)), 1.0, Theme->SelectionColor);
+                }
+            }
         }
         
         //~ Command processing
