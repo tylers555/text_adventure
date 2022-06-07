@@ -334,11 +334,14 @@ struct os_input {
     //~ Text input
     char Buffer[DEFAULT_BUFFER_SIZE];
     u32 BufferLength;
-    u32 CursorPosition;
+    s32 CursorPosition;
     s32 SelectionMark = -1;
     
-    inline void AddToBuffer(os_key_code Key);
-    inline void DeleteFromBuffer(u32 Begin, u32 End);
+    inline void AssembleBuffer(os_key_code Key);
+    inline void DeleteFromBuffer(s32 Begin, s32 End);
+    inline b8 TryDeleteSelection();
+    inline void MaybeSetSelection();
+    inline u32 InsertCharsToBuffer(u32 Position, char *Chars, u32 CharCount);
     inline void BeginTextInput();
     inline b8   MaybeEndTextInput();
     inline void EndTextInput();
@@ -497,10 +500,16 @@ internal void *DefaultAlloc(umw Size);
 internal void *DefaultRealloc(void *Memory, umw Size);
 internal void  DefaultFree(void *Pointer);
 
+//~ Clipboard
+struct memory_arena;
+internal void  OSCopyChars(const char *Chars, u32 Count);
+internal char *OSPasteChars(memory_arena *Arena);
+
 //~ Miscellaneous
 internal void OSProcessInput(os_input *Input);
 internal void OSSleep(u32 Milliseconds);
 internal void OSEndGame();
 internal u64  OSGetMicroseconds();
+
 
 #endif // SNAIL_JUMPY_OS_H

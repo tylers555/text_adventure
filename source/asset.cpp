@@ -250,6 +250,16 @@ FontStringMetricsRange(asset_font *Font, u32 Min, u32 Max, const char *S, f32 Ma
                 Result.Advance.Y -= Font->Height+FONT_VERTICAL_SPACE;
                 continue;
             }
+        }else if(C == '\n'){
+            Result.LineWidths[Result.LineCount++] = Result.Advance.X;
+            Result.Advance.X = 0;
+            Result.Advance.Y -= Font->Height+FONT_VERTICAL_SPACE;
+            continue;
+        }else if(C == '\r'){
+            continue;
+        }else if(C == '\x02'){
+            I++;
+            continue;
         }else if(Result.Advance.X+Glyph.Width+FONT_LETTER_SPACE >= MaxWidth){
             Result.LineWidths[Result.LineCount++] = Result.Advance.X;
             Result.Advance.X = 0;

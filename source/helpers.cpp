@@ -56,6 +56,14 @@ GetRandomFloat(u32 Seed, u32 Spread=5, f32 Power=0.2f){
 }
 
 //~
+// NOTE(Tyler): This exists because windows has crlf line endings!!!
+internal inline b8
+IsNewLine(char C){
+    b8 Result = ((C == '\n') ||
+                 (C == '\r'));
+    return Result;
+}
+
 internal inline b8
 IsWhiteSpace(char C){
     b8 Result = ((C == ' ') ||

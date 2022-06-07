@@ -113,4 +113,8 @@ struct game_state {
     audio_mixer Mixer;
 };
 
+struct settings_state {
+    sound_handle MusicHandle;
+};
+
 #endif

@@ -11,7 +11,7 @@
     # @sja_start_game_mode
     var   "start_game_mode" "game"
     # @sja_start_room
-    ta_id "start_room"      "James street"
+    ta_id "start_room"      "Garden lawn"
     
     var "invalid_command"     "That is not a valid command!\n"
                               "\1You fool\0!!!"
@@ -448,7 +448,7 @@
 : SoundEffect "sound_pipes_repaired"
     path "asset_sound_effects/osj/PowUpFX.wav"
 
-
+#- @sja_necessary_text_input_sound_effects
 : SoundEffect "sound_text_input_key_press"
     path "asset_sound_effects/testing/puhp_01.wav"
 
@@ -469,7 +469,10 @@
     area "Cathedral"       V2(94 52)
     area "Concert hall"    V2(45 21)
     area "Dark alley"      V2(59 53)
-    area "Garden"          V2(109 56)
+    area "Garden lawn"     V2(106 50)
+    area "Garden tree"     V2(107  56)
+    area "Garden fountain" V2(115 56)
+    area "Graveyard"       V2(109 67)
     area "Inn"             V2(71 44)
     area "Plant shop"      V2(60 60)
     area "Southeast plaza" V2(93 41)
@@ -594,6 +597,10 @@
     description Tag("examine")
         "The ground appears quite weathered and is damp from the rain"
 
+: TAItem Name("Southeast plaza cathedral" Array("cathedral")) Tag("static")
+    description
+        
+
 : TARoom Name("Southeast plaza" Array("plaza") Array("se" "southeast" "south" "east"))
     area "Southeast plaza"
     description
@@ -605,11 +612,12 @@
         "\2the bakery\0 in the \1east\0.\n"
         "and \2a monstrous cathedral\0 in the \1north\0."
     adjacents
-        west  "Southwest plaza"
-        south "Shop front"
-        east  "Bakery front"
-        north "Cathedral front"
-    items Array("Southeast plaza oak trees" "Southeast plaza ground")
+        north     "Cathedral front"
+        northeast "Garden lawn"
+        east      "Bakery front"
+        south     "Shop front"
+        west      "Southwest plaza"
+    items Array("Southeast plaza oak trees" "Southeast plaza ground" "Southeast plaza cathedral")
 
 : TAItem Name("Southwest plaza cathedral" Array("cathedral") Array("small" "side")) Tag("static")
     description Tag("examine")
@@ -1299,3 +1307,39 @@
     down "Bell tower belfrey"
 
 #- @sja_garden
+
+: TARoom Name("Garden lawn" Array("garden" "lawn") Array("garden"))
+    area "Garden lawn"
+    description
+        "Garden lawn"
+    adjacents
+        north     "Garden tree"
+        northeast "Garden fountain"
+        southwest "Southeast plaza"
+
+: TARoom Name("Graveyard" Array("graveyard"))
+    area "Graveyard"
+    description
+        "Graveyard"
+    adjacents
+        south     "Garden tree"
+        southeast "Garden fountain"
+
+: TARoom Name("Garden fountain" Array("fountain") Array("garden"))
+    area "Garden fountain"
+    description
+        "Garden fountain"
+    adjacents
+        north     "Graveyard"
+        west      "Garden tree"
+        south     "Garden lawn"
+        southwest "Garden lawn"
+
+: TARoom Name("Garden tree" Array("tree") Array("garden"))
+    area "Garden tree"
+    description
+        "Garden tree"
+    adjacents
+        north "Graveyard"
+        east  "Garden fountain"
+        south "Garden lawn"

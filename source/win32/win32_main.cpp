@@ -431,12 +431,6 @@ WinMain(HINSTANCE Instance,
     OSSoundBuffer.SampleRate = AUDIO_SAMPLES_PER_SECOND;
     OSSoundBuffer.Samples = (s16 *)AllocateVirtualMemory(BufferSize);
     
-    win32_audio_thread_parameter AudioParameter = {};
-    AudioParameter.DeviceContext = DeviceContext;
-    AudioParameter.Mixer = &GameState.Mixer;
-    CreateThread(0, 0, Win32AudioThreadProc, &AudioParameter, 0, 0);
-    LogMessage("Audio initialized");
-    
     //~ Prepare OSInput
     RECT ClientRect;
     GetClientRect(MainWindow, &ClientRect);
@@ -447,6 +441,13 @@ WinMain(HINSTANCE Instance,
     //~ Initialize game
     InitializeState(&GameState);
     LogMessage("Game initialized");
+    
+    //~ Audio thread
+    win32_audio_thread_parameter AudioParameter = {};
+    AudioParameter.DeviceContext = DeviceContext;
+    AudioParameter.Mixer = &GameState.Mixer;
+    CreateThread(0, 0, Win32AudioThreadProc, &AudioParameter, 0, 0);
+    LogMessage("Audio initialized");
     
     //~ Load processed assets
     // NOTE(Tyler): Asset loading must happen after game state has been initialized

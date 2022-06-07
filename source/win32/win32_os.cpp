@@ -382,7 +382,7 @@ OSProcessInput(os_input *Input){
                 
                 os_key_code KeyCode = Win32ConvertVKCode(VKCode);
                 if(IsDown){
-                    Input->AddToBuffer(KeyCode);
+                    Input->AssembleBuffer(KeyCode);
                     Input->KeyboardState[KeyCode] |= KeyState_RepeatDown;
                     Input->KeyboardState[KeyCode] |= KeyState_IsDown;
                     if(IsDown != WasDown){
@@ -406,6 +406,49 @@ OSProcessInput(os_input *Input){
             }break;
         }
     }
+}
+
+//~ Clipboard
+internal void
+OSCopyChars(const char *Chars, u32 CharCount){
+    if(!OpenClipboard(MainWindow)){
+        Assert(0);
+        return;
+    }
+    Assert(EmptyClipboard());
+    
+    HGLOBAL CopiedCharsHandle = GlobalAlloc(GMEM_MOVEABLE|GMEM_ZEROINIT, CharCount+1);
+    Assert(CopiedCharsHandle);
+    
+    char *CopiedChars = (char *)GlobalLock(CopiedCharsHandle);
+    CopyMemory(CopiedChars, Chars, CharCount);
+    GlobalUnlock(CopiedCharsHandle);
+    
+    SetClipboardData(CF_TEXT, CopiedCharsHandle);
+    
+    Assert(CloseClipboard());
+}
+
+internal char *
+OSPasteChars(memory_arena *Arena){
+    if(!IsClipboardFormatAvailable(CF_TEXT)) return 0;
+    if(!OpenClipboard(MainWindow)){
+        Assert(0);
+        return 0;
+    }
+    
+    HGLOBAL Handle = GetClipboardData(CF_TEXT); 
+    if(!Handle) return 0;
+    
+    const char *Chars = (const char *)GlobalLock(Handle);
+    if(!Chars) return 0;
+    
+    char *Result = ArenaPushCString(Arena, Chars);
+    
+    GlobalUnlock(Handle);
+    
+    Assert(CloseClipboard());
+    return Result;
 }
 
 //~ Miscellaneous

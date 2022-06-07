@@ -68,6 +68,9 @@ HighestMatch = Match; \
         // Testing commands
         TEST_COMMAND("testaddmoney", CommandTestAddMoney);
         TEST_COMMAND("testsubmoney", CommandTestSubMoney);
+        
+        // Meta commands
+        TEST_COMMAND("music",     CommandMusic);
 #undef TEST_COMMAND
         
         if(HighestMatch > WORD_MATCH_THRESHOLD){
@@ -272,8 +275,8 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         
         //- Text input selection
         if(Input->SelectionMark >= 0){
-            u32 Min = Minimum((u32)Input->SelectionMark, Input->CursorPosition);
-            u32 Max = Maximum((u32)Input->SelectionMark, Input->CursorPosition);
+            u32 Min = Minimum(Input->SelectionMark, Input->CursorPosition);
+            u32 Max = Maximum(Input->SelectionMark, Input->CursorPosition);
             if(Min != Max){
                 font_string_metrics Metrics = FontStringMetricsRange(Font, Min, Max, Text, TotalWidth);
                 v2 StartP = V2(InputP.X, InputP.Y-Font->Descent);

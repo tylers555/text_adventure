@@ -1,5 +1,5 @@
 
-//~ Movement commands
+//~ @movement_commands
 b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *FoundRoom = 0;
     u32 FoundIndex = 0;
@@ -205,7 +205,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
     return true;
 }
 
-//~ Item commands
+//~ @item_commands
 
 b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
@@ -543,7 +543,7 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
     return false;
 }
 
-//~ Miscellaneous commands
+//~ @misc_commands
 b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
@@ -567,7 +567,7 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     return true;
 }
 
-//~ Testing commands
+//~ @testing_commands
 b8 CommandTestAddMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     TA->Money += 10;
     return true;
@@ -577,3 +577,17 @@ b8 CommandTestSubMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, 
     if(TA->Money >= 10) TA->Money -= 10;
     return true;
 }
+
+//~ @meta_commands
+b8 CommandMusic(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    if(!SettingsState.MusicHandle.ID){
+        SettingsState.MusicHandle = Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_test_music)), 
+                                                     MixerSoundFlag_Loop);
+    }else{
+        Mixer->StopSound(SettingsState.MusicHandle);
+        SettingsState.MusicHandle = {};
+    }
+    
+    return true;
+}
+

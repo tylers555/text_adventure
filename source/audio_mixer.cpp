@@ -3,11 +3,14 @@ void
 audio_mixer::Initialize(memory_arena *Arena){
     SoundMemory = MakeArena(Arena, Kilobytes(16));
     MusicMasterVolume = SoundEffectMasterVolume = V2(1);
+    FirstSound.Next = &FirstSound;
+    FirstSound.Prev = &FirstSound;
 }
 
-void
+sound_handle
 audio_mixer::PlaySound(asset_sound_effect *Asset, mixer_sound_flags Flags, f32 PlaybackSpeed, f32 Volume0, f32 Volume1){
-    if(!Asset) return;
+    sound_handle Handle = {};
+    if(!Asset) return Handle;
     
     TicketMutexBegin(&FreeSoundMutex);
     
@@ -27,12 +30,32 @@ audio_mixer::PlaySound(asset_sound_effect *Asset, mixer_sound_flags Flags, f32 P
     Sound->Volume0 = Volume0*Asset->VolumeMultiplier;
     Sound->Volume1 = Volume1*Asset->VolumeMultiplier;
     
-    Sound->Next = FirstSound;
-    FirstSound = Sound;
+    Sound->Prev = &FirstSound;
+    Sound->Next = FirstSound.Next;
+    Sound->Prev->Next = Sound;
+    Sound->Next->Prev = Sound;
     
     Sound->Data = Data;
     
+    Sound->ID = ++CurrentID;
+    
+    Handle.Sound = Sound;
+    Handle.ID = Sound->ID;
+    
     TicketMutexEnd(&FreeSoundMutex);
+    
+    return Handle;
+}
+
+void
+audio_mixer::StopSound(sound_handle Handle){
+    if(Handle.Sound->ID != Handle.ID) return;
+    TicketMutexBegin(&SoundMutex);
+    
+    Handle.Sound->Next->Prev = Handle.Sound->Prev;
+    Handle.Sound->Prev->Next = Handle.Sound->Next;
+    
+    TicketMutexEnd(&SoundMutex);
 }
 
 //~ NOTE(Tyler): THIS RUNS IN A SEPARATE THREAD!
@@ -52,9 +75,9 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
     __m128 *OutputChannel0 = PushSpecialArray(WorkingMemory, __m128, MaxChunksToWrite, ZeroAndAlign(16));
     __m128 *OutputChannel1 = PushSpecialArray(WorkingMemory, __m128, MaxChunksToWrite, ZeroAndAlign(16));
     
-    mixer_sound *PreviousSound = 0;
-    mixer_sound *Sound = FirstSound;
-    while(Sound){
+    TicketMutexBegin(&SoundMutex);
+    mixer_sound *Sound = FirstSound.Next;
+    while(Sound != &FirstSound){
         sound_data *SoundData = Sound->Data;
         Assert(SoundData->ChannelCount == 2);
         
@@ -72,7 +95,9 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
         
         __m128 MasterVolume0 = _mm_set1_ps(MasterVolume.E[0]);
         __m128 MasterVolume1 = _mm_set1_ps(MasterVolume.E[1]);
-        
+        {
+            
+        }
         f32 dSample = Sound->Speed*SoundData->BaseSpeed;
         __m128 dSampleM128 = _mm_set1_ps(4*dSample);
         __m128 SampleP = _mm_setr_ps(Sound->SamplesPlayed + 0.0f*dSample, 
@@ -133,10 +158,11 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
         Sound->SamplesPlayed += dSample*(f32)SoundBuffer->SamplesPerFrame;
         if((Sound->SamplesPlayed > SoundData->SampleCount) &&
            !(Sound->Flags & MixerSoundFlag_Loop)){
-            if(PreviousSound) PreviousSound->Next = Sound->Next;
-            else FirstSound = Sound->Next;
             
             TicketMutexBegin(&FreeSoundMutex);
+            
+            Sound->Prev->Next = Sound->Next;
+            Sound->Next->Prev = Sound->Prev;
             
             mixer_sound *Temp = Sound->Next;
             Sound->Next = 0;
@@ -151,10 +177,10 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
             if(Sound->SamplesPlayed > SoundData->SampleCount){
                 Sound->SamplesPlayed = 0;
             }
-            PreviousSound = Sound;
             Sound = Sound->Next;
         }
     }
+    TicketMutexEnd(&SoundMutex);
     
     __m128 *Source0 = OutputChannel0;
     __m128 *Source1 = OutputChannel1;
