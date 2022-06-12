@@ -141,5 +141,6 @@ GameProcessItem(ta_system *TA, ta_id ItemID, ta_item *Item){
 
 internal void
 GameTick(ta_system *TA, asset_system *Assets){
+    ArenaClear(&GlobalTickMemory);
     GameUpdateGhosts(TA, Assets);
 }

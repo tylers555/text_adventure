@@ -17,12 +17,24 @@ struct debug_info_display {
                                          Counter, Elapsed, 1.0/OSInput.dTime, DEBUG->Renderer.CameraScale);
         }
         
-        DebugP = V2(320, 150);
+        DebugP = V2(200, 230);
         for(u32 I=0; I<TextAdventure.Ghosts.Count; I++){
             ta_room *Room = HashTableFindPtr(&TextAdventure.RoomTable, TextAdventure.Ghosts[I].CurrentRoom);
             DebugP.Y -= FontRenderString(&DEBUG->Renderer, Font, DebugP, WHITE,
                                          "Ghost[%u] Room: %s", I, Room->Name);
         }
+        
+#if 0        
+        u32 I = 0;
+        text_input_history_node *Node = &OSInput.HistorySentinel;
+        do{
+            DebugP.Y -= FontRenderString(&DEBUG->Renderer, Font, DebugP, PINK, "[%p]: '%.*s' %s", 
+                                         Node, Node->BufferLength, Node->Buffer,
+                                         (Node == OSInput.CurrentHistoryNode) ? "current" : "");
+            Node = Node->Next;
+            I++;
+        }while((Node != &OSInput.HistorySentinel) || (I > 30));
+#endif
     }
 };
 

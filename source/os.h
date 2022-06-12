@@ -324,9 +324,37 @@ struct text_input_fade {
     f32 T; 
 };
 
+global_constant u32 TEXT_INPUT_BUFFER_SIZE = DEFAULT_BUFFER_SIZE;
+
 struct text_input_history_node {
-    text_input_history_node *Next;
+    union {
+        text_input_history_node *Next;
+        text_input_history_node *NextFree;
+    };
     text_input_history_node *Prev;
+    char *Buffer;
+    u32 BufferLength;
+    s32 CursorPosition;
+};
+
+typedef u8 text_input_flags;
+enum text_input_flags_ {
+    TextInputFlag_None    = (0 << 0),
+    TextInputFlag_IsDirty = (1 << 0),
+};
+
+enum text_input_event_type {
+    TextInputEvent_None,
+    TextInputEvent_MoveCursor,
+    TextInputEvent_AddChar,
+    TextInputEvent_BackSpace,
+    TextInputEvent_Delete,
+    
+    TextInputEvent_AddRange,
+    TextInputEvent_RemoveRange,
+    
+    TextInputEvent_Other,
+    TextInputEvent_TOTAL,
 };
 
 //~ OS input
@@ -375,23 +403,34 @@ struct os_input {
     inline b8 KeyDown(    u32 Key, os_key_flags=KeyFlag_None);
     
     //~ Text input
-    char Buffer[DEFAULT_BUFFER_SIZE];
+    text_input_flags TextInputFlags;
+    char Buffer[TEXT_INPUT_BUFFER_SIZE];
     u32 BufferLength;
     s32 CursorPosition;
     s32 SelectionMark = -1;
     
     inline range_s32 GetSelectionRange();
-    inline void AssembleBuffer(os_key_code Key);
-    inline void DeleteFromBuffer(range_s32 Range);
     inline b8   TryDeleteSelection();
     inline void MaybeSetSelection();
-    inline u32  InsertCharsToBuffer(u32 Position, char *Chars, u32 CharCount);
+    inline void TextInputProcessKey(os_key_code Key);
+    inline u32  BufferInsertChars(u32 Position, char *Chars, u32 CharCount);
+    inline void BufferDeleteRange(range_s32 Range);
     inline void BeginTextInput();
     inline b8   MaybeEndTextInput();
     inline void EndTextInput();
     inline void LoadTextInput(const char *From, u32 Length);
     inline void LoadTextInput(const char *From);
     inline void SaveTextInput(char *To, u32 MaxSize);
+    
+    text_input_event_type LastEvent;
+    text_input_history_node HistorySentinel;
+    text_input_history_node *FreeHistoryNode;
+    text_input_history_node *CurrentHistoryNode;
+    
+    inline text_input_history_node *HistoryAddNode();
+    inline void HistoryUndo();
+    inline void HistoryRedo();
+    inline void HistoryChangeEvent(text_input_event_type Type);
 };
 
 global os_input OSInput;

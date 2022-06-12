@@ -61,6 +61,7 @@ typedef double f64;
 
 #define INVALID_CODE_PATH   Assert(0)
 #define NOT_IMPLEMENTED_YET Assert(0)
+#define DONT_COMPILE _ThIs_sHaLlnOt_CoMpIle
 
 #define U8_MAX  0xff
 #define U16_MAX 0xffff
@@ -100,9 +101,17 @@ typedef double f64;
 (Node)->Next->Prev = (Node); \
 }while(0)
 
+#define DLIST_ADD_LAST(Sentinel, Node) do{ \
+(Node)->Prev = (Sentinel)->Prev; \
+(Node)->Next = (Sentinel); \
+(Node)->Prev->Next = (Node); \
+(Node)->Next->Prev = (Node); \
+}while(0)
+
 #define DLIST_REMOVE(Node) do{ \
 (Node)->Next->Prev = (Node)->Prev; \
 (Node)->Prev->Next = (Node)->Next; \
+(Node)->Next = (Node)->Prev = 0; \
 }while(0); 
 
 #define DLIST_INIT(Sentinel) do{ \
@@ -111,16 +120,16 @@ typedef double f64;
 }while(0);
 
 template <typename T> internal inline T *
-FreelistAlloc_(T *List){
-    T *Result = List;
-    List = List->Next;
+FreelistAlloc_(T **List){
+    T *Result = *List;
+    *List = (*List)->NextFree;
     return Result;
 }
 
-#define FREELIST_ALLOC(List, AllocCode) ((List) ? FreelistAlloc_(List) : (AllocCode))
+#define FREELIST_ALLOC(List, AllocCode) ((List) ? FreelistAlloc_(&(List)) : (AllocCode))
 
 #define FREELIST_FREE(List, Node) do{ \
-(Node)->Next = (List); \
+(Node)->NextFree = (List); \
 (List) = (Node); \
 }while(0);
 
@@ -1248,6 +1257,38 @@ RangeShift(range_s32 Range, s32 Shift){
     return Result;
 }
 
+tyler_function inline b8
+RangeContains(range_s32 Range, s32 Value){
+    b8 Result = (Range.Min < Value) && (Value < Range.Max);
+    return Result;
+}
+
+tyler_function inline b8
+RangeContainsInclusive(range_s32 Range, s32 Value){
+    b8 Result = (Range.Min <= Value) && (Value <= Range.Max);
+    return Result;
+}
+
+tyler_function inline b8
+RangeContains(range_s32 A, range_s32 B){
+    b8 Result = (A.Min < B.Min) && (B.Max < A.Max);
+    return Result;
+}
+
+tyler_function inline b8
+RangeContainsInclusive(range_s32 A, range_s32 B){
+    b8 Result = (A.Min <= B.Min) && (B.Max <= A.Max);
+    return Result;
+}
+
+tyler_function inline range_s32
+RangeCrop(range_s32 Super, range_s32 Sub){
+    range_s32 Result;
+    Result.Min = Maximum(Super.Min, Sub.Min);
+    Result.Max = Minimum(Super.Max, Sub.Max);
+    return Result;
+}
+
 //~ Intrinsics
 struct bit_scan_result
 {
@@ -1414,7 +1455,7 @@ CStringMakeLower(char *S){
 }
 
 tyler_function constexpr b8
-CompareStrings(const char *A, const char *B){
+CompareCStrings(const char *A, const char *B){
     while(*A && *B){
         if(*A++ != *B++){
             return false;
@@ -2152,7 +2193,7 @@ HashKey(u64 Value) {
 
 tyler_function constexpr b32
 CompareKeys(const char *A, const char *B){
-    b32 Result = CompareStrings(A, B);
+    b32 Result = CompareCStrings(A, B);
     return(Result);
 }
 

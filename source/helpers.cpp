@@ -39,13 +39,13 @@ StopSeeking(char C){
     return Result;
 }
 
-internal inline u32 
+internal inline range_s32
 SeekForward(const char *Buffer, u32 BufferLength, u32 Start){
-    u32 Result = Start;
+    range_s32 Result = MakeRangeS32(Start, BufferLength);
     b8 HitAlphabetic = false;
     for(u32 I=Start; I<=BufferLength; I++){
         char C = Buffer[I];
-        Result = I;
+        Result.End = I;
         if(StopSeeking(C)){
             if(HitAlphabetic) break;
         }else HitAlphabetic = true;
@@ -54,17 +54,17 @@ SeekForward(const char *Buffer, u32 BufferLength, u32 Start){
     return Result;
 }
 
-internal inline u32 
-SeekBackward(const char *Buffer, u32 Start){
-    if(Start == 0) return 0;
-    u32 Result = Start;
+internal inline range_s32
+SeekBackward(const char *Buffer, s32 End){
+    range_s32 Result = MakeRangeS32(0, End);
+    if(End == 0) return Result;
     b8 HitAlphabetic = false;
-    for(s32 I=Start-1; I>=0; I--){
+    for(s32 I=Result.End-1; I>=0; I--){
         char C = Buffer[I];
         if(StopSeeking(C)){
             if(HitAlphabetic) break;
         }else HitAlphabetic = true;
-        Result = I;
+        Result.Start = I;
     }
     
     return Result;

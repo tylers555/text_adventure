@@ -335,7 +335,7 @@ file_reader::ExpectTypeV2(){
     v2 Result = V2(0);
     
     const char *Identifier = Expect(this, Identifier);
-    if(CompareStrings(Identifier, "V2")){
+    if(CompareCStrings(Identifier, "V2")){
         ExpectToken(FileTokenType_BeginArguments);
         HandleError(this);
         
@@ -363,7 +363,7 @@ file_reader::ExpectTypeArrayS32(){
     array<s32> Result = MakeArray<s32>(&GlobalTransientMemory, SJA_MAX_ARRAY_ITEM_COUNT);
     
     const char *Identifier = Expect(this, Identifier);
-    if(CompareStrings(Identifier, "Array")){
+    if(CompareCStrings(Identifier, "Array")){
         ExpectToken(FileTokenType_BeginArguments);
         HandleError(this);
         
@@ -391,7 +391,7 @@ file_reader::ExpectTypeArrayCString(){
     array<const char *> Result = MakeArray<const char *>(&GlobalTransientMemory, SJA_MAX_ARRAY_ITEM_COUNT);
     
     const char *Identifier = Expect(this, Identifier);
-    if(CompareStrings(Identifier, "Array")){
+    if(CompareCStrings(Identifier, "Array")){
         ExpectToken(FileTokenType_BeginArguments);
         HandleError(this);
         
@@ -420,7 +420,7 @@ file_reader::ExpectTypeColor(){
     
     file_token Token = PeekToken();
     if(Token.Type != FileTokenType_Identifier) return Result;
-    if(CompareStrings(Token.Identifier, "Color")){
+    if(CompareCStrings(Token.Identifier, "Color")){
         Expect(this, Identifier);
         
         ExpectToken(FileTokenType_BeginArguments);

@@ -180,7 +180,7 @@ asset_system::ExpectTypeFancy(){
     
     file_token Token = Reader.PeekToken();
     if(Token.Type != FileTokenType_Identifier) return Result;
-    if(CompareStrings(Token.Identifier, "Fancy")){
+    if(CompareCStrings(Token.Identifier, "Fancy")){
         Expect(&Reader, Identifier);
         
         Reader.ExpectToken(FileTokenType_BeginArguments);
@@ -239,7 +239,7 @@ asset_system::MaybeExpectTag(){
     
     file_token Token = Reader.PeekToken();
     if(Token.Type != FileTokenType_Identifier) return Result;
-    if(CompareStrings(Token.Identifier, "Tag")){
+    if(CompareCStrings(Token.Identifier, "Tag")){
         Expect(&Reader, Identifier);
         
         Reader.ExpectToken(FileTokenType_BeginArguments);
@@ -273,7 +273,7 @@ asset_system::ExpectTypeName(){
     ta_name Result = {};
     
     const char *Identifier = Expect(&Reader, Identifier);
-    if(!CompareStrings(Identifier, "Name")){
+    if(!CompareCStrings(Identifier, "Name")){
         Reader.LastError = FileReaderError_InvalidToken;
         return Result;
     }
@@ -373,7 +373,7 @@ asset_system::LoadImage(const char *Path){
 
 b8 
 asset_system::DoAttribute(const char *String, const char *Attribute){
-    b8 Result = CompareStrings(String, Attribute);
+    b8 Result = CompareCStrings(String, Attribute);
     if(Result) CurrentAttribute = Attribute;
     return(Result);
 }
@@ -441,7 +441,7 @@ asset_system::LoadAssetFile(const char *Path){
 }
 
 #define IfCommand(Command)                 \
-if(CompareStrings(String, #Command)) { \
+if(CompareCStrings(String, #Command)) { \
 BeginCommand(#Command);            \
 if(!Process ## Command()){ return(false); } \
 return(true);                      \

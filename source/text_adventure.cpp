@@ -52,7 +52,7 @@ TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
     while(CurrentIndex < CommandLength){
         while(StopSeeking(Command[CurrentIndex])) CurrentIndex++;
         
-        u32 Next = SeekForward(Command, CommandLength, CurrentIndex);
+        u32 Next = SeekForward(Command, CommandLength, CurrentIndex).End;
         u32 WordLength = Next-CurrentIndex;
         if(WordLength > 0){
             Assert(Count < MAX_COMMAND_TOKENS);

@@ -382,7 +382,7 @@ OSProcessInput(os_input *Input){
                 
                 os_key_code KeyCode = Win32ConvertVKCode(VKCode);
                 if(IsDown){
-                    Input->AssembleBuffer(KeyCode);
+                    Input->TextInputProcessKey(KeyCode);
                     Input->KeyboardState[KeyCode] |= KeyState_RepeatDown;
                     Input->KeyboardState[KeyCode] |= KeyState_IsDown;
                     if(IsDown != WasDown){

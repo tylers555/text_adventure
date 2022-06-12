@@ -16,8 +16,9 @@ global menu_state MenuState;
 global ta_system TextAdventure;
 global settings_state SettingsState;
 
-global game_mode GameMode = GameMode_None;
+global memory_arena GlobalTickMemory;
 
+global game_mode GameMode = GameMode_None;
 
 //~ Helpers
 internal inline string
@@ -53,16 +54,13 @@ InitializeState(game_state *State){
     u64 Start = OSGetMicroseconds();
     
     {
-        umw Size = Megabytes(256);
+        umw Size = Gigabytes(1);
         void *Memory = OSVirtualAlloc(Size);
         Assert(Memory);
         InitializeArena(&GlobalPermanentMemory, Memory, Size);
-    }{
-        umw Size = Megabytes(512);
-        void *Memory = OSVirtualAlloc(Size);
-        Assert(Memory);
-        InitializeArena(&GlobalTransientMemory, Memory, Size);
     }
+    GlobalTransientMemory = MakeArena(&GlobalPermanentMemory, Megabytes(512));
+    GlobalTickMemory      = MakeArena(&GlobalPermanentMemory, Megabytes(256));
     
     InitializeRendererBackend();
     State->Renderer.Initialize(&GlobalPermanentMemory, OSInput.WindowSize);
@@ -90,9 +88,9 @@ internal void
 UpdateAndRenderState(game_state *State){
     if(GameMode == GameMode_None){
         const char *S = GetVar(&State->Assets, start_game_mode);
-        if(CompareStrings(S, "game")) GameMode = GameMode_Game;
-        else if(CompareStrings(S, "menu")) GameMode = GameMode_Menu;
-        else                               GameMode = GameMode_Game;
+        if(CompareCStrings(S, "game"))      GameMode = GameMode_Game;
+        else if(CompareCStrings(S, "menu")) GameMode = GameMode_Menu;
+        else                                GameMode = GameMode_Game;
     }
     
     u64 Start = OSGetMicroseconds();

@@ -18,7 +18,10 @@ struct mixer_sound {
     f32 Volume0;
     f32 Volume1;
     
-    mixer_sound *Next;
+    union {
+        mixer_sound *Next;
+        mixer_sound *NextFree;
+    };
     mixer_sound *Prev;
     sound_id ID;
 };
