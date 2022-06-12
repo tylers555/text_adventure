@@ -3,8 +3,7 @@ void
 audio_mixer::Initialize(memory_arena *Arena){
     SoundMemory = MakeArena(Arena, Kilobytes(16));
     MusicMasterVolume = SoundEffectMasterVolume = V2(1);
-    FirstSound.Next = &FirstSound;
-    FirstSound.Prev = &FirstSound;
+    DLIST_INIT(&FirstSound);
 }
 
 sound_handle
@@ -14,12 +13,14 @@ audio_mixer::PlaySound(asset_sound_effect *Asset, mixer_sound_flags Flags, f32 P
     
     TicketMutexBegin(&FreeSoundMutex);
     
+#if 0
     if(!FirstFreeSound){
-        FirstFreeSound = PushStruct(&SoundMemory, mixer_sound);
+        FirstFreeSound = ;
     }
-    
     mixer_sound *Sound = FirstFreeSound;
     FirstFreeSound = FirstFreeSound->Next;
+#endif
+    mixer_sound *Sound = FREELIST_ALLOC(FirstFreeSound, PushStruct(&SoundMemory, mixer_sound));
     
     sound_data *Data = &Asset->Sound;
     
@@ -30,10 +31,7 @@ audio_mixer::PlaySound(asset_sound_effect *Asset, mixer_sound_flags Flags, f32 P
     Sound->Volume0 = Volume0*Asset->VolumeMultiplier;
     Sound->Volume1 = Volume1*Asset->VolumeMultiplier;
     
-    Sound->Prev = &FirstSound;
-    Sound->Next = FirstSound.Next;
-    Sound->Prev->Next = Sound;
-    Sound->Next->Prev = Sound;
+    DLIST_ADD(&FirstSound, Sound);
     
     Sound->Data = Data;
     
@@ -52,8 +50,8 @@ audio_mixer::StopSound(sound_handle Handle){
     if(Handle.Sound->ID != Handle.ID) return;
     TicketMutexBegin(&SoundMutex);
     
-    Handle.Sound->Next->Prev = Handle.Sound->Prev;
-    Handle.Sound->Prev->Next = Handle.Sound->Next;
+    DLIST_REMOVE(Handle.Sound);
+    FREELIST_FREE(FirstFreeSound, Handle.Sound);
     
     TicketMutexEnd(&SoundMutex);
 }
@@ -161,16 +159,10 @@ audio_mixer::OutputSamples(memory_arena *WorkingMemory, os_sound_buffer *SoundBu
             
             TicketMutexBegin(&FreeSoundMutex);
             
-            Sound->Prev->Next = Sound->Next;
-            Sound->Next->Prev = Sound->Prev;
-            
-            mixer_sound *Temp = Sound->Next;
-            Sound->Next = 0;
-            
-            Sound->Next = FirstFreeSound;
-            FirstFreeSound = Sound;
-            
-            Sound = Temp;
+            mixer_sound *Next = Sound->Next;
+            DLIST_REMOVE(Sound);
+            FREELIST_FREE(FirstFreeSound, Sound);
+            Sound = Next;
             
             TicketMutexEnd(&FreeSoundMutex);
         }else{

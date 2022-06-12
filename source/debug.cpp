@@ -16,6 +16,13 @@ struct debug_info_display {
                                          "Counter: %.2f | Cycles: %08llu | FPS: %.2f | Scale: %.1f", 
                                          Counter, Elapsed, 1.0/OSInput.dTime, DEBUG->Renderer.CameraScale);
         }
+        
+        DebugP = V2(320, 150);
+        for(u32 I=0; I<TextAdventure.Ghosts.Count; I++){
+            ta_room *Room = HashTableFindPtr(&TextAdventure.RoomTable, TextAdventure.Ghosts[I].CurrentRoom);
+            DebugP.Y -= FontRenderString(&DEBUG->Renderer, Font, DebugP, WHITE,
+                                         "Ghost[%u] Room: %s", I, Room->Name);
+        }
     }
 };
 

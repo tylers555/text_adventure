@@ -1,6 +1,28 @@
 #if !defined(SNAIL_JUMPY_OS_H)
 #define SNAIL_JUMPY_OS_H
 
+//~ Files
+enum open_file_flags_ {
+    OpenFile_Read = (1 << 0),
+    OpenFile_Write = (1 << 1),
+    OpenFile_ReadWrite = OpenFile_Read | OpenFile_Write,
+    OpenFile_Clear  = (1 << 2),
+};
+typedef u8 open_file_flags;
+struct os_file;
+
+internal os_file *OSOpenFile(const char *Path, open_file_flags Flags);
+internal void OSCloseFile(os_file *File);
+internal b32  OSReadFile(os_file *File, u64 FileOffset, void *Buffer, umw BufferSize);
+internal u64  OSWriteToFile(os_file *File, u64 FileOffset, const void *Buffer, umw BufferSize);
+internal u64  OSGetFileSize(os_file *File);
+internal u64  OSGetLastFileWriteTime(os_file *File);
+internal b8   OSDeleteFileAtPath(const char *Path);
+
+internal void OSVWriteToDebugConsole(os_file *Output, const char *Format, va_list VarArgs);
+internal void OSWriteToDebugConsole(os_file *Output, const char *Format, ...);
+
+//~ Keyboard stuff
 enum os_key_code {
     KeyCode_NULL = 0,
     KeyCode_Tab = '\t',
@@ -39,10 +61,38 @@ enum os_key_code {
     KeyCode_TOTAL,
 };
 
+typedef u32 os_key_flags;
+enum _os_key_flags {
+    KeyFlag_None    = (0 << 0),
+    KeyFlag_Shift   = (1 << 0),
+    KeyFlag_Alt     = (1 << 1),
+    KeyFlag_Control = (1 << 2),
+    KeyFlag_Any     = (1 << 3),
+};
+
+enum os_mouse_button {
+    MouseButton_Left,
+    MouseButton_Middle,
+    MouseButton_Right,
+    
+    MouseButton_TOTAL,
+};
+
+typedef u8 key_state;
+enum key_state_ {
+    KeyState_IsUp       = (0 << 0),
+    KeyState_JustUp     = (1 << 0),
+    KeyState_JustDown   = (1 << 1),
+    KeyState_RepeatDown = (1 << 2),
+    KeyState_IsDown     = (1 << 3),
+};
+
+//~ Keyboard tables
+
 // NOTE(Tyler): C++ doesn't support designated array initializers!!!!!
 // This also doesn't support numpad numbers
 global_constant char KEYBOARD_SHIFT_TABLE[KeyCode_TOTAL] = {
-    //~ Non-printable ASCII characters
+    //- Non-printable ASCII characters
     0, // 0
     0, // 1
     0, // 2
@@ -76,7 +126,7 @@ global_constant char KEYBOARD_SHIFT_TABLE[KeyCode_TOTAL] = {
     0, // 30
     0, // 31
     
-    //~ Printable ASCII characters
+    //- Printable ASCII characters
     ' ', // 32 space
     0, // 33 ! 
     0, // 34 " 
@@ -258,35 +308,28 @@ OSKeyCodeName(os_key_code Key){
     }
 }
 
-//~ General stuff
-struct os_file;
+//~ Text input
 
-typedef u32 os_key_flags;
-enum _os_key_flags {
-    KeyFlag_None    = (0 << 0),
-    KeyFlag_Shift   = (1 << 0),
-    KeyFlag_Alt     = (1 << 1),
-    KeyFlag_Control = (1 << 2),
-    KeyFlag_Any     = (1 << 3),
+// TODO(Tyler): For fades to work, the text rendering system needs to be able to work with ranges,
+// or some weird jiggery pokery
+enum text_input_fade_type {
+    TextInputFade_None,
+    TextInputFade_Copy,
+    TextInputFade_Paste,
+    TextInputFade_Delete,
 };
 
-enum os_mouse_button {
-    MouseButton_Left,
-    MouseButton_Middle,
-    MouseButton_Right,
-    
-    MouseButton_TOTAL,
+struct text_input_fade {
+    text_input_fade_type Type;
+    f32 T; 
 };
 
-//~ General input
-typedef u8 key_state;
-enum key_state_ {
-    KeyState_IsUp       = (0 << 0),
-    KeyState_JustUp     = (1 << 0),
-    KeyState_JustDown   = (1 << 1),
-    KeyState_RepeatDown = (1 << 2),
-    KeyState_IsDown     = (1 << 3),
+struct text_input_history_node {
+    text_input_history_node *Next;
+    text_input_history_node *Prev;
 };
+
+//~ OS input
 
 typedef u8 os_input_flags;
 enum os_input_flags_ {
@@ -337,11 +380,12 @@ struct os_input {
     s32 CursorPosition;
     s32 SelectionMark = -1;
     
+    inline range_s32 GetSelectionRange();
     inline void AssembleBuffer(os_key_code Key);
-    inline void DeleteFromBuffer(s32 Begin, s32 End);
-    inline b8 TryDeleteSelection();
+    inline void DeleteFromBuffer(range_s32 Range);
+    inline b8   TryDeleteSelection();
     inline void MaybeSetSelection();
-    inline u32 InsertCharsToBuffer(u32 Position, char *Chars, u32 CharCount);
+    inline u32  InsertCharsToBuffer(u32 Position, char *Chars, u32 CharCount);
     inline void BeginTextInput();
     inline b8   MaybeEndTextInput();
     inline void EndTextInput();
@@ -351,117 +395,6 @@ struct os_input {
 };
 
 global os_input OSInput;
-
-//~
-inline b8
-os_input::WasWindowResized(){
-    b8 Result = ((LastWindowSize.Width  != WindowSize.Width) ||
-                 (LastWindowSize.Height != WindowSize.Height));
-    return Result;
-}
-//~ Modifier
-
-inline b8
-os_input::TestModifier(os_key_flags Flags){
-    b8 Result;
-    if(Flags & KeyFlag_Any){
-        Flags &= 0b0111;
-        Result = ((OSInput.KeyFlags & Flags) == Flags);
-    }else{
-#if 0
-        Result = (((OSInput.KeyFlags & Flags) == Flags) &&
-                  ((~OSInput.KeyFlags & ~Flags) == ~Flags));
-#endif
-        Result = OSInput.KeyFlags == Flags;
-    }
-    return(Result);
-}
-
-//~ Mouse 
-inline b8 
-os_input::MouseUp(os_mouse_button Button, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state ButtonState = MouseState[Button];
-    b8 Result = !((ButtonState & KeyState_IsDown) && TestModifier(Flags));
-    
-    return(Result);
-}
-
-inline b8 
-os_input::MouseDown(os_mouse_button Button, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state ButtonState = MouseState[Button];
-    b8 Result = ((ButtonState & KeyState_IsDown) && TestModifier(Flags));
-    
-    return(Result);
-}
-
-inline b8 
-os_input::MouseJustDown(os_mouse_button Button, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state ButtonState = MouseState[Button];
-    b8 Result = ((ButtonState & KeyState_JustDown) && TestModifier(Flags));
-    
-    return(Result);
-}
-
-//~ Keyboard
-// TODO(Tyler): Part of me is unsure about having the if in these 
-// functions even though, it wouldn't be used in the release version
-// and won't be used in the menu at all.
-
-inline b8 
-os_input::KeyUp(u32 Key, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state KeyState = KeyboardState[Key];
-    b8 Result = !((KeyState & KeyState_IsDown) && TestModifier(Flags));
-    
-    return(Result);
-}
-
-inline b8 
-os_input::KeyJustUp(u32 Key, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state KeyState = KeyboardState[Key];
-    b8 Result = ((KeyState & KeyState_JustUp) || !TestModifier(Flags));
-    
-    return(Result);
-}
-
-inline b8 
-os_input::KeyJustDown(u32 Key, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state KeyState = KeyboardState[Key];
-    b8 Result = ((KeyState & KeyState_JustDown) && TestModifier(Flags));
-    
-    return(Result);
-}
-
-inline b8 
-os_input::KeyRepeat(u32 Key, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state KeyState = KeyboardState[Key];
-    b8 Result = ((KeyState & KeyState_RepeatDown) && TestModifier(Flags));
-    
-    return(Result);
-}
-
-inline b8 
-os_input::KeyDown(u32 Key, os_key_flags Flags){
-    if(InputFlags & OSInputFlag_CapturedByUI) return false;
-    
-    key_state KeyState = KeyboardState[Key];
-    b8 Result = ((KeyState & KeyState_IsDown) && TestModifier(Flags));
-    
-    return(Result);
-}
 
 //~ Sound buffer
 struct os_sound_buffer {
@@ -473,32 +406,12 @@ struct os_sound_buffer {
 
 global os_sound_buffer OSSoundBuffer;
 
-//~ Files
-enum open_file_flags_ {
-    OpenFile_Read = (1 << 0),
-    OpenFile_Write = (1 << 1),
-    OpenFile_ReadWrite = OpenFile_Read | OpenFile_Write,
-    OpenFile_Clear  = (1 << 2),
-};
-typedef u8 open_file_flags;
-
-internal os_file *OpenFile(const char *Path, open_file_flags Flags);
-internal void CloseFile(os_file *File);
-internal b32  ReadFile(os_file *File, u64 FileOffset, void *Buffer, umw BufferSize);
-internal u64  WriteToFile(os_file *File, u64 FileOffset, const void *Buffer, umw BufferSize);
-internal u64  GetFileSize(os_file *File);
-internal u64  GetLastFileWriteTime(os_file *File);
-internal b8   DeleteFileAtPath(const char *Path);
-
-internal void VWriteToDebugConsole(os_file *Output, const char *Format, va_list VarArgs);
-internal void WriteToDebugConsole(os_file *Output, const char *Format, ...);
-
 //~ Memory
-internal void *AllocateVirtualMemory(umw Size);
-internal void  FreeVirtualMemory(void *Pointer);
-internal void *DefaultAlloc(umw Size);
-internal void *DefaultRealloc(void *Memory, umw Size);
-internal void  DefaultFree(void *Pointer);
+internal void *OSVirtualAlloc(umw Size);
+internal void  OSVirtualFree(void *Pointer);
+internal void *OSDefaultAlloc(umw Size);
+internal void *OSDefaultRealloc(void *Memory, umw Size);
+internal void  OSDefaultFree(void *Pointer);
 
 //~ Clipboard
 struct memory_arena;

@@ -4,12 +4,12 @@
 internal entire_file
 ReadEntireFile(memory_arena *Arena, const char *Path) {
     os_file *File = 0;
-    File = OpenFile(Path, OpenFile_Read);
-    u64 FileSize = GetFileSize(File);
+    File = OSOpenFile(Path, OpenFile_Read);
+    u64 FileSize = OSGetFileSize(File);
     u8 *FileData = PushArray(Arena, u8, FileSize+1);
-    ReadFile(File, 0, FileData, FileSize);
+    OSReadFile(File, 0, FileData, FileSize);
     FileData[FileSize] = '\0';
-    CloseFile(File);
+    OSCloseFile(File);
     
     entire_file Result;
     Result.Size = FileSize;
@@ -56,17 +56,17 @@ TokenToString(file_token Token){
         }break;
         case FileTokenType_String: {
             u32 Size = CStringLength(Token.String)+3;
-            char *Buffer = PushArray(&TransientStorageArena, char, Size);
+            char *Buffer = PushArray(&GlobalTransientMemory, char, Size);
             stbsp_snprintf(Buffer, Size, "\"%s\"", Token.String);
             Result = Buffer;
         }break;
         case FileTokenType_Integer: {
-            char *Buffer = PushArray(&TransientStorageArena, char, DEFAULT_BUFFER_SIZE);
+            char *Buffer = PushArray(&GlobalTransientMemory, char, DEFAULT_BUFFER_SIZE);
             stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%d", Token.Integer);
             Result = Buffer;
         }break;
         case FileTokenType_Float: {
-            char *Buffer = PushArray(&TransientStorageArena, char, DEFAULT_BUFFER_SIZE);
+            char *Buffer = PushArray(&GlobalTransientMemory, char, DEFAULT_BUFFER_SIZE);
             stbsp_snprintf(Buffer, DEFAULT_BUFFER_SIZE, "%d", Token.Float);
             Result = Buffer;
         }break;
@@ -74,7 +74,7 @@ TokenToString(file_token Token){
             Result = ":";
         }break;
         case FileTokenType_Invalid: {
-            char *Buffer = PushArray(&TransientStorageArena, char, 2);
+            char *Buffer = PushArray(&GlobalTransientMemory, char, 2);
             stbsp_snprintf(Buffer, 2, "%c", Token.Char);
             Result = Buffer;
         }break;
@@ -107,7 +107,7 @@ HandleError(Reader);
 
 char *
 file_reader::ConsumeTextIdentifier(){
-    char *Buffer = PushArray(&TransientStorageArena, char, DEFAULT_BUFFER_SIZE);
+    char *Buffer = PushArray(&GlobalTransientMemory, char, DEFAULT_BUFFER_SIZE);
     u32 BufferIndex = 0;
     
     while((FilePos < FileEnd) &&
@@ -126,7 +126,7 @@ file_reader::ConsumeTextIdentifier(){
 
 char *
 file_reader::ConsumeTextString(){
-    char *Buffer = PushArray(&TransientStorageArena, char, DEFAULT_BUFFER_SIZE);
+    char *Buffer = PushArray(&GlobalTransientMemory, char, DEFAULT_BUFFER_SIZE);
     
     u32 BufferIndex = 0;
     Assert(*FilePos == '"');
@@ -145,7 +145,7 @@ file_reader::ConsumeTextString(){
 internal inline file_reader
 MakeFileReader(const char *Path, asset_system *System=0){
     file_reader Result = {};
-    entire_file File = ReadEntireFile(&TransientStorageArena, Path);
+    entire_file File = ReadEntireFile(&GlobalTransientMemory, Path);
     Result.FileStart = (u8 *)File.Data;
     Result.FilePos = Result.FileStart;
     Result.FileEnd = Result.FileStart+(u32)File.Size;
@@ -360,7 +360,7 @@ file_reader::ExpectTypeV2(){
 
 array<s32>
 file_reader::ExpectTypeArrayS32(){
-    array<s32> Result = MakeArray<s32>(&TransientStorageArena, SJA_MAX_ARRAY_ITEM_COUNT);
+    array<s32> Result = MakeArray<s32>(&GlobalTransientMemory, SJA_MAX_ARRAY_ITEM_COUNT);
     
     const char *Identifier = Expect(this, Identifier);
     if(CompareStrings(Identifier, "Array")){
@@ -388,7 +388,7 @@ file_reader::ExpectTypeArrayS32(){
 
 array<const char *>
 file_reader::ExpectTypeArrayCString(){
-    array<const char *> Result = MakeArray<const char *>(&TransientStorageArena, SJA_MAX_ARRAY_ITEM_COUNT);
+    array<const char *> Result = MakeArray<const char *>(&GlobalTransientMemory, SJA_MAX_ARRAY_ITEM_COUNT);
     
     const char *Identifier = Expect(this, Identifier);
     if(CompareStrings(Identifier, "Array")){

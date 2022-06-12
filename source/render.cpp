@@ -215,8 +215,8 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
      );
     GameScreenShaderFile.Size = CStringLength((const char *)GameScreenShaderFile.Data);
 #else
-    entire_file GameShaderFile = ReadEntireFile(&TransientStorageArena, "shaders/glsl/game_shader.glsl");
-    entire_file GameScreenShaderFile = ReadEntireFile(&TransientStorageArena, "shaders/glsl/game_screen_shader.glsl");
+    entire_file GameShaderFile = ReadEntireFile(&GlobalTransientMemory, "shaders/glsl/game_shader.glsl");
+    entire_file GameScreenShaderFile = ReadEntireFile(&GlobalTransientMemory, "shaders/glsl/game_screen_shader.glsl");
 #endif
     
     GameShader = MakeItemShaderFromData(GameShaderFile);
@@ -278,7 +278,7 @@ game_renderer::NewRenderItem(render_texture Texture, b8 HasAlpha, f32 Z){
     render_node *Node = RenderNode;
     if(Node->Count >= RENDER_NODE_ITEMS){
         render_node *OldNode = Node;
-        Node = PushStruct(&TransientStorageArena, render_node);
+        Node = PushStruct(&GlobalTransientMemory, render_node);
         Node->Next = OldNode;
         RenderNode = Node;
     }
@@ -316,7 +316,7 @@ game_renderer::AddIndices(render_item *Item, u32 IndexCount){
 
 void
 game_renderer::BeginClipRect(rect ClipRect){
-    StackPush(&ClipRects, RectFix(ClipRect));
+    StackPush(&ClipRects, RectRectify(ClipRect));
 }
 
 void

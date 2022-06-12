@@ -128,9 +128,8 @@ Win32GetMouseP(){
     return(Result);
 }
 
-//~ OS API
 internal void
-ToggleFullscreen(HWND Window){
+Win32ToggleFullscreen(HWND Window){
     // NOTE(Tyler): Raymond Chen fullscreen code:
     // https://devblogs.microsoft.com/oldnewthing/20100412-00/?p=14353
     DWORD Style = GetWindowLong(Window, GWL_STYLE);
@@ -154,8 +153,9 @@ ToggleFullscreen(HWND Window){
     }
 }
 
+//~ OS API
 internal os_file *
-OpenFile(const char *Path, open_file_flags Flags){
+OSOpenFile(const char *Path, open_file_flags Flags){
     DWORD Access = 0;
     DWORD Creation = OPEN_ALWAYS;
     if(Flags & OpenFile_Read){
@@ -181,7 +181,7 @@ OpenFile(const char *Path, open_file_flags Flags){
 }
 
 internal u64 
-GetFileSize(os_file *File){
+OSGetFileSize(os_file *File){
     u64 Result = 0;
     LARGE_INTEGER FileSize = {};
     if(GetFileSizeEx(File, &FileSize)){
@@ -194,7 +194,7 @@ GetFileSize(os_file *File){
 }
 
 internal b32 
-ReadFile(os_file *File, u64 FileOffset, void *Buffer, umw BufferSize){
+OSReadFile(os_file *File, u64 FileOffset, void *Buffer, umw BufferSize){
     b32 Result = false;
     LARGE_INTEGER DistanceToMove;
     DistanceToMove.QuadPart = FileOffset;
@@ -216,13 +216,13 @@ ReadFile(os_file *File, u64 FileOffset, void *Buffer, umw BufferSize){
 }
 
 internal void 
-CloseFile(os_file *File){
+OSCloseFile(os_file *File){
     CloseHandle((HANDLE)File);
 }
 
 // TODO(Tyler): Proper WriteFile for 64-bits
 internal u64 
-WriteToFile(os_file *File, u64 FileOffset, const void *Buffer, umw BufferSize){
+OSWriteToFile(os_file *File, u64 FileOffset, const void *Buffer, umw BufferSize){
     DWORD BytesWritten;
     LARGE_INTEGER DistanceToMove;
     DistanceToMove.QuadPart = FileOffset;
@@ -232,7 +232,7 @@ WriteToFile(os_file *File, u64 FileOffset, const void *Buffer, umw BufferSize){
 }
 
 internal u64
-GetLastFileWriteTime(os_file *File){
+OSGetLastFileWriteTime(os_file *File){
     FILETIME LastWriteTime = {};
     GetFileTime(File, 0, 0, &LastWriteTime);
     ULARGE_INTEGER Result;
@@ -242,52 +242,52 @@ GetLastFileWriteTime(os_file *File){
 }
 
 internal b8
-DeleteFileAtPath(const char *Path){
+OSDeleteFileAtPath(const char *Path){
     b8 Result = (b8)DeleteFileA(Path);
     return(Result);
 }
 
 internal void *
-AllocateVirtualMemory(umw Size){
+OSVirtualAlloc(umw Size){
     void *Memory = VirtualAlloc(0, Size, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     DWORD Error = GetLastError();
     return(Memory);
 }
 
 internal void 
-FreeVirtualMemory(void *Pointer){
+OSVirtualFree(void *Pointer){
     VirtualFree(Pointer, 0, MEM_RELEASE);
 }
 
 internal void *
-DefaultAlloc(umw Size){
+OSDefaultAlloc(umw Size){
     void *Result = HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Size);
     return(Result);
 }
 
 internal void *
-DefaultRealloc(void *Memory, umw Size){
+OSDefaultRealloc(void *Memory, umw Size){
     void *Result = HeapReAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, Memory, Size);
     return(Result);
 }
 
 internal void
-DefaultFree(void *Pointer){
+OSDefaultFree(void *Pointer){
     Assert(HeapFree(GetProcessHeap(), 0, Pointer));
 }
 
 internal void
-VWriteToDebugConsole(os_file *Output, const char *Format, va_list VarArgs){
+OSVWriteToDebugConsole(os_file *Output, const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
     stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
     WriteConsole(Output, Buffer, (DWORD)CStringLength(Buffer), 0, 0);
 }
 
 internal void
-WriteToDebugConsole(os_file *Output, const char *Format, ...){
+OSWriteToDebugConsole(os_file *Output, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
-    VWriteToDebugConsole(Output, Format, VarArgs);
+    OSVWriteToDebugConsole(Output, Format, VarArgs);
     va_end(VarArgs);
 }
 
@@ -373,7 +373,7 @@ OSProcessInput(os_input *Input){
                 if(IsDown != WasDown){
                     if(IsDown){
                         if(VKCode == VK_F11){
-                            ToggleFullscreen(MainWindow);
+                            Win32ToggleFullscreen(MainWindow);
                         }else if((VKCode == VK_F4) && (Message.lParam & (1<<29))){
                             Running = false;
                         }
@@ -411,6 +411,8 @@ OSProcessInput(os_input *Input){
 //~ Clipboard
 internal void
 OSCopyChars(const char *Chars, u32 CharCount){
+    if(CharCount == 0) return;
+    
     if(!OpenClipboard(MainWindow)){
         Assert(0);
         return;

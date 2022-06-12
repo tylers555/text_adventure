@@ -1,25 +1,27 @@
 
 //~ Text adventure system
 void
-ta_system::Initialize(memory_arena *Arena){
+ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
     RoomTable = MakeHashTable<ta_id, ta_room>(Arena, ROOM_TABLE_SIZE);
     ItemTable = MakeHashTable<ta_id, ta_item>(Arena, ITEM_TABLE_SIZE);
     ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, THEME_TABLE_SIZE);
     
-    
     Inventory = MakeArray<ta_id>(Arena, INVENTORY_ITEM_COUNT);
     ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
-    
     
     // TODO(Tyler): Perhaps this could be more fancy? and clear out the older strings.
     CommandMemory = MakeArena(Arena, Megabytes(1));
     CommandStack = MakeStack<const char *>(Arena, 512);
     EditingCommands = MakeArray<char[DEFAULT_BUFFER_SIZE]>(Arena, 512);
     
+    Memory = &Assets->Memory;
+    
     //~ Game specific data
+    HauntedItems = MakeArray<ta_id>(Arena, 16);
+    Ghosts = MakeArray<entity_ghost>(Arena, 16);
     OrganState = AssetTag_Broken;
+    PrayState = PrayState_None;
 }
-
 
 internal inline void
 TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount){
@@ -35,6 +37,7 @@ Func = Command; \
 HighestMatch = Match; \
 } \
 }
+        //-
         TEST_COMMAND("go",       CommandMove);
         TEST_COMMAND("move",     CommandMove);
         TEST_COMMAND("exit",     CommandExit);
@@ -65,11 +68,11 @@ HighestMatch = Match; \
         TEST_COMMAND("use",      CommandUse);
         TEST_COMMAND("pray",     CommandPray);
         
-        // Testing commands
+        //- Testing commands
         TEST_COMMAND("testaddmoney", CommandTestAddMoney);
         TEST_COMMAND("testsubmoney", CommandTestSubMoney);
         
-        // Meta commands
+        //- Meta commands
         TEST_COMMAND("music",     CommandMusic);
 #undef TEST_COMMAND
         
@@ -82,21 +85,62 @@ HighestMatch = Match; \
     TA->Respond(GetVar(Assets, invalid_command));
 }
 
-
 //~ 
-internal inline void
-DoString(game_renderer *Renderer, asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, 
-         const char *S, rect *R){
-    R->Y1 -= FontRenderFancyString(Renderer, Font, Fancies, FancyCount, S, *R);
+internal inline b8
+DoDisplayItem(ta_item *Item){
+    b8 Result = !(HasTag(Item->Tag, AssetTag_Static));
+    return Result;
 }
 
+internal inline void
+RenderTextInput(game_renderer *Renderer, console_theme *Theme, asset_font *Font, 
+                os_input *Input, rect *InputRect){
+    char *Text = Input->Buffer;
+    f32 LineHeight = Font->Height+FONT_VERTICAL_SPACE;
+    f32 TotalWidth = RectWidth(*InputRect);
+    v2 InputP = V2(InputRect->X0, InputRect->Y1);
+    
+    DoString(Renderer, Font, &Theme->BasicFancy, 1, Text, InputRect);
+    
+    f32 CursorHeight = Font->Height-Font->Descent;
+    v2 CursorP = InputP+FontStringAdvance(Font, Input->CursorPosition, Text, TotalWidth);
+    if((1 + (FrameCounter / 30)) % 3){
+        RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, Theme->CursorColor);
+    }
+    
+    //- Text input selection
+    if(Input->SelectionMark < 0) return;
+    range_s32 Range = Input->GetSelectionRange();
+    if(RangeSize(Range) == 0) return;
+    
+    font_string_metrics Metrics = FontStringMetricsRange(Font, Range, Text, TotalWidth);
+    v2 StartP = V2(InputP.X, InputP.Y-Font->Descent);
+    
+    if(Metrics.LineCount == 0){
+        f32 Width = Metrics.Advance.X-Metrics.StartAdvance.X;
+        RenderRect(Renderer, SizeRect(StartP+Metrics.StartAdvance, V2(Width, LineHeight)), 
+                   1.0, Theme->SelectionColor);
+    }else{
+        f32 FirstWidth = Metrics.LineWidths[0]-Metrics.StartAdvance.X;
+        RenderRect(Renderer, SizeRect(StartP+Metrics.StartAdvance, 
+                                      V2(FirstWidth, LineHeight)), 1.0, Theme->SelectionColor);
+        for(u32 I=1; I<Metrics.LineCount; I++){
+            RenderRect(Renderer, SizeRect(V2(StartP.X, StartP.Y-(LineHeight)*I), 
+                                          V2(Metrics.LineWidths[I], LineHeight)), 1.0, Theme->SelectionColor);
+        }
+        RenderRect(Renderer, SizeRect(V2(StartP.X, StartP.Y+Metrics.Advance.Y), 
+                                      V2(Metrics.Advance.X, LineHeight)), 1.0, Theme->SelectionColor);
+    }
+}
+
+//~ 
 internal void
 UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
     DO_DEBUG_INFO();
     
     ta_system *TA = &TextAdventure;
     console_theme *Theme = HashTableFindPtr(&TA->ThemeTable, GetVarTAID(Assets, theme));
-    Renderer->NewFrame(&TransientStorageArena, Input->WindowSize, Theme->BackgroundColor);
+    Renderer->NewFrame(&GlobalTransientMemory, Input->WindowSize, Theme->BackgroundColor);
     
     if(!TA->CurrentRoom){
         Input->BeginTextInput();
@@ -135,19 +179,21 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->Name, &RoomDescriptionRect);
         
         if(Room->Datas.Count > 0){
-            ta_data *Description = Room->Datas[0];
-            if(HasTag(Room->Tag, AssetTag_Organ)){
-                ta_data *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
-                if(New) Description = New;
-            }
-            
-            DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                     Description->Data, &RoomDescriptionRect);
-            
-            ta_data *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
-            if(Adjacents){
+            if(!GhostOverrideDescription(Renderer, TA, Assets, Theme, Font, &RoomDescriptionRect, Room)){
+                ta_data *Description = Room->Datas[0];
+                if(HasTag(Room->Tag, AssetTag_Organ)){
+                    ta_data *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
+                    if(New) Description = New;
+                }
+                
                 DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
-                         Adjacents->Data, &RoomDescriptionRect);
+                         Description->Data, &RoomDescriptionRect);
+                
+                ta_data *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
+                if(Adjacents){
+                    DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
+                             Adjacents->Data, &RoomDescriptionRect);
+                }
             }
         }
     }
@@ -155,17 +201,17 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
     //~ Inventory
     {
         if(Room->Items.Count > 0){
-            b8 HasNonStatic = false;
+            b8 HasDisplayedItems = false;
             for(u32 I=0; I<Room->Items.Count; I++){
                 ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
                 if(!Item) continue;
-                if(!HasTag(Item->Tag, AssetTag_Static)){
-                    HasNonStatic = true; 
+                if(DoDisplayItem(Item)){
+                    HasDisplayedItems = true; 
                     break;
                 }
             }
             
-            if(HasNonStatic){
+            if(HasDisplayedItems){
                 InventoryRect.Y1 -= FontLineHeight(BoldFont);
                 
                 ta_data *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
@@ -181,7 +227,7 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
                 for(u32 I=0; I<Room->Items.Count; I++){
                     ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
                     if(!Item) continue;
-                    if(HasTag(Item->Tag, AssetTag_Static)) continue;
+                    if(!DoDisplayItem(Item)) continue;
                     DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->Name, &InventoryRect);
                 }
                 
@@ -234,22 +280,6 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
     
     //~ Text input
     {
-        f32 LineHeight = Font->Height+FONT_VERTICAL_SPACE;
-        char *Text = Input->Buffer;
-        f32 TotalWidth = RectWidth(InputRect);
-        const char *Response = TA->ResponseBuilder.Buffer;
-        DoString(Renderer, Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies),
-                 Response, &InputRect);
-        
-        v2 InputP = V2(InputRect.X0, InputRect.Y1);
-        DoString(Renderer, Font, &Theme->BasicFancy, 1, Text, &InputRect);
-        
-        f32 CursorHeight = Font->Height-Font->Descent;
-        v2 CursorP = InputP+FontStringAdvance(Font, Input->CursorPosition, Text, TotalWidth);
-        if((1 + (FrameCounter / 30)) % 3){
-            RenderLine(Renderer, CursorP, CursorP+V2(0, CursorHeight), 0.0, 1, Theme->CursorColor);
-        }
-        
         //- Previous commmands
         if(Input->KeyJustDown(KeyCode_Up, KeyFlag_Any)){
             if(TA->CurrentPeekedCommand < TA->CommandStack.Count){
@@ -273,30 +303,15 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
             }
         }
         
-        //- Text input selection
-        if(Input->SelectionMark >= 0){
-            u32 Min = Minimum(Input->SelectionMark, Input->CursorPosition);
-            u32 Max = Maximum(Input->SelectionMark, Input->CursorPosition);
-            if(Min != Max){
-                font_string_metrics Metrics = FontStringMetricsRange(Font, Min, Max, Text, TotalWidth);
-                v2 StartP = V2(InputP.X, InputP.Y-Font->Descent);
-                
-                if(Metrics.LineCount == 0){
-                    f32 Width = Metrics.Advance.X-Metrics.StartAdvance.X;
-                    RenderRect(Renderer, SizeRect(StartP+Metrics.StartAdvance, V2(Width, LineHeight)), 
-                               1.0, Theme->SelectionColor);
-                }else{
-                    f32 FirstWidth = Metrics.LineWidths[0]-Metrics.StartAdvance.X;
-                    RenderRect(Renderer, SizeRect(StartP+Metrics.StartAdvance, 
-                                                  V2(FirstWidth, LineHeight)), 1.0, Theme->SelectionColor);
-                    for(u32 I=1; I<Metrics.LineCount; I++){
-                        RenderRect(Renderer, SizeRect(V2(StartP.X, StartP.Y-(LineHeight)*I), 
-                                                      V2(Metrics.LineWidths[I], LineHeight)), 1.0, Theme->SelectionColor);
-                    }
-                    RenderRect(Renderer, SizeRect(V2(StartP.X, StartP.Y+Metrics.Advance.Y), 
-                                                  V2(Metrics.Advance.X, LineHeight)), 1.0, Theme->SelectionColor);
-                }
-            }
+        const char *Response = TA->ResponseBuilder.Buffer;
+        DoString(Renderer, Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies),
+                 Response, &InputRect);
+        
+        RenderTextInput(Renderer, Theme, Font, Input, &InputRect);
+        
+        //- Debug
+        if(Input->KeyRepeat(KeyCode_F1)){
+            GameTick(TA, Assets);
         }
         
         //- Command processing
@@ -306,13 +321,14 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
             ArrayClear(&TA->EditingCommands);
             
             u32 TokenCount;
-            char **Tokens = TokenizeCommand(&TransientStorageArena, Input->Buffer, &TokenCount);
+            char **Tokens = TokenizeCommand(&GlobalTransientMemory, Input->Buffer, &TokenCount);
             if(TA->Callback){
                 // NOTE(Tyler): Weird dance, so that the callback can set another callback.
                 command_func *Callback = TA->Callback;
                 TA->Callback = 0;
                 (*Callback)(Mixer, TA, Assets, Tokens, TokenCount);
             }else{
+                GameTick(TA, Assets);
                 TADispatchCommand(Mixer, TA, Assets, Tokens, TokenCount);
             }
             Input->BeginTextInput();

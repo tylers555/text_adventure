@@ -11,11 +11,11 @@ pushd "build"
 set MODE=
 
 if "%MODE%" == "release" ( 
-    set COMPILE_OPTIONS=%COMPILE_OPTIONS% /O2 /DDO_RELEASE_BUILD 
-        set EXE_NAME=Win32TAGameRelease.exe
+        set COMPILE_OPTIONS=%COMPILE_OPTIONS% /O2 /DDO_RELEASE_BUILD 
+            set EXE_NAME=Win32TAGameRelease.exe
 ) else ( 
-    set COMPILE_OPTIONS=%COMPILE_OPTIONS% /Od
-        set EXE_NAME=Win32TAGameDebug.exe
+        set COMPILE_OPTIONS=%COMPILE_OPTIONS% /Od
+            set EXE_NAME=Win32TAGameDebug.exe
         goto build_game 
 )
 

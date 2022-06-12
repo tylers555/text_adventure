@@ -87,8 +87,8 @@ CompareWordsPercentage(const char *A, const char *B){
     u32 M = CStringLength(A);
     u32 N = CStringLength(B);
     
-    s32 *V0 = PushArray(&TransientStorageArena, s32, N+1);
-    s32 *V1 = PushArray(&TransientStorageArena, s32, N+1);
+    s32 *V0 = PushArray(&GlobalTransientMemory, s32, N+1);
+    s32 *V1 = PushArray(&GlobalTransientMemory, s32, N+1);
     
     for(u32 I=0; I<=N; I++) V0[I] = I;
     
@@ -227,7 +227,7 @@ HANDLE_AMBIGUOUS_FOUND_ITEMS(FoundItems, Function, Verb) \
 internal ta_found_items
 TAFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount){
     ta_found_items Result = {};
-    Result.Items = MakeDynamicArray<ta_found_item>(&TransientStorageArena, 2);
+    Result.Items = MakeDynamicArray<ta_found_item>(&GlobalTransientMemory, 2);
     TAContinueFindItems(TA, Items, Words, WordCount, &Result);
     
     return Result;
@@ -252,24 +252,54 @@ DoTANameComparisonsOverlap(ta_name_comparison Old, ta_name_comparison New){
 }
 
 //~ Helpers
+
 internal inline b8
-TARoomAddItem(ta_system *TA, asset_system *Assets, ta_room *Room, ta_id Item){
+TARoomAddItem(ta_system *TA, ta_room *Room, ta_id Item){
     if(!Room->Items){
-        memory_arena *Arena = &Assets->Memory;
-        Room->Items = MakeArray<ta_id>(Arena, TA_ROOM_DEFAULT_ITEM_COUNT);
+        Room->Items = MakeArray<ta_id>(TA->Memory, TA_ROOM_DEFAULT_ITEM_COUNT);
     }
     
     b8 Result = ArrayMaybeAdd(&Room->Items, Item);
-    if(!Result) TA->Respond(GetVar(Assets, room_too_small));
-    Room->Dirty = true;
+    Room->Flags |= RoomFlag_Dirty;
     return Result;
-    
+}
+
+internal inline b8
+TARoomDropItem(ta_system *TA, asset_system *Assets, ta_room *Room, ta_id Item){
+    b8 Result = TARoomAddItem(TA, Room, Item);
+    if(!Result) TA->Respond(GetVar(Assets, room_too_small));
+    return Result;
+}
+
+internal inline ta_room *
+TAFindRoom(ta_system *TA, ta_id Room){
+    ta_room *Result = HashTableFindPtr(&TA->RoomTable, Room);
+    return Result;
+}
+
+internal inline ta_item *
+TAFindItem(ta_system *TA, ta_id Item){
+    ta_item *Result = HashTableFindPtr(&TA->ItemTable, Item);
+    return Result;
 }
 
 internal inline void
 TARoomRemoveItem(ta_system *TA, ta_room *Room, u32 Index){
-    Room->Dirty = true;
+    Room->Flags |= RoomFlag_Dirty;
     ArrayOrderedRemove(&Room->Items, Index);
+}
+
+internal inline void
+TARoomRemoveItemByID(ta_system *TA, ta_room *Room, ta_id ID){
+    
+    for(u32 I=0; I<Room->Items.Count; I++){
+        if(Room->Items[I].ID == ID.ID){
+            TARoomRemoveItem(TA, Room, I);
+            return;
+        }
+    }
+    
+    Assert(0);
 }
 
 internal inline ta_data *
@@ -300,7 +330,7 @@ TARoomFindDescription(ta_room *Room, asset_tag Tag){
 
 internal void 
 TAUnlock(audio_mixer *Mixer, asset_system *Assets, ta_room *Room, asset_tag *Locked){
-    Room->Dirty = true;
+    Room->Flags |= RoomFlag_Dirty;
     *Locked = AssetTag();
     Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_open_door)));
 }
@@ -323,8 +353,6 @@ TAAttemptToUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ta_ro
     
     return false;
 }
-
-
 
 internal b8
 TAIsClosed(ta_system *TA, asset_tag Tag){
@@ -385,6 +413,12 @@ CompareKeys(ta_id A, ta_id B){
     return(Result);
 }
 
+internal inline void
+DoString(game_renderer *Renderer, asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, 
+         const char *S, rect *R){
+    R->Y1 -= FontRenderFancyString(Renderer, Font, Fancies, FancyCount, S, *R);
+}
+
 //~ Theme
 internal inline console_theme
 MakeDefaultConsoleTheme(){
@@ -404,7 +438,7 @@ MakeDefaultConsoleTheme(){
     Result.ResponseFancies[0] = MakeFancyFormat(MakeColor(0x9063ffff), 0.0, 0.0, 0.0);
     Result.ResponseFancies[1] = MakeFancyFormat(MakeColor(0xe64eccff), MakeColor(0x9063ffff), 0.0, 0.0, 0.0, 2.0, 0.2f, 0.0);
     
-    Result.DescriptionFancies[0]= Result.BasicFancy;
+    Result.DescriptionFancies[0] = Result.BasicFancy;
     Result.DescriptionFancies[1] = Result.DirectionFancy;
     Result.DescriptionFancies[2] = Result.RoomFancy; 
     Result.DescriptionFancies[3] = Result.ItemFancy;
@@ -441,5 +475,5 @@ ta_system::Respond(const char *Format, ...){
 inline void
 ta_system::SaveCommand(const char *Command){
     const char *SavedCommand = ArenaPushCString(&CommandMemory, Command);
-    StackPush(&CommandStack, SavedCommand);
+    StackPushSafe(&CommandStack, SavedCommand);
 }

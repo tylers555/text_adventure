@@ -33,13 +33,13 @@ internal sound_data
 LoadWavFile(memory_arena *Arena, const char *Path){
     sound_data Result = {};
     
-    os_file *OSFile = OpenFile(Path, OpenFile_Read);
+    os_file *OSFile = OSOpenFile(Path, OpenFile_Read);
     if(!OSFile){
         return Result;
     }
     
-    CloseFile(OSFile);
-    entire_file File = ReadEntireFile(&TransientStorageArena, Path);
+    OSCloseFile(OSFile);
+    entire_file File = ReadEntireFile(&GlobalTransientMemory, Path);
     stream Stream = MakeReadStream(File.Data, File.Size);
     wav_header *Header = StreamConsumeType(&Stream, wav_header);
     if(!CheckChunkID(Header->RIFF, "RIFF")){

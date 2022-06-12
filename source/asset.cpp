@@ -227,15 +227,13 @@ FontLineHeight(asset_font *Font){
 }
 
 internal font_string_metrics
-FontStringMetricsRange(asset_font *Font, u32 Min, u32 Max, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
-    Assert(Min <= Max);
-    
+FontStringMetricsRange(asset_font *Font, range_s32 Range, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
     font_string_metrics Result = {};
-    u32 Length = Minimum(CStringLength(S), Max);
-    for(u32 I=0; I<Length; I++){
+    s32 Length = Minimum((s32)CStringLength(S), Range.Max);
+    for(s32 I=0; I<Length; I++){
         char C = S[I];
         asset_font_glyph Glyph = Font->Table[C];
-        if(I == Min){
+        if(I == Range.Min){
             v2 Advance = Result.Advance;
             Result = {};
             Result.StartAdvance = Advance;
@@ -277,7 +275,7 @@ FontStringMetricsRange(asset_font *Font, u32 Min, u32 Max, const char *S, f32 Ma
 
 internal font_string_metrics
 FontStringMetrics(asset_font *Font, u32 N, const char *S, f32 MaxWidth=F32_POSITIVE_INFINITY){
-    return FontStringMetricsRange(Font, 0, N, S, MaxWidth);
+    return FontStringMetricsRange(Font, MakeRangeS32(0, N), S, MaxWidth);
 }
 
 internal v2

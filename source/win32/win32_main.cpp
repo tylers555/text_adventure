@@ -198,7 +198,7 @@ Win32AudioThreadProc(void *Parameter){
     memory_arena Arena;
     {
         umw Size = Kilobytes(512);
-        void *Memory = AllocateVirtualMemory(Size);
+        void *Memory = OSVirtualAlloc(Size);
         Assert(Memory);
         InitializeArena(&Arena, Memory, Size);
     }
@@ -388,7 +388,7 @@ WinMain(HINSTANCE Instance,
     }
     LogMessage("OpenGL initialized");
     
-    ToggleFullscreen(MainWindow);
+    Win32ToggleFullscreen(MainWindow);
     wglSwapIntervalEXT(1);
     
     HDC DeviceContext = GetDC(MainWindow);
@@ -429,7 +429,7 @@ WinMain(HINSTANCE Instance,
     
     u32 BufferSize = AudioSampleCount*2*sizeof(s16);
     OSSoundBuffer.SampleRate = AUDIO_SAMPLES_PER_SECOND;
-    OSSoundBuffer.Samples = (s16 *)AllocateVirtualMemory(BufferSize);
+    OSSoundBuffer.Samples = (s16 *)OSVirtualAlloc(BufferSize);
     
     //~ Prepare OSInput
     RECT ClientRect;

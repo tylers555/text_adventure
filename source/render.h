@@ -1,20 +1,6 @@
 #ifndef SNAIL_JUMPY_RENDER_H
 #define SNAIL_JUMPY_RENDER_H
 
-//~ Basic colors
-
-global_constant color BLACK      = MakeColor(0.0f,  0.0f,  0.0f, 1.0f);
-global_constant color WHITE      = MakeColor(1.0f,  1.0f,  1.0f, 1.0f);
-global_constant color RED        = MakeColor(1.0f,  0.0f,  0.0f, 1.0f);
-global_constant color YELLOW     = MakeColor(1.0f,  1.0f,  0.0f, 1.0f);
-global_constant color BLUE       = MakeColor(0.0f,  0.0f,  1.0f, 1.0f);
-global_constant color GREEN      = MakeColor(0.0f,  1.0f,  0.0f, 1.0f);
-global_constant color DARK_GREEN = MakeColor(0.0f,  0.5f,  0.0f, 1.0f);
-global_constant color BROWN      = MakeColor(0.41f, 0.20f, 0.0f, 1.0f);
-global_constant color PINK       = MakeColor(1.0f,  0.0f,  1.0f, 1.0f);
-global_constant color PURPLE     = MakeColor(0.42f, 0.05f, 0.68f,1.0f);
-global_constant color ORANGE     = MakeColor(1.0f,  0.5f,  0.0f, 1.0f);
-
 
 //~ Primitive types
 typedef u32 render_texture;

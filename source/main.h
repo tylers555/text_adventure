@@ -12,9 +12,7 @@
 #define STB_SPRINTF_IMPLEMENTATION
 #include "third_party/stb_sprintf.h"
 
-#include "basics.h"
-#include "basic_math.h"
-#include "intrinsics.h"
+#include "tyler_basics.h"
 #include "generated_asset_id.h"
 
 //~ Constants TODO(Tyler): Several of these should be hotloaded in a variables file
@@ -22,17 +20,8 @@ global_constant u32 DEFAULT_BUFFER_SIZE = 512;
 
 global_constant f32 MAXIMUM_SECONDS_PER_FRAME = (1.0f / 20.0f);
 global_constant f32 MINIMUM_SECONDS_PER_FRAME = (1.0f / 60.0f);
-global_constant f32 SECONDS_PER_TICK = (1.0f / 75.0f);
-
-global_constant u32 PHYSICS_ITERATIONS_PER_OBJECT = 4;
-global_constant f32 WALKABLE_STEEPNESS    = 0.1f;
-global_constant u32 MAX_ENTITY_BOUNDARIES = 8;
-
-global_constant f32 TILE_SIDE = 16;
-global_constant v2  TILE_SIZE = V2(TILE_SIDE, TILE_SIDE);
 
 global_constant char *ASSET_FILE_PATH = "assets.sja";
-global_constant char *STARTUP_LEVEL = "Debug";
 
 global_constant u32 MINIMUM_WINDOW_WIDTH  = 800;
 global_constant u32 MINIMUM_WINDOW_HEIGHT = 600;
@@ -93,10 +82,6 @@ enum game_mode {
 #include "random.h"
 #include "helpers.cpp"
 #include "os.h"
-#include "memory_arena.cpp"
-#include "array.cpp"
-#include "stack.cpp"
-#include "hash_table.cpp"
 #include "strings.cpp"
 #include "file_processing.h"
 #include "render.h"
@@ -104,6 +89,8 @@ enum game_mode {
 #include "audio_mixer.h"
 
 #include "game.h"
+#include "text_adventure.h"
+
 #include "menu.h"
 
 //~ 

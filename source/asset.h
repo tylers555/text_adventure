@@ -19,6 +19,7 @@ global_constant u32 SJA_MAX_ARRAY_ITEM_COUNT = 256;
 global_constant u32 MAX_ASSETS_PER_TYPE = 128;
 global_constant u32 MAX_VARIABLES = 256;
 
+// @asset_tags
 #define ASSET_TAGS \
 ASSET_TAG("play",       Play) \
 ASSET_TAG("take",       Take) \
@@ -56,7 +57,8 @@ ASSET_TAG("light",      Light) \
 ASSET_TAG("fixer",      Fixer) \
 ASSET_TAG("bread",      Bread) \
 \
-ASSET_TAG("haunted",    Haunted)
+ASSET_TAG("haunted",    Haunted) \
+ASSET_TAG("ghost",      Ghost) \
 
 #define ASSET_TAG(S, N) AssetTag_##N,
 enum asset_tag_id {
@@ -312,6 +314,7 @@ struct asset_system {
     void LoadProcessedAssets(void *Data, u32 DataSize);
 };
 
+//~ Asset processing
 struct asset_processor_texture {
     u8 *Pixels;
     u32 Width;
@@ -328,5 +331,10 @@ struct sjap_header {
     char SJAP[4];
 };
 #pragma pack(pop)
+
+//~ Miscellaneous
+struct ta_system;
+struct ta_item;
+internal void GameProcessItem(ta_system *TA, ta_id ItemID, ta_item *Item);
 
 #endif //SNAIL_JUMPY_ASSET_H

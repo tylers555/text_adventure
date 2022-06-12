@@ -289,7 +289,7 @@ asset_system::ExpectTypeName(){
         array<const char *> Aliases = Reader.ExpectTypeArrayCString();
         Result.Aliases = MakeArray<const char *>(&Memory, Aliases.Count);
         for(u32 I=0; I<Aliases.Count; I++){
-            char *Alias = ArenaPushLowerCString(&TransientStorageArena, Aliases[I]);
+            char *Alias = ArenaPushLowerCString(&GlobalTransientMemory, Aliases[I]);
             ArrayAdd(&Result.Aliases, Strings.GetPermanentString(Alias));
         }
     }
@@ -299,7 +299,7 @@ asset_system::ExpectTypeName(){
         array<const char *> Adjectives = Reader.ExpectTypeArrayCString();
         Result.Adjectives = MakeArray<const char *>(&Memory, Adjectives.Count);
         for(u32 I=0; I<Adjectives.Count; I++){
-            char *Adjective = ArenaPushLowerCString(&TransientStorageArena, Adjectives[I]);
+            char *Adjective = ArenaPushLowerCString(&GlobalTransientMemory, Adjectives[I]);
             ArrayAdd(&Result.Adjectives, Strings.GetPermanentString(Adjective));
         }
     }
@@ -327,18 +327,18 @@ asset_system::LoadImage(const char *Path){
     image *Result = 0;
     
     os_file *File = 0;
-    File = OpenFile(Path, OpenFile_Read);
+    File = OSOpenFile(Path, OpenFile_Read);
     if(!File) return(Result);
     u64 LastImageWriteTime;
-    LastImageWriteTime = GetLastFileWriteTime(File);
-    CloseFile(File);
+    LastImageWriteTime = OSGetLastFileWriteTime(File);
+    OSCloseFile(File);
     u8 *ImageData;
     s32 Components;
     
     Result = HashTableGetPtr(&LoadedImageTable, Path);
     if(Result->HasBeenLoadedBefore){
         if(Result->LastWriteTime < LastImageWriteTime){
-            entire_file File = ReadEntireFile(&TransientStorageArena, Path);
+            entire_file File = ReadEntireFile(&GlobalTransientMemory, Path);
             
             ImageData = (u8 *)stbi_load_from_memory((u8 *)File.Data,
                                                     (int)File.Size,
@@ -349,7 +349,7 @@ asset_system::LoadImage(const char *Path){
         }
     }else{
         entire_file File;
-        File = ReadEntireFile(&TransientStorageArena, Path);
+        File = ReadEntireFile(&GlobalTransientMemory, Path);
         s32 Components = 0;
         stbi_info_from_memory((u8 *)File.Data, (int)File.Size, 
                               &Result->Width, &Result->Height, &Components);
@@ -396,11 +396,11 @@ asset_system::LoadAssetFile(const char *Path){
     
     b8 HitError = false;
     do{
-        memory_arena_marker Marker = ArenaBeginMarker(&TransientStorageArena);
+        memory_arena_marker Marker = ArenaBeginMarker(&GlobalTransientMemory);
         
-        os_file *File = OpenFile(Path, OpenFile_Read);
-        u64 NewFileWriteTime = GetLastFileWriteTime(File);
-        CloseFile(File);
+        os_file *File = OSOpenFile(Path, OpenFile_Read);
+        u64 NewFileWriteTime = OSGetLastFileWriteTime(File);
+        OSCloseFile(File);
         
         if(LastFileWriteTime < NewFileWriteTime){
             ArenaClear(&Memory);
@@ -432,7 +432,7 @@ asset_system::LoadAssetFile(const char *Path){
         }
         
         if(HitError){
-            ArenaEndMarker(&TransientStorageArena, &Marker);
+            ArenaEndMarker(&GlobalTransientMemory, &Marker);
             OSSleep(10); // To prevent consuming the CPU
         }
         LastFileWriteTime = NewFileWriteTime;
@@ -503,7 +503,7 @@ asset_system::ProcessVariables(){
         const char *Attribute = Expect(&Reader, Identifier);
         if(DoAttribute(Attribute, "var")){
             const char *Name = Expect(&Reader, String);
-            string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+            string_builder Builder = BeginStringBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
             ExpectDescriptionStrings(&Builder);
             const char *Data = FinalizeStringBuilder(&Memory, &Builder);
             asset_variable *Variable = Strings.HashTableGetPtr(&VariableTable, Name);
@@ -745,7 +745,7 @@ asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_da
     asset_tag Tag = MaybeExpectTag();
     HandleError(&Reader);
     
-    string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+    string_builder Builder = BeginStringBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
     StringBuilderAddVar(&Builder, Type);
     StringBuilderAddVar(&Builder, Tag);
     Assert(Builder.BufferSize == offsetof(ta_data, Data));
@@ -767,7 +767,7 @@ asset_system::ProcessTARoom(){
     Room->NameData = Name;
     Room->Tag = MaybeExpectTag();
     
-    dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &TransientStorageArena);
+    dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &GlobalTransientMemory);
     
     u32 MaxItemCount = TA_ROOM_DEFAULT_ITEM_COUNT;
     v2s CurrentOffset = V2S(0);
@@ -813,7 +813,7 @@ asset_system::ProcessTARoom(){
                 const char *NextRoomName = Expect(&Reader, String);
                 Room->Adjacents[Direction] = TAIDByName(TA, NextRoomName);
                 asset_tag Tag = MaybeExpectTag();
-                if(!Room->Dirty) Room->AdjacentTags[Direction] = Tag;
+                if(!(Room->Flags & RoomFlag_Dirty)) Room->AdjacentTags[Direction] = Tag;
             }
         }else if(DoAttribute(Attribute, "item_count")){
             MaxItemCount = ExpectPositiveInteger();
@@ -826,7 +826,7 @@ asset_system::ProcessTARoom(){
                 ta_id S = TAIDByName(TA, CStringItems[I]);
                 // TODO(Tyler): I'm not sure how this should be done. 
                 // This will not work if an item is present in multiple locations
-                if(Room->Dirty){
+                if(Room->Flags & RoomFlag_Dirty){
                     for(u32 J=0; J<TA->Inventory.Count; J++){
                         if(TA->Inventory[J] == S) goto repeat_loop;
                     }
@@ -855,12 +855,13 @@ asset_system::ProcessTAItem(){
     
     ta_name Name = ExpectTypeName();
     HandleError(&Reader);
-    ta_item *Item = HashTableGetPtr(&TA->ItemTable, TAIDByName(TA, Name.Name));
+    ta_id ID = TAIDByName(TA, Name.Name);
+    ta_item *Item = HashTableGetPtr(&TA->ItemTable, ID);
     Item->NameData = Name;
     Item->Tag = MaybeExpectTag();
     
     // Attributes
-    dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &TransientStorageArena);
+    dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &GlobalTransientMemory);
     while(true){
         file_token Token = Reader.PeekToken();
         HandleToken(Token);
@@ -895,6 +896,8 @@ asset_system::ProcessTAItem(){
         ArrayAdd(&Item->Datas, Descriptions[I]);
     }
     
+    GameProcessItem(TA, ID, Item);
+    
     return true;
 }
 
@@ -907,7 +910,7 @@ asset_system::ProcessTAMap(){
     ta_map *Map = &TA->Map;
     
     // Attributes
-    dynamic_array<ta_area> Areas = MakeDynamicArray<ta_area>(8, &TransientStorageArena);
+    dynamic_array<ta_area> Areas = MakeDynamicArray<ta_area>(8, &GlobalTransientMemory);
     while(true){
         file_token Token = Reader.PeekToken();
         HandleToken(Token);

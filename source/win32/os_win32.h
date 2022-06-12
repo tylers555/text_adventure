@@ -1,8 +1,7 @@
 #if !defined(WIN32_SNAIL_JUMPY_H)
 #define WIN32_SNAIL_JUMPY_H
 
-#include "basics.h"
-#include "basic_math.h"
+#include "tyler_basics.h"
 #include "render.h"
 #include "os.h"
 #include "opengl.h"

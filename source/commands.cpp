@@ -80,6 +80,8 @@ HighestMatch = Match; \
         DIRECTIONS
 #undef DIRECTIONS
         
+        if(MaybeDoHauntedMove(TA, Assets, Direction)) return true;
+        
         if(HighestMatch <= WORD_MATCH_THRESHOLD){
             continue;
         }
@@ -264,8 +266,10 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
         
         if(HasTag(Item->Tag, AssetTag_Static)){
             ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Take));
-            TA->Respond("%s", Description->Data);
-            continue;
+            if(Description){
+                TA->Respond("%s", Description->Data);
+                continue;
+            }
         }else if(Item->Cost > 0){
             TA->Respond(GetVar(Assets, take_buy));
             TA->Respond(GetVar(Assets, take_buy_prompt));
@@ -300,7 +304,7 @@ b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
         ta_item *Item = FoundItem->Item;
         u32 Index = FoundItem->ItemIndex;
         
-        if(TARoomAddItem(TA, Assets, Room, TA->Inventory[Index-RemovedItems])) ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
+        if(TARoomDropItem(TA, Assets, Room, TA->Inventory[Index-RemovedItems])) ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
         RemovedItems++;
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_dropped)));
     }
@@ -533,7 +537,7 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
         }
         
         u32 TokenCount;
-        char **Tokens = TokenizeCommand(&TransientStorageArena, Data->Data, &TokenCount);
+        char **Tokens = TokenizeCommand(&GlobalTransientMemory, Data->Data, &TokenCount);
         TADispatchCommand(Mixer, TA, Assets, Tokens, TokenCount);
         
         return true;
@@ -552,18 +556,24 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
             case PrayState_None: {
                 TA->Respond(GetVar(Assets, pray_first));
                 TA->PrayState = PrayState_First;
+                GameAddGhost(TA, Assets);
             }break;
             case PrayState_First: {
                 TA->Respond(GetVar(Assets, pray_other));
                 TA->PrayState = PrayState_Other;
+                GameAddGhost(TA, Assets);
             }break;
             case PrayState_Other: {
                 TA->Respond(GetVar(Assets, pray_none));
                 TA->PrayState = PrayState_None;
+                
+                GameRemoveGhost(TA, 0);
+                GameRemoveGhost(TA, 0);
             }break;
         }
     }
     
+    // TODO(Tyler): Sound effect
     return true;
 }
 

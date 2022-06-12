@@ -1,17 +1,17 @@
 #~ @sja_variables
 
 : SpecialCommands
-    give_item "a town map"
-    give_item "small silver key"
-    give_item "leather sheet"
-    give_item "organ pipes"
+    #give_item "a town map"
+    #give_item "small silver key"
+    #give_item "leather sheet"
+    #give_item "organ pipes"
     
 : Variables
     ta_id "theme"           "theme_default"
     # @sja_start_game_mode
     var   "start_game_mode" "game"
     # @sja_start_room
-    ta_id "start_room"      "Garden lawn"
+    ta_id "start_room"      "Cathedral altar"
     
     var "invalid_command"     "That is not a valid command!\n"
                               "\1You fool\0!!!"
@@ -44,10 +44,13 @@
     var "use_dont_know"       "I don't know how to use that!"
     var "use_dont_have"       "I'm afraid you don't have that!"
 
-    var "pray_first" "You feel an incredible power flow around you, and the air becomes faintly chilly."
-    var "pray_other" "A slight breeze stirs the room."
-    var "pray_none"  "Nothing really seems to happen."
+    var "pray_first" "A slight breeze stirs the room." 
+    var "pray_other" "You feel an incredible power flow around you, and the air becomes faintly chilly."
+    var "pray_none"  "The slight breeze ends and the chill dissipates"
     
+    var "ghost_enter" "A fog slowly enter the area filling everything and blocking your entire view."
+    var "ghost_leave" "The fog slowly creeps away, and so does the chill."
+
 #~ @sja_themes
 
 : Theme "theme_default"
@@ -55,7 +58,7 @@
     title_font "font_basic_bold"
     background_color Color(0x0a0d4aff)
     cursor_color     Color(0xf2f2f2ff)
-    selection_color  Color(0x232c8cff)
+    selection_color  Color(0x232cdcff)
     basic      Fancy(Color(0xf2f2f2ff))
     room_title Fancy(Color(0xff6969ff) 1.0 4.0 2.0)
     item       Fancy(Color(0x24e3e3ff))
@@ -540,7 +543,7 @@
         "That was well worth the price of 2 coins."
     data_command Tag("use") "eat chocolate croissants"
     
-: TAItem Name("large loaves of wheat bread" Array("bread" "loaf" "loafs" "loaves") Array("large" "wheat" "loaves")) Tag("bread")
+: TAItem Name("large loaves of wheat bread" Array("bread" "loaf" "loafs" "loaves") Array("large" "wheat" "loaves" "of")) Tag("bread")
     cost 4
     description Tag("examine")
         "The bread is warm, with a light brown crust."
@@ -577,7 +580,19 @@
     description Tag("examine")
         "This key is magical and currently doesn't have a description!"
     
-    
+#- @sja_ghost
+
+: TAItem Name("Ghost coin" Array("coin") Array("ghost")) Tag("haunted")
+    description Tag("items")
+        "Test"
+
+: TAItem Name("Albert (Ghost)" Array("albert" "ghost" "fog")) Tag("ghost" "static")
+    description Tag("ghost")
+        "You feel a peculiar chill while a thick fog seems to engulf everything. "
+        "There appears that there might be a figure of some sort hiding in the fog. "
+    description Tag("examine")
+        "You can just barely make out the whispy figure and outline of a \1ghost-like\0 entity. "
+
 #~ @sja_npcs
 
 : Ignore "name"
@@ -1316,6 +1331,7 @@
         north     "Garden tree"
         northeast "Garden fountain"
         southwest "Southeast plaza"
+    items Array("Albert (Ghost)")
 
 : TARoom Name("Graveyard" Array("graveyard"))
     area "Graveyard"

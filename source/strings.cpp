@@ -167,7 +167,7 @@ EndStringBuilder(string_builder *Builder){
 
 internal inline void
 StringBuilderToFile(string_builder *Builder, os_file *File, u64 Offset=0){
-    WriteToFile(File, Offset, Builder->Buffer, Builder->BufferSize);
+    OSWriteToFile(File, Offset, Builder->Buffer, Builder->BufferSize);
 }
 
 internal inline void

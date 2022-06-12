@@ -664,36 +664,6 @@ GL_FUNC(glGetUniformBlockIndex)       \
 GL_FUNC(glUniformBlockBinding)       \
 GL_FUNC(glBindBufferBase)
 
-//~ NOTE(Tyler): This is for syntax highlighting in GLSL
-#if 0
-#define uniform
-#define out
-#define in
-#define discard
-struct vec2;
-struct vec3;
-struct vec4;
-struct mat3;
-struct mat4;
-struct uint
-struct sampler2D
-struct light;
-void exp();
-void clamp();
-void distance();
-void texture();
-void textureSize();
-void floor();
-void fract();
-void abs();
-void InPosition;
-void InColor;
-void InUV;
-void InPixelUV;
-void gl_Position;
-#endif
-
-
 //~
 struct opengl_type_data {
     GLuint VertexArray;
