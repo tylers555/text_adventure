@@ -547,7 +547,7 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
     return false;
 }
 
-//~ @misc_commands
+//~ @game_commands
 b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
     ta_room *Room = TA->CurrentRoom;
     
@@ -574,6 +574,17 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     }
     
     // TODO(Tyler): Sound effect
+    return true;
+}
+
+//~ @misc_commands
+b8 CommandUndo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    TA->Respond(GetVar(Assets, undo_message));
+    return true;
+}
+
+b8 CommandRedo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+    TA->Respond(GetVar(Assets, redo_message));
     return true;
 }
 

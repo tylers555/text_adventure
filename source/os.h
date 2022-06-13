@@ -341,6 +341,7 @@ typedef u8 text_input_flags;
 enum text_input_flags_ {
     TextInputFlag_None    = (0 << 0),
     TextInputFlag_IsDirty = (1 << 0),
+    TextInputFlag_DoEnd   = (1 << 1),
 };
 
 enum text_input_event_type {
@@ -357,14 +358,47 @@ enum text_input_event_type {
     TextInputEvent_TOTAL,
 };
 
+struct os_input;
+struct text_input_context {
+    os_input *Input;
+    
+    text_input_flags Flags;
+    char Buffer[TEXT_INPUT_BUFFER_SIZE];
+    u32 BufferLength;
+    s32 CursorPosition;
+    s32 SelectionMark = -1;
+    
+    inline void Initialize(memory_arena *Memory);
+    inline void Reset();
+    inline void ProcessKey(os_key_code Key);
+    inline void LoadToBuffer(const char *From, u32 Length);
+    inline void LoadToBuffer(const char *From);
+    
+    inline range_s32 GetSelectionRange();
+    inline b8   TryDeleteSelection();
+    inline void MaybeSetSelection();
+    inline u32  BufferInsertChars(u32 Position, char *Chars, u32 CharCount);
+    inline void BufferDeleteRange(range_s32 Range);
+    
+    memory_arena *HistoryMemory;
+    text_input_event_type LastEvent;
+    text_input_history_node HistorySentinel;
+    text_input_history_node *FreeHistoryNode;
+    text_input_history_node *CurrentHistoryNode;
+    
+    inline text_input_history_node *HistoryAddNode();
+    inline void HistoryUndo();
+    inline void HistoryRedo();
+    inline void HistoryChangeEvent(text_input_event_type Type);
+    
+};
+
 //~ OS input
 
 typedef u8 os_input_flags;
 enum os_input_flags_ {
     OSInputFlag_CapturedByUI = (1 << 0),
     OSInputFlag_MouseMoved   = (1 << 1),
-    OSInputFlag_DoTextInput  = (1 << 2),
-    OSInputFlag_EndTextInput = (1 << 3),
 };
 
 struct os_input {
@@ -403,34 +437,11 @@ struct os_input {
     inline b8 KeyDown(    u32 Key, os_key_flags=KeyFlag_None);
     
     //~ Text input
-    text_input_flags TextInputFlags;
-    char Buffer[TEXT_INPUT_BUFFER_SIZE];
-    u32 BufferLength;
-    s32 CursorPosition;
-    s32 SelectionMark = -1;
     
-    inline range_s32 GetSelectionRange();
-    inline b8   TryDeleteSelection();
-    inline void MaybeSetSelection();
-    inline void TextInputProcessKey(os_key_code Key);
-    inline u32  BufferInsertChars(u32 Position, char *Chars, u32 CharCount);
-    inline void BufferDeleteRange(range_s32 Range);
-    inline void BeginTextInput();
+    text_input_context *TextInput;
+    inline void BeginTextInput(text_input_context *Context);
     inline b8   MaybeEndTextInput();
     inline void EndTextInput();
-    inline void LoadTextInput(const char *From, u32 Length);
-    inline void LoadTextInput(const char *From);
-    inline void SaveTextInput(char *To, u32 MaxSize);
-    
-    text_input_event_type LastEvent;
-    text_input_history_node HistorySentinel;
-    text_input_history_node *FreeHistoryNode;
-    text_input_history_node *CurrentHistoryNode;
-    
-    inline text_input_history_node *HistoryAddNode();
-    inline void HistoryUndo();
-    inline void HistoryRedo();
-    inline void HistoryChangeEvent(text_input_event_type Type);
 };
 
 global os_input OSInput;

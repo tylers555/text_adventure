@@ -121,12 +121,12 @@ AssetProcessorMain(){
     //~ Initialize core stuff
     {
         umw Size = Megabytes(256);
-        void *Memory = AllocateVirtualMemory(Size);
+        void *Memory = OSVirtualAlloc(Size);
         Assert(Memory);
         InitializeArena(&PermanentStorageArena, Memory, Size);
     }{
         umw Size = Megabytes(512);
-        void *Memory = AllocateVirtualMemory(Size);
+        void *Memory = OSVirtualAlloc(Size);
         Assert(Memory);
         InitializeArena(&TransientStorageArena, Memory, Size);
     }

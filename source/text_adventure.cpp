@@ -457,12 +457,6 @@ ta_system::AddItem(ta_id Item){
     return Result;
 }
 
-inline void
-ta_system::ClearResponse(){
-    ResponseBuilder.Buffer[0] = 0;
-    ResponseBuilder.BufferSize = 0;
-}
-
 inline void 
 ta_system::Respond(const char *Format, ...){
     va_list VarArgs;
@@ -472,8 +466,55 @@ ta_system::Respond(const char *Format, ...){
     va_end(VarArgs);
 }
 
-inline void
-ta_system::SaveCommand(const char *Command){
+//~ 
+inline array<char *>
+ta_system::EndCommand(){
+    const char *Command = CurrentEditingCommand->Context.Buffer;
     const char *SavedCommand = ArenaPushCString(&CommandMemory, Command);
     StackPushSafe(&CommandStack, SavedCommand);
+    
+    ArenaClear(&GlobalTickMemory);
+    DLIST_INIT(&EditingCommandSentinel);
+    EditingCommandSentinel.Context.Reset();
+    CurrentEditingCommand = &EditingCommandSentinel;
+    CurrentPeekedCommand = 0;
+    
+    ResponseBuilder = BeginStringBuilder(&GlobalTickMemory, DEFAULT_BUFFER_SIZE);
+    
+    u32 TokenCount;
+    char **Tokens = TokenizeCommand(&GlobalTransientMemory, Command, &TokenCount);
+    array<char *> Result = MakeFullArray(Tokens, TokenCount);
+    
+    return Result;
+}
+
+inline ta_editing_command_node *
+ta_system::AllocEditingCommand(){
+    ta_editing_command_node *Node = PushStruct(&GlobalTickMemory, ta_editing_command_node);
+    DLIST_ADD_LAST(&EditingCommandSentinel, Node);
+    Node->Context.Initialize(&GlobalTickMemory);
+    return Node;
+}
+
+void
+ta_system::EditingCommandCycleUp(os_input *Input){
+    if(CurrentPeekedCommand >= CommandStack.Count) return;
+    CurrentPeekedCommand++;
+    if(CurrentEditingCommand->Next == &EditingCommandSentinel){
+        ta_editing_command_node *Node = AllocEditingCommand();
+        Node->Context.LoadToBuffer(StackPeek(&CommandStack, CurrentPeekedCommand-1));
+        Input->BeginTextInput(&Node->Context);
+    }else{
+        Input->BeginTextInput(&CurrentEditingCommand->Next->Context);
+    }
+    CurrentEditingCommand = CurrentEditingCommand->Next;
+}
+
+void
+ta_system::EditingCommandCycleDown(os_input *Input){
+    if(CurrentPeekedCommand == 0) return;
+    CurrentPeekedCommand--;
+    
+    Input->BeginTextInput(&CurrentEditingCommand->Prev->Context);
+    CurrentEditingCommand = CurrentEditingCommand->Prev;
 }

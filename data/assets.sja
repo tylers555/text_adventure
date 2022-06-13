@@ -44,6 +44,9 @@
     var "use_dont_know"       "I don't know how to use that!"
     var "use_dont_have"       "I'm afraid you don't have that!"
 
+    var "undo_message"        "This is life, you don't get a redo!"
+    var "redo_message"        "This is life, there are no undos! and you can't redo without an undo first."
+
     var "pray_first" "A slight breeze stirs the room." 
     var "pray_other" "You feel an incredible power flow around you, and the air becomes faintly chilly."
     var "pray_none"  "The slight breeze ends and the chill dissipates"

@@ -110,7 +110,7 @@ os_input::KeyDown(u32 Key, os_key_flags Flags){
 //~ Text input
 
 inline range_s32
-os_input::GetSelectionRange(){
+text_input_context::GetSelectionRange(){
     range_s32 Result = MakeRangeS32(CursorPosition, CursorPosition);
     if(SelectionMark >= 0){
         Result = MakeRangeS32(CursorPosition, SelectionMark);
@@ -119,7 +119,7 @@ os_input::GetSelectionRange(){
 }
 
 inline b8
-os_input::TryDeleteSelection(){
+text_input_context::TryDeleteSelection(){
     if(SelectionMark >= 0){
         HistoryChangeEvent(TextInputEvent_RemoveRange);
         BufferDeleteRange(GetSelectionRange());
@@ -131,8 +131,8 @@ os_input::TryDeleteSelection(){
 }
 
 inline void
-os_input::MaybeSetSelection(){
-    if(!TestModifier(KeyFlag_Shift|KeyFlag_Any)){
+text_input_context::MaybeSetSelection(){
+    if(!Input->TestModifier(KeyFlag_Shift|KeyFlag_Any)){
         SelectionMark = -1;
     }else if(SelectionMark < 0){
         SelectionMark = CursorPosition;
@@ -141,64 +141,151 @@ os_input::MaybeSetSelection(){
 
 //- Buffer stuff
 inline void
-os_input::BufferDeleteRange(range_s32 Range){
+text_input_context::BufferDeleteRange(range_s32 Range){
     Range = RangeCrop(MakeRangeS32(0, BufferLength), Range);
     MoveMemory(&Buffer[Range.Start],&Buffer[Range.End], BufferLength-(Range.End-1));
     s32 Size = RangeSize(Range);
     ZeroMemory(&Buffer[BufferLength-Size], Size);
     CursorPosition = Range.Start;
     
-    TextInputFlags |= TextInputFlag_IsDirty;
+    Flags |= TextInputFlag_IsDirty;
 }
 
 inline u32
-os_input::BufferInsertChars(u32 Position, char *Chars, u32 CharCount){
+text_input_context::BufferInsertChars(u32 Position, char *Chars, u32 CharCount){
     if(BufferLength+CharCount < DEFAULT_BUFFER_SIZE){
         MoveMemory(&Buffer[Position+CharCount],
                    &Buffer[Position],
                    BufferLength-Position);
         CopyMemory(&Buffer[Position], Chars, CharCount);
         BufferLength++;
-        TextInputFlags |= TextInputFlag_IsDirty;
+        Flags |= TextInputFlag_IsDirty;
         return CharCount;
     }
     return 0;
 }
 
-inline void
-os_input::TextInputProcessKey(os_key_code Key){
-    if(!(InputFlags & OSInputFlag_DoTextInput)) return;
+//- Undo/redo
+inline text_input_history_node *
+text_input_context::HistoryAddNode(){
+    text_input_history_node *Node = CurrentHistoryNode->Next;
+    while(Node != &HistorySentinel){
+        text_input_history_node *Next = Node->Next;
+        DLIST_REMOVE(Node);
+        FREELIST_FREE(FreeHistoryNode, Node);
+        Node = Next;
+    }
     
+    text_input_history_node *Result = FREELIST_ALLOC(FreeHistoryNode, 
+                                                     PushStruct(HistoryMemory, text_input_history_node));
+    
+    Result->Buffer = PushArray(HistoryMemory, char, BufferLength);
+    CopyMemory(Result->Buffer, Buffer, BufferLength);
+    Result->BufferLength = BufferLength;
+    Result->CursorPosition = CursorPosition;
+    
+    DLIST_ADD_LAST(&HistorySentinel, Result);
+    CurrentHistoryNode = Result;
+    
+    Flags &= ~TextInputFlag_IsDirty;
+    
+    return Result;
+}
+
+inline void
+text_input_context::HistoryUndo(){
+    HistoryChangeEvent(TextInputEvent_Other);
+    if(CurrentHistoryNode == &HistorySentinel) return; 
+    
+    text_input_history_node *Node = CurrentHistoryNode->Prev;
+    
+    CopyMemory(Buffer, Node->Buffer, Node->BufferLength);
+    if(BufferLength > Node->BufferLength) ZeroMemory(&Buffer[Node->BufferLength], BufferLength-Node->BufferLength);
+    
+    BufferLength = Node->BufferLength;
+    CursorPosition = Node->CursorPosition;
+    
+    CurrentHistoryNode = Node;
+}
+
+inline void
+text_input_context::HistoryRedo(){
+    HistoryChangeEvent(TextInputEvent_Other);
+    if(CurrentHistoryNode->Next == &HistorySentinel) return; 
+    
+    text_input_history_node *Node = CurrentHistoryNode->Next;
+    
+    CopyMemory(Buffer, Node->Buffer, Node->BufferLength);
+    if(BufferLength > Node->BufferLength) ZeroMemory(&Buffer[Node->BufferLength], BufferLength-Node->BufferLength);
+    
+    BufferLength = Node->BufferLength;
+    CursorPosition = Node->CursorPosition;
+    
+    CurrentHistoryNode = Node;
+}
+
+inline void
+text_input_context::HistoryChangeEvent(text_input_event_type Type){
+    if((LastEvent != Type) && 
+       (Flags & TextInputFlag_IsDirty)){
+        HistoryAddNode();
+        Flags &= ~TextInputFlag_IsDirty;
+    }
+    LastEvent = Type;
+}
+
+//- Core
+
+inline void
+text_input_context::Initialize(memory_arena *Memory){
+    HistoryMemory = Memory;
+    Reset();
+}
+
+inline void
+text_input_context::Reset(){
+    ZeroMemory(Buffer, DEFAULT_BUFFER_SIZE);
+    BufferLength = 0;
+    SelectionMark = -1;
+    CursorPosition = 0;
+    
+    DLIST_INIT(&HistorySentinel);
+    
+    CurrentHistoryNode = &HistorySentinel;
+}
+
+inline void
+text_input_context::ProcessKey(os_key_code Key){
     if(Key == KeyCode_NULL){
     }else if(Key < U8_MAX){
         char Char = (char)Key;
         
-        if((Char == 'C') && TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Copy
+        if((Char == 'C') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Copy
             range_s32 Range = GetSelectionRange();
             OSCopyChars(&Buffer[Range.Start], RangeSize(Range));
-        }else if((Char == 'V') && TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Paste
+        }else if((Char == 'V') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Paste
             HistoryChangeEvent(TextInputEvent_AddRange);
             TryDeleteSelection();
             char *ToPaste = OSPasteChars(&GlobalTransientMemory);
             BufferInsertChars(CursorPosition, ToPaste, CStringLength(ToPaste));
             HistoryAddNode();
-        }else if((Char == 'X') && TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Cut
+        }else if((Char == 'X') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Cut
             HistoryChangeEvent(TextInputEvent_RemoveRange);
             range_s32 Range = GetSelectionRange();
             OSCopyChars(&Buffer[Range.Start], RangeSize(Range));
             TryDeleteSelection();
-        }else if((Char == 'A') && TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Select all
+        }else if((Char == 'A') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Select all
             HistoryChangeEvent(TextInputEvent_MoveCursor);
             CursorPosition = BufferLength;
             SelectionMark = 0;
-        }else if((Char == 'Z') && TestModifier(KeyFlag_Control|KeyFlag_Any)){ HistoryUndo();
-        }else if((Char == 'Y') && TestModifier(KeyFlag_Control|KeyFlag_Any)){ HistoryRedo();
+        }else if((Char == 'Z') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ HistoryUndo();
+        }else if((Char == 'Y') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ HistoryRedo();
         }else{ //- Normal editing
             HistoryChangeEvent(TextInputEvent_AddChar);
             TryDeleteSelection();
             
             Char = CharToLower(Char);
-            if(KeyFlags & KeyFlag_Shift) Char = KEYBOARD_SHIFT_TABLE[Char]; 
+            if(Input->TestModifier(KeyFlag_Shift|KeyFlag_Any)) Char = KEYBOARD_SHIFT_TABLE[Char]; 
             Assert(Char);
             CursorPosition += BufferInsertChars(CursorPosition, &Char, 1);
             
@@ -208,7 +295,7 @@ os_input::TextInputProcessKey(os_key_code Key){
     }else if(Key == KeyCode_BackSpace){
         if(!TryDeleteSelection()){
             HistoryChangeEvent(TextInputEvent_BackSpace);
-            if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+            if(Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){
                 BufferDeleteRange(SeekBackward(Buffer, CursorPosition));
                 HistoryAddNode();
             }else{
@@ -218,7 +305,7 @@ os_input::TextInputProcessKey(os_key_code Key){
     }else if(Key == KeyCode_Delete){
         if(!TryDeleteSelection()){
             HistoryChangeEvent(TextInputEvent_Delete);
-            if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+            if(Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){
                 BufferDeleteRange(SeekForward(Buffer, BufferLength, CursorPosition));
                 HistoryAddNode();
             }else{
@@ -227,7 +314,7 @@ os_input::TextInputProcessKey(os_key_code Key){
         }
     }else if(Key == KeyCode_Left){
         MaybeSetSelection();
-        if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+        if(Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){
             CursorPosition = SeekBackward(Buffer, CursorPosition).Start;
         }
         while(0 < CursorPosition) if(!IsNewLine(Buffer[--CursorPosition])) break;
@@ -235,7 +322,7 @@ os_input::TextInputProcessKey(os_key_code Key){
         
     }else if(Key == KeyCode_Right){
         MaybeSetSelection();
-        if(TestModifier(KeyFlag_Control|KeyFlag_Any)){
+        if(Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){
             CursorPosition = SeekForward(Buffer, BufferLength, CursorPosition).End;
         }
         while(CursorPosition < (s32)BufferLength) if(!IsNewLine(Buffer[++CursorPosition])) break;
@@ -252,7 +339,7 @@ os_input::TextInputProcessKey(os_key_code Key){
         HistoryChangeEvent(TextInputEvent_MoveCursor);
         
     }else if(Key == KeyCode_Return){
-        InputFlags |= OSInputFlag_EndTextInput;
+        Flags |= TextInputFlag_DoEnd;
     }else if(Key == KeyCode_Escape){
         SelectionMark = -1;
     }
@@ -262,115 +349,33 @@ os_input::TextInputProcessKey(os_key_code Key){
     Assert(CursorPosition >= 0);
 }
 
-//- Management
+inline void 
+text_input_context::LoadToBuffer(const char *From, u32 Length){
+    CopyCString(Buffer, From, TEXT_INPUT_BUFFER_SIZE);
+    BufferLength = Length;
+}
+
+inline void 
+text_input_context::LoadToBuffer(const char *From){
+    LoadToBuffer(From, CStringLength(From));
+}
+
+//- os_input stuff
 inline void
-os_input::BeginTextInput(){
-    ZeroMemory(Buffer, DEFAULT_BUFFER_SIZE);
-    BufferLength = 0;
-    SelectionMark = -1;
-    CursorPosition = 0;
-    InputFlags |= OSInputFlag_DoTextInput;
-    
-    DLIST_INIT(&HistorySentinel);
-    
-    CurrentHistoryNode = &HistorySentinel;
+os_input::BeginTextInput(text_input_context *Context){
+    TextInput = Context;
+    TextInput->Input = this;
+    TextInput->Flags &= ~TextInputFlag_DoEnd;
 }
 
 inline b8
 os_input::MaybeEndTextInput(){
-    b8 Result = (InputFlags & OSInputFlag_EndTextInput);
-    if(Result){
-        InputFlags &= !OSInputFlag_DoTextInput;
-    }
+    if(!TextInput) return true;
+    b8 Result = (TextInput->Flags & TextInputFlag_DoEnd);
     return Result;
 }
 
 inline void
 os_input::EndTextInput(){
-    InputFlags &= !OSInputFlag_DoTextInput;
-}
-
-inline void 
-os_input::LoadTextInput(const char *From, u32 Length){
-    BeginTextInput();
-    CopyCString(Buffer, From, DEFAULT_BUFFER_SIZE);
-    BufferLength = Length;
-}
-
-inline void 
-os_input::LoadTextInput(const char *From){
-    LoadTextInput(From, CStringLength(From));
-}
-
-inline void 
-os_input::SaveTextInput(char *To, u32 MaxSize){
-    CopyCString(To, Buffer, DEFAULT_BUFFER_SIZE);
-    BeginTextInput();
-}
-
-//- Undo/redo
-inline text_input_history_node *
-os_input::HistoryAddNode(){
-    text_input_history_node *Node = CurrentHistoryNode->Next;
-    while(Node != &HistorySentinel){
-        text_input_history_node *Next = Node->Next;
-        DLIST_REMOVE(Node);
-        FREELIST_FREE(FreeHistoryNode, Node);
-        Node = Next;
-    }
-    
-    text_input_history_node *Result = FREELIST_ALLOC(FreeHistoryNode, 
-                                                     PushStruct(&GlobalTickMemory, text_input_history_node));
-    
-    Result->Buffer = PushArray(&GlobalTickMemory, char, BufferLength);
-    CopyMemory(Result->Buffer, Buffer, BufferLength);
-    Result->BufferLength = BufferLength;
-    Result->CursorPosition = CursorPosition;
-    
-    DLIST_ADD_LAST(&HistorySentinel, Result);
-    CurrentHistoryNode = Result;
-    
-    return Result;
-}
-
-inline void
-os_input::HistoryUndo(){
-    HistoryChangeEvent(TextInputEvent_Other);
-    if(CurrentHistoryNode == &HistorySentinel) return; 
-    
-    text_input_history_node *Node = CurrentHistoryNode->Prev;
-    
-    CopyMemory(Buffer, Node->Buffer, Node->BufferLength);
-    if(BufferLength > Node->BufferLength) ZeroMemory(&Buffer[Node->BufferLength], BufferLength-Node->BufferLength);
-    
-    BufferLength = Node->BufferLength;
-    CursorPosition = Node->CursorPosition;
-    
-    CurrentHistoryNode = Node;
-}
-
-inline void
-os_input::HistoryRedo(){
-    HistoryChangeEvent(TextInputEvent_Other);
-    if(CurrentHistoryNode->Next == &HistorySentinel) return; 
-    
-    text_input_history_node *Node = CurrentHistoryNode->Next;
-    
-    CopyMemory(Buffer, Node->Buffer, Node->BufferLength);
-    if(BufferLength > Node->BufferLength) ZeroMemory(&Buffer[Node->BufferLength], BufferLength-Node->BufferLength);
-    
-    BufferLength = Node->BufferLength;
-    CursorPosition = Node->CursorPosition;
-    
-    CurrentHistoryNode = Node;
-}
-
-inline void
-os_input::HistoryChangeEvent(text_input_event_type Type){
-    if((LastEvent != Type) && 
-       (TextInputFlags & TextInputFlag_IsDirty)){
-        HistoryAddNode();
-        TextInputFlags &= ~TextInputFlag_IsDirty;
-    }
-    LastEvent = Type;
+    TextInput = 0;
 }

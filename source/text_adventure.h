@@ -83,6 +83,13 @@ struct ta_room {
     ta_id Ghost;
 };
 
+//~
+struct ta_editing_command_node {
+    ta_editing_command_node *Next;
+    ta_editing_command_node *Prev;
+    text_input_context Context;
+};
+
 struct ta_system;
 typedef b8 command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount);
 
@@ -110,14 +117,18 @@ struct ta_system {
     void Initialize(asset_system *Assets, memory_arena *Arena);
     inline b8 AddItem(ta_id Item);
     
-    inline void ClearResponse();
     inline void Respond(const char *Format, ...);
     
     memory_arena CommandMemory;
     stack<const char *> CommandStack;
-    array<char[DEFAULT_BUFFER_SIZE]> EditingCommands;
+    ta_editing_command_node EditingCommandSentinel;
+    ta_editing_command_node *CurrentEditingCommand;
     u32 CurrentPeekedCommand;
-    inline void SaveCommand(const char *Command);
+    
+    inline array<char *> EndCommand();
+    inline ta_editing_command_node *AllocEditingCommand();
+    void EditingCommandCycleUp(os_input *Input);
+    void EditingCommandCycleDown(os_input *Input);
     
     //~ Game specific data
     asset_tag_id OrganState;

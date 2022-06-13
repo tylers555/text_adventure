@@ -1684,6 +1684,15 @@ MakeFullArray(memory_arena *Arena, u32 Count, umw Alignment=4){
     return(Result);
 }
 
+template<typename T> tyler_function inline array<T>
+MakeFullArray(T *Items, u32 Count){
+    array<T> Result = {};
+    Result.Items = Items;
+    Result.Count = Count;
+    Result.MaxCount = Count;
+    return(Result);
+}
+
 template<typename T> tyler_function inline T
 ArrayGet(array<T> *Array, s64 Index){
     Assert(Index < Array->Count);

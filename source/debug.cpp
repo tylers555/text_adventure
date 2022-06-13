@@ -1,5 +1,21 @@
 
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
+internal inline void
+DebugDisplayTextInputUndo(asset_font *Font, v2 *DebugP){
+    text_input_context *Context = OSInput.TextInput;
+    if(!Context) return;
+    
+    u32 I = 0;
+    text_input_history_node *Node = &Context->HistorySentinel;
+    do{
+        DebugP->Y -= FontRenderString(&DEBUG->Renderer, Font, *DebugP, PINK, "[%p]: '%.*s' %s", 
+                                      Node, Node->BufferLength, Node->Buffer,
+                                      (Node == Context->CurrentHistoryNode) ? "current" : "");
+        Node = Node->Next;
+        I++;
+    }while((Node != &Context->HistorySentinel) || (I > 30));
+}
+
 struct debug_info_display {
     u64 Start;
     debug_info_display(){
@@ -24,17 +40,7 @@ struct debug_info_display {
                                          "Ghost[%u] Room: %s", I, Room->Name);
         }
         
-#if 0        
-        u32 I = 0;
-        text_input_history_node *Node = &OSInput.HistorySentinel;
-        do{
-            DebugP.Y -= FontRenderString(&DEBUG->Renderer, Font, DebugP, PINK, "[%p]: '%.*s' %s", 
-                                         Node, Node->BufferLength, Node->Buffer,
-                                         (Node == OSInput.CurrentHistoryNode) ? "current" : "");
-            Node = Node->Next;
-            I++;
-        }while((Node != &OSInput.HistorySentinel) || (I > 30));
-#endif
+        //DebugDisplayTextInputUndo(Font, &DebugP);
     }
 };
 

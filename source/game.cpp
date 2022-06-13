@@ -7,14 +7,16 @@ ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
     ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, THEME_TABLE_SIZE);
     
     Inventory = MakeArray<ta_id>(Arena, INVENTORY_ITEM_COUNT);
-    ResponseBuilder = BeginStringBuilder(Arena, DEFAULT_BUFFER_SIZE);
     
-    // TODO(Tyler): Perhaps this could be more fancy? and clear out the older strings.
     CommandMemory = MakeArena(Arena, Megabytes(1));
     CommandStack = MakeStack<const char *>(Arena, 512);
-    EditingCommands = MakeArray<char[DEFAULT_BUFFER_SIZE]>(Arena, 512);
     
     Memory = &Assets->Memory;
+    
+    ResponseBuilder = BeginStringBuilder(&GlobalTickMemory, DEFAULT_BUFFER_SIZE);
+    DLIST_INIT(&EditingCommandSentinel);
+    EditingCommandSentinel.Context.Initialize(&GlobalTickMemory);
+    CurrentEditingCommand = &EditingCommandSentinel;
     
     //~ Game specific data
     HauntedItems = MakeArray<ta_id>(Arena, 16);
@@ -67,6 +69,8 @@ HighestMatch = Match; \
         TEST_COMMAND("fix",      CommandRepair);
         TEST_COMMAND("use",      CommandUse);
         TEST_COMMAND("pray",     CommandPray);
+        TEST_COMMAND("undo",     CommandUndo);
+        TEST_COMMAND("redo",     CommandRedo);
         
         //- Testing commands
         TEST_COMMAND("testaddmoney", CommandTestAddMoney);
@@ -94,7 +98,7 @@ DoDisplayItem(ta_item *Item){
 
 internal inline void
 RenderTextInput(game_renderer *Renderer, console_theme *Theme, asset_font *Font, 
-                os_input *Input, rect *InputRect){
+                text_input_context *Input, rect *InputRect){
     char *Text = Input->Buffer;
     f32 LineHeight = Font->Height+FONT_VERTICAL_SPACE;
     f32 TotalWidth = RectWidth(*InputRect);
@@ -143,7 +147,7 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
     Renderer->NewFrame(&GlobalTransientMemory, Input->WindowSize, Theme->BackgroundColor);
     
     if(!TA->CurrentRoom){
-        Input->BeginTextInput();
+        Input->BeginTextInput(&TA->EditingCommandSentinel.Context);
         TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, GetVarTAID(Assets, start_room));
         if(!TA->CurrentRoom){
             TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TAIDByName(TA, "Southeast plaza"));
@@ -282,32 +286,16 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
     {
         //- Previous commmands
         if(Input->KeyJustDown(KeyCode_Up, KeyFlag_Any)){
-            if(TA->CurrentPeekedCommand < TA->CommandStack.Count){
-                if(TA->CurrentPeekedCommand >= TA->EditingCommands.Count) ArrayAlloc(&TA->EditingCommands);
-                Input->SaveTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
-                
-                TA->CurrentPeekedCommand++;
-                if(TA->CurrentPeekedCommand >= TA->EditingCommands.Count){
-                    Input->LoadTextInput(StackPeek(&TA->CommandStack, TA->CurrentPeekedCommand-1));
-                }else{
-                    Input->LoadTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
-                }
-            }
+            TA->EditingCommandCycleUp(Input);
         }else if(Input->KeyJustDown(KeyCode_Down, KeyFlag_Any)){
-            if(TA->CurrentPeekedCommand > 0){
-                if(TA->CurrentPeekedCommand >= TA->EditingCommands.Count) ArrayAlloc(&TA->EditingCommands);
-                Input->SaveTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
-                
-                TA->CurrentPeekedCommand--;
-                Input->LoadTextInput(TA->EditingCommands[TA->CurrentPeekedCommand], DEFAULT_BUFFER_SIZE);
-            }
+            TA->EditingCommandCycleDown(Input);
         }
         
         const char *Response = TA->ResponseBuilder.Buffer;
         DoString(Renderer, Font, Theme->ResponseFancies, ArrayCount(Theme->ResponseFancies),
                  Response, &InputRect);
         
-        RenderTextInput(Renderer, Theme, Font, Input, &InputRect);
+        RenderTextInput(Renderer, Theme, Font, &TA->CurrentEditingCommand->Context, &InputRect);
         
         //- Debug
         if(Input->KeyRepeat(KeyCode_F1)){
@@ -316,22 +304,19 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         
         //- Command processing
         if(Input->MaybeEndTextInput()){
-            TA->ClearResponse();
-            TA->SaveCommand(Input->Buffer);
-            ArrayClear(&TA->EditingCommands);
+            array<char *> Tokens = TA->EndCommand();
             
-            u32 TokenCount;
-            char **Tokens = TokenizeCommand(&GlobalTransientMemory, Input->Buffer, &TokenCount);
             if(TA->Callback){
                 // NOTE(Tyler): Weird dance, so that the callback can set another callback.
                 command_func *Callback = TA->Callback;
                 TA->Callback = 0;
-                (*Callback)(Mixer, TA, Assets, Tokens, TokenCount);
+                (*Callback)(Mixer, TA, Assets, Tokens.Items, Tokens.Count);
             }else{
                 GameTick(TA, Assets);
-                TADispatchCommand(Mixer, TA, Assets, Tokens, TokenCount);
+                TADispatchCommand(Mixer, TA, Assets, Tokens.Items, Tokens.Count);
             }
-            Input->BeginTextInput();
+            
+            Input->BeginTextInput(&TA->EditingCommandSentinel.Context);
         }
     }
 }
