@@ -1885,6 +1885,12 @@ MakeDynamicArray(memory_arena *Arena, s32 InitialCapacity){
     return MakeDynamicArray<T>(InitialCapacity, Arena);
 }
 
+template <typename T> tyler_function inline array<T>
+MakeArray(dynamic_array<T> *Array){
+    array<T> Result = MakeFullArray(Array->Items, Array->Count);
+    return Result;
+}
+
 template <typename T> void 
 DeleteArray(dynamic_array<T> *Array){
     if(!Array->Arena) DefaultFree(Array->Items);

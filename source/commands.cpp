@@ -1,6 +1,6 @@
 
 //~ @movement_commands
-b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *FoundRoom = 0;
     u32 FoundIndex = 0;
     ta_name_comparison Found = MakeTANameComparison();
@@ -10,7 +10,7 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ch
         ta_room *Room = HashTableFindPtr(&TA->RoomTable, TA->CurrentRoom->Adjacents[I]);
         if(!Room) continue;
         
-        ta_name_comparison Comparison = TACompareWordsAndName(&Room->NameData, Words, WordCount);
+        ta_name_comparison Comparison = TACompareWordsAndName(&Room->NameData, Words);
         
         if(Comparison.FoundWordIndex >= 0){
             if(Found.FoundWordIndex >= 0){
@@ -62,11 +62,11 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, ch
     return false;
 }
 
-b8 CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandMove(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *CurrentRoom = TA->CurrentRoom;
     ta_room *NextRoom = 0;
     
-    for(u32 I=0; I < WordCount; I++){
+    for(u32 I=0; I < Words.Count; I++){
         char *Word = Words[I];
         direction Direction = Direction_None;
         
@@ -116,7 +116,7 @@ HighestMatch = Match; \
         return true;
     }
     
-    if(HelperCommandGoTo(Mixer, TA, Assets, Words, WordCount)){
+    if(HelperCommandGoTo(Mixer, TA, Assets, Words)){
         return true;
     }
     
@@ -124,7 +124,7 @@ HighestMatch = Match; \
     return false;
 }
 
-b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Exit));
     if(!Data){
@@ -164,10 +164,10 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
 }
 
 // TODO(Tyler): This ought to take a room to go to in some cases
-b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     // TODO(Tyler): I'm not sure if there is a better way to do this.
-    if(WordCount > 1){
-        return HelperCommandGoTo(Mixer, TA, Assets, Words, WordCount);
+    if(Words.Count > 1){
+        return HelperCommandGoTo(Mixer, TA, Assets, Words);
     }
     
     ta_room *Room = TA->CurrentRoom;
@@ -209,7 +209,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **
 
 //~ @item_commands
 
-b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[TA->BuyItemIndex]);
     if(!Item){
@@ -220,7 +220,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, c
     
     f32 PositiveWeight = 0.0f;
     f32 NegativeWeight = 0.0f;
-    for(u32 I=0; I<WordCount; I++){
+    for(u32 I=0; I<Words.Count; I++){
         const char *Word = Words[I];
 #define WORD(Name) { f32 M = CompareWordsPercentage(Word, Name); if(M > PositiveWeight) PositiveWeight = M; }
         POSITIVES
@@ -251,10 +251,10 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, c
     return true;
 }
 
-b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words, WordCount);
+    ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words);
     HANDLE_FOUND_ITEMS(FoundItems, CommandTake, "take");
     
     u32 RemovedItems = 0;
@@ -291,10 +291,10 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     return true;
 }
 
-b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
+    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words);
     HANDLE_FOUND_ITEMS(FoundItems, CommandDrop, "drop");
     
     u32 RemovedItems = 0;
@@ -312,10 +312,10 @@ b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     return true;
 }
 
-b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words, WordCount);
+    ta_found_items FoundItems = TAFindItems(TA, &Room->Items, Words);
     HANDLE_FOUND_ITEMS(FoundItems, CommandBuy, "buy");
     
     u32 RemovedItems = 0;
@@ -354,8 +354,8 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
     return true;
 }
 
-b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
-    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
+b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
+    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words);
     HANDLE_FOUND_ITEMS(FoundItems, CommandEat, "eat");
     
     u32 RemovedItems = 0;
@@ -390,11 +390,11 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
     return false;
 }
 
-b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
-    TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
+    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words);
+    TAContinueFindItems(TA, &Room->Items, Words, &FoundItems);
     HANDLE_FOUND_ITEMS(FoundItems, CommandPlay, "play");
     
     for(u32 I=0; I<FoundItems.Items.Count; I++){
@@ -419,11 +419,11 @@ b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
     return true;
 }
 
-b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words, WordCount);
-    TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
+    ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words);
+    TAContinueFindItems(TA, &Room->Items, Words, &FoundItems);
     HANDLE_FOUND_ITEMS(FoundItems, CommandExamine, "examine");
     
     for(u32 I=0; I<FoundItems.Items.Count; I++){
@@ -444,7 +444,7 @@ b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char 
     }
     
     if(FoundItems.Items.Count == 0){
-        if(WordCount > 1){
+        if(Words.Count > 1){
             TA->Respond(GetVar(Assets, examine_invalid));
         }else{
             TA->Respond(GetVar(Assets, examine_none));
@@ -457,7 +457,7 @@ b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char 
     return true;
 }
 
-b8 CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *CurrentRoom = TA->CurrentRoom;
     for(u32 I=0; I<Direction_TOTAL; I++){
         asset_tag Tag = CurrentRoom->AdjacentTags[I];
@@ -472,16 +472,16 @@ b8 CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     return true;
 }
 
-b8 CommandWait(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandWait(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     TA->Respond("Not yet implemented!");
     return true;
 }
 
-b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems =  TAFindItems(TA, &TA->Inventory, Words, WordCount);
-    TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
+    ta_found_items FoundItems =  TAFindItems(TA, &TA->Inventory, Words);
+    TAContinueFindItems(TA, &Room->Items, Words, &FoundItems);
     
     ta_item *Item = 0;
     b8 FixedSomething = false;
@@ -520,11 +520,11 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char *
     return true;
 }
 
-b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
-    ta_found_items FoundItems =  TAFindItems(TA, &TA->Inventory, Words, WordCount);
-    //TAContinueFindItems(TA, &Room->Items, Words, WordCount, &FoundItems);
+    ta_found_items FoundItems =  TAFindItems(TA, &TA->Inventory, Words);
+    //TAContinueFindItems(TA, &Room->Items, Words, &FoundItems);
     
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
@@ -536,9 +536,8 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
             continue;
         }
         
-        u32 TokenCount;
-        char **Tokens = TokenizeCommand(&GlobalTransientMemory, Data->Data, &TokenCount);
-        TADispatchCommand(Mixer, TA, Assets, Tokens, TokenCount);
+        word_array Tokens = TokenizeCommand(&GlobalTransientMemory, Data->Data);
+        TADispatchCommand(Mixer, TA, Assets, Tokens);
         
         return true;
     }
@@ -548,7 +547,7 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Wo
 }
 
 //~ @game_commands
-b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
     
     if(HasTag(Room->Tag, AssetTag_Altar)){
@@ -578,29 +577,29 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **W
 }
 
 //~ @misc_commands
-b8 CommandUndo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandUndo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     TA->Respond(GetVar(Assets, undo_message));
     return true;
 }
 
-b8 CommandRedo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandRedo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     TA->Respond(GetVar(Assets, redo_message));
     return true;
 }
 
 //~ @testing_commands
-b8 CommandTestAddMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandTestAddMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     TA->Money += 10;
     return true;
 }
 
-b8 CommandTestSubMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandTestSubMoney(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     if(TA->Money >= 10) TA->Money -= 10;
     return true;
 }
 
 //~ @meta_commands
-b8 CommandMusic(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount){
+b8 CommandMusic(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     if(!SettingsState.MusicHandle.ID){
         SettingsState.MusicHandle = Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_test_music)), 
                                                      MixerSoundFlag_Loop);

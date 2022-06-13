@@ -1,6 +1,6 @@
 
 #ifdef DO_RELEASE_BUILD
-#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
+//#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
 #else
 #define SNAIL_JUMPY_DEBUG_BUILD
 //#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
@@ -70,7 +70,6 @@ StateInitialize(game_state *State){
     Strings.Initialize(&GlobalPermanentMemory);
     TextAdventure.Initialize(&State->Assets, &GlobalPermanentMemory);
     State->Assets.Initialize(&GlobalPermanentMemory);
-    
     State->Assets.LoadAssetFile(ASSET_FILE_PATH);
     
     DebugInitTime = OSGetMicroseconds()-Start;

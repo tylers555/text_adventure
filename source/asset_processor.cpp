@@ -1,9 +1,13 @@
 #include "main.h"
 
 global ta_system TextAdventure;
+global settings_state SettingsState;
+
+global asset_processor AssetProcessor;
+
+global memory_arena GlobalTickMemory;
 
 global game_mode GameMode = GameMode_None;
-global asset_processor AssetProcessor;
 
 //~ Helpers
 internal inline string
@@ -21,7 +25,7 @@ MakeTexture(texture_flags Flags){
 
 internal void
 TextureUpload(render_texture Texture, u8 *Pixels, u32 Width, u32 Height, u32 Channels){
-    AssetProcessor.Textures[Texture].Pixels   = PushArray(&PermanentStorageArena, u8, Width*Height*Channels);
+    AssetProcessor.Textures[Texture].Pixels   = PushArray(&GlobalPermanentMemory, u8, Width*Height*Channels);
     CopyMemory(AssetProcessor.Textures[Texture].Pixels, Pixels, Width*Height*Channels);
     AssetProcessor.Textures[Texture].Width    = Width;
     AssetProcessor.Textures[Texture].Height   = Height;
@@ -39,6 +43,7 @@ internal void
 RenderLine(game_renderer *Renderer, v2 A, v2 B, f32 Z, f32 Thickness, color Color){}
 
 //~ Includes 
+#include "os.cpp"
 #include "logging.cpp"
 #include "stream.cpp"
 #include "file_processing.cpp"
@@ -47,16 +52,18 @@ RenderLine(game_renderer *Renderer, v2 A, v2 B, f32 Z, f32 Thickness, color Colo
 #include "text_adventure.cpp"
 #include "asset_loading.cpp"
 #include "audio_mixer.cpp"
+#include "murkwell.cpp"
 #include "commands.cpp"
 
-#define DO_DEBUG_INFO() 
+#include "debug.cpp"
 #include "game.cpp"
 #include "map.cpp"
+
 
 template <typename ValueType>
 internal inline hash_table<ta_id, ValueType>
 ProcessTAIDTable(hash_table<ta_id, ValueType> *InTable){
-    hash_table<ta_id, ValueType> Result = MakeHashTable<ta_id, ValueType>(&TransientStorageArena, InTable->BucketsUsed);
+    hash_table<ta_id, ValueType> Result = MakeHashTable<ta_id, ValueType>(&GlobalTransientMemory, InTable->BucketsUsed);
     HashTableCopy(&Result, InTable);
     return Result;
 }
@@ -87,7 +94,7 @@ StringBuilderAddTAName(string_builder *Builder, const char *S, ta_name *Name){
 
 internal inline const char *
 MakeStringLiteral(const char *S){
-    string_builder Builder = BeginStringBuilder(&TransientStorageArena, DEFAULT_BUFFER_SIZE);
+    string_builder Builder = BeginStringBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
     StringBuilderAdd(&Builder, '"');
     
     u32 Length = CStringLength(S);
@@ -120,31 +127,28 @@ internal inline void
 AssetProcessorMain(){
     //~ Initialize core stuff
     {
-        umw Size = Megabytes(256);
+        umw Size = Gigabytes(1);
         void *Memory = OSVirtualAlloc(Size);
         Assert(Memory);
-        InitializeArena(&PermanentStorageArena, Memory, Size);
-    }{
-        umw Size = Megabytes(512);
-        void *Memory = OSVirtualAlloc(Size);
-        Assert(Memory);
-        InitializeArena(&TransientStorageArena, Memory, Size);
+        InitializeArena(&GlobalPermanentMemory, Memory, Size);
     }
+    GlobalTransientMemory = MakeArena(&GlobalPermanentMemory, Megabytes(512));
+    GlobalTickMemory      = MakeArena(&GlobalPermanentMemory, Megabytes(256));
     
     //~ Initialize asset processor
-    AssetProcessor.Textures = MakeArray<asset_processor_texture>(&PermanentStorageArena, 512);
+    AssetProcessor.Textures = MakeArray<asset_processor_texture>(&GlobalPermanentMemory, 512);
     
     //~ Other initialization
     asset_system Assets = {};
     ta_system *TA = &TextAdventure;
     
-    Strings.Initialize(&PermanentStorageArena);
-    TextAdventure.Initialize(&PermanentStorageArena);
-    Assets.Initialize(&PermanentStorageArena);
+    Strings.Initialize(&GlobalPermanentMemory);
+    TextAdventure.Initialize(&Assets, &GlobalPermanentMemory);
+    Assets.Initialize(&GlobalPermanentMemory);
     Assets.LoadAssetFile(ASSET_FILE_PATH);
     
-    ArenaClear(&TransientStorageArena);
-    string_builder SJAPBuilder  = BeginStringBuilder(&TransientStorageArena, Megabytes(200));
+    ArenaClear(&GlobalTransientMemory);
+    string_builder SJAPBuilder  = BeginStringBuilder(&GlobalTransientMemory, Megabytes(200));
     
     sjap_header Header = {};
     Header.SJAP[0] = 'S';
@@ -154,13 +158,13 @@ AssetProcessorMain(){
     
     StringBuilderAddVar(&SJAPBuilder, Header);
     
-    string_builder EnumBuilder = BeginStringBuilder(&TransientStorageArena, Megabytes(2));
+    string_builder EnumBuilder = BeginStringBuilder(&GlobalTransientMemory, Megabytes(2));
     StringBuilderAdd(&EnumBuilder, 
                      "#if !defined(GENERATED_ASSET_ID_H) && defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)\n"
                      "#define GENERATED_ASSET_ID_H\n"
                      "enum {\n");
     
-    string_builder AssetBuilder = BeginStringBuilder(&TransientStorageArena, Megabytes(2));
+    string_builder AssetBuilder = BeginStringBuilder(&GlobalTransientMemory, Megabytes(2));
     StringBuilderAdd(&AssetBuilder, 
                      "#if !defined(GENERATED_ASSET_DATA_H) && defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)\n"
                      "#define GENERATED_ASSET_DATA_H\n"
@@ -408,24 +412,24 @@ StringBuilderAdd(&AssetBuilder, ";\n");
                      "#endif // GENERATED_ASSET_DATA_H\n");
     
     {
-        os_file *OutputFile = OpenFile("./processed_assets.sjap", OpenFile_Write|OpenFile_Clear);
+        os_file *OutputFile = OSOpenFile("./processed_assets.sjap", OpenFile_Write|OpenFile_Clear);
         Assert(OutputFile);
         StringBuilderToFile(&SJAPBuilder, OutputFile);
-        CloseFile(OutputFile);
+        OSCloseFile(OutputFile);
     }
     
     {
-        os_file *OutputFile = OpenFile("../source/generated_asset_id.h", OpenFile_Write|OpenFile_Clear);
+        os_file *OutputFile = OSOpenFile("../source/generated_asset_id.h", OpenFile_Write|OpenFile_Clear);
         Assert(OutputFile);
         StringBuilderToFile(&EnumBuilder, OutputFile);
-        CloseFile(OutputFile);
+        OSCloseFile(OutputFile);
     }
     
     {
-        os_file *OutputFile = OpenFile("../source/generated_asset_data.h", OpenFile_Write|OpenFile_Clear);
+        os_file *OutputFile = OSOpenFile("../source/generated_asset_data.h", OpenFile_Write|OpenFile_Clear);
         Assert(OutputFile);
         StringBuilderToFile(&AssetBuilder, OutputFile);
-        CloseFile(OutputFile);
+        OSCloseFile(OutputFile);
     }
     
     printf("Done!\n");

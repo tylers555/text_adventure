@@ -34,7 +34,6 @@ internal inline console_theme MakeDefaultConsoleTheme();
 
 //~ Text adventure stuff
 
-global_constant u32 MAX_COMMAND_TOKENS = 64;
 global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 global_constant u32 INVENTORY_ITEM_COUNT = 10;
 
@@ -84,6 +83,8 @@ struct ta_room {
 };
 
 //~
+typedef array<char *> word_array;
+
 struct ta_editing_command_node {
     ta_editing_command_node *Next;
     ta_editing_command_node *Prev;
@@ -91,7 +92,7 @@ struct ta_editing_command_node {
 };
 
 struct ta_system;
-typedef b8 command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Words, u32 WordCount);
+typedef b8 command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words);
 
 struct ta_system {
     hash_table<ta_id, console_theme> ThemeTable;
@@ -195,6 +196,6 @@ WORD("negative")
 global_constant f32 WORD_MATCH_THRESHOLD = 0.5f;
 
 internal inline void 
-TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount);
+TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Tokens);
 
 #endif //TEXT_ADVENTURE_H

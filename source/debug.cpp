@@ -8,9 +8,10 @@ DebugDisplayTextInputUndo(asset_font *Font, v2 *DebugP){
     u32 I = 0;
     text_input_history_node *Node = &Context->HistorySentinel;
     do{
-        DebugP->Y -= FontRenderString(&DEBUG->Renderer, Font, *DebugP, PINK, "[%p]: '%.*s' %s", 
-                                      Node, Node->BufferLength, Node->Buffer,
-                                      (Node == Context->CurrentHistoryNode) ? "current" : "");
+        DebugP->Y -= FontRenderString(&DEBUG->Renderer, Font, *DebugP, PINK, "%s [%p]: '%.*s'", 
+                                      (Node == Context->CurrentHistoryNode) ? ">" : " ",
+                                      Node, Node->BufferLength, Node->Buffer);
+        ;
         Node = Node->Next;
         I++;
     }while((Node != &Context->HistorySentinel) || (I > 30));
@@ -40,6 +41,7 @@ struct debug_info_display {
                                          "Ghost[%u] Room: %s", I, Room->Name);
         }
         
+        //~ @debug_text_input_undo
         //DebugDisplayTextInputUndo(Font, &DebugP);
     }
 };

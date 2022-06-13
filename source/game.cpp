@@ -26,10 +26,10 @@ ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
 }
 
 internal inline void
-TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, char **Tokens, u32 TokenCount){
+TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Tokens){
     command_func *Func = 0;
     f32 HighestMatch = 0.0f;
-    for(u32 I=0; I < TokenCount; I++){
+    for(u32 I=0; I < Tokens.Count; I++){
         char *Word = Tokens[I];
         CStringMakeLower(Word);
         
@@ -81,7 +81,7 @@ HighestMatch = Match; \
 #undef TEST_COMMAND
         
         if(HighestMatch > WORD_MATCH_THRESHOLD){
-            (*Func)(Mixer, TA, Assets, Tokens, TokenCount);
+            (*Func)(Mixer, TA, Assets, Tokens);
             return;
         }
     }
@@ -310,10 +310,10 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
                 // NOTE(Tyler): Weird dance, so that the callback can set another callback.
                 command_func *Callback = TA->Callback;
                 TA->Callback = 0;
-                (*Callback)(Mixer, TA, Assets, Tokens.Items, Tokens.Count);
+                (*Callback)(Mixer, TA, Assets, Tokens);
             }else{
                 GameTick(TA, Assets);
-                TADispatchCommand(Mixer, TA, Assets, Tokens.Items, Tokens.Count);
+                TADispatchCommand(Mixer, TA, Assets, Tokens);
             }
             
             Input->BeginTextInput(&TA->EditingCommandSentinel.Context);

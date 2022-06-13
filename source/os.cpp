@@ -158,7 +158,7 @@ text_input_context::BufferInsertChars(u32 Position, char *Chars, u32 CharCount){
                    &Buffer[Position],
                    BufferLength-Position);
         CopyMemory(&Buffer[Position], Chars, CharCount);
-        BufferLength++;
+        BufferLength += CharCount;
         Flags |= TextInputFlag_IsDirty;
         return CharCount;
     }
@@ -267,7 +267,7 @@ text_input_context::ProcessKey(os_key_code Key){
             HistoryChangeEvent(TextInputEvent_AddRange);
             TryDeleteSelection();
             char *ToPaste = OSPasteChars(&GlobalTransientMemory);
-            BufferInsertChars(CursorPosition, ToPaste, CStringLength(ToPaste));
+            CursorPosition += BufferInsertChars(CursorPosition, ToPaste, CStringLength(ToPaste));
             HistoryAddNode();
         }else if((Char == 'X') && Input->TestModifier(KeyFlag_Control|KeyFlag_Any)){ //- Cut
             HistoryChangeEvent(TextInputEvent_RemoveRange);

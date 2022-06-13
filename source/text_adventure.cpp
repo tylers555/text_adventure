@@ -41,10 +41,9 @@ TAItemByName(ta_system *TA, const char *S){
 #endif
 
 //~ Command processing
-internal char **
-TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
-    char **Result = PushArray(Arena, char *, MAX_COMMAND_TOKENS);
-    u32 Count = 0;
+internal array<char *>
+TokenizeCommand(memory_arena *Memory, const char *Command){
+    dynamic_array<char *> Array = MakeDynamicArray<char *>(Memory, 10);
     
     u32 CommandLength = CStringLength(Command);
     
@@ -55,17 +54,15 @@ TokenizeCommand(memory_arena *Arena, const char *Command, u32 *TokenCount){
         u32 Next = SeekForward(Command, CommandLength, CurrentIndex).End;
         u32 WordLength = Next-CurrentIndex;
         if(WordLength > 0){
-            Assert(Count < MAX_COMMAND_TOKENS);
-            Result[Count] = PushArray(Arena, char, WordLength+1);
-            CopyMemory(Result[Count], &Command[CurrentIndex], WordLength);
-            Result[Count][WordLength] = 0;
-            Count++;
+            char *Token = PushArray(Memory, char, WordLength+1);
+            CopyMemory(Token, &Command[CurrentIndex], WordLength);
+            ArrayAdd(&Array, Token);
         }
         
         CurrentIndex = Next;
     }
     
-    *TokenCount = Count;
+    array<char *> Result = MakeArray(&Array);
     return Result;
 }
 
@@ -141,9 +138,9 @@ MakeTANameComparison(){
 }
 
 internal inline ta_name_comparison
-TACompareWordsAndName(ta_name *NameData, char **Words, u32 WordCount){
+TACompareWordsAndName(ta_name *NameData, word_array Words){
     ta_name_comparison Result = MakeTANameComparison();
-    for(u32 WordIndex=0; WordIndex<WordCount; WordIndex++){
+    for(u32 WordIndex=0; WordIndex<Words.Count; WordIndex++){
         const char *Word = Words[WordIndex];
         
         f32 AdjectiveMatch = 0.0f;
@@ -176,12 +173,12 @@ TACompareWordsAndName(ta_name *NameData, char **Words, u32 WordCount){
 }
 
 internal void 
-TAContinueFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount, ta_found_items *Founds){
+TAContinueFindItems(ta_system *TA, array<ta_id> *Items, word_array Words, ta_found_items *Founds){
     for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
         ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
         if(!Item) continue;
         
-        ta_name_comparison Comparison = TACompareWordsAndName(&Item->NameData, Words, WordCount);
+        ta_name_comparison Comparison = TACompareWordsAndName(&Item->NameData, Words);
         
         if(Comparison.FoundWordIndex >= 0){
             b8 FoundSomething = false;
@@ -225,10 +222,10 @@ return false; \
 HANDLE_AMBIGUOUS_FOUND_ITEMS(FoundItems, Function, Verb) \
 
 internal ta_found_items
-TAFindItems(ta_system *TA, array<ta_id> *Items, char **Words, u32 WordCount){
+TAFindItems(ta_system *TA, array<ta_id> *Items, word_array Words){
     ta_found_items Result = {};
     Result.Items = MakeDynamicArray<ta_found_item>(&GlobalTransientMemory, 2);
-    TAContinueFindItems(TA, Items, Words, WordCount, &Result);
+    TAContinueFindItems(TA, Items, Words, &Result);
     
     return Result;
 }
@@ -481,9 +478,7 @@ ta_system::EndCommand(){
     
     ResponseBuilder = BeginStringBuilder(&GlobalTickMemory, DEFAULT_BUFFER_SIZE);
     
-    u32 TokenCount;
-    char **Tokens = TokenizeCommand(&GlobalTransientMemory, SavedCommand, &TokenCount);
-    array<char *> Result = MakeFullArray(Tokens, TokenCount);
+    array<char *> Result = TokenizeCommand(&GlobalTransientMemory, SavedCommand);
     
     return Result;
 }

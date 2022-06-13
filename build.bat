@@ -8,16 +8,16 @@ set LIBRARY_PATHS=
 set LIBRARIES= User32.lib Gdi32.lib Opengl32.lib Comdlg32.lib Ole32.lib Winmm.lib
 
 pushd "build"
-set MODE=
+set BUILD_MODE="debug"
 
-if "%MODE%" == "release" ( 
-        set COMPILE_OPTIONS=%COMPILE_OPTIONS% /O2 /DDO_RELEASE_BUILD 
-            set EXE_NAME=Win32TAGameRelease.exe
-) else ( 
-        set COMPILE_OPTIONS=%COMPILE_OPTIONS% /Od
-            set EXE_NAME=Win32TAGameDebug.exe
+if %BUILD_MODE% == "release" ( 
+                        set COMPILE_OPTIONS=%COMPILE_OPTIONS% /O2 /DDO_RELEASE_BUILD 
+set EXE_NAME=Win32TAGameRelease.exe
+        ) else ( 
+                        set COMPILE_OPTIONS=%COMPILE_OPTIONS% /Od
+set EXE_NAME=Win32TAGameDebug.exe
         goto build_game 
-)
+                    )
 
 :asset_processor
 cl %COMPILE_OPTIONS% %DEBUG_OPTIONS% %INCLUDE_PATHS% /Fe:Win32AssetProcessor.exe ..\source\win32\win32_asset_processor.cpp /link %LINK_OPTIONS% %LIBRARY_PATHS% 
