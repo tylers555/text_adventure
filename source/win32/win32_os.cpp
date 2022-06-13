@@ -39,19 +39,7 @@ Win32ConvertVKCode(u32 VKCode){
     }else{
         switch(VKCode){
             //~ Special keys
-            case VK_UP:        return KeyCode_Up;        
-            case VK_DOWN:      return KeyCode_Down;      
-            case VK_LEFT:      return KeyCode_Left;      
-            case VK_RIGHT:     return KeyCode_Right;     
-            case VK_SPACE:     return KeyCode_Space;     
-            case VK_TAB:       return KeyCode_Tab;       
-            case VK_CONTROL:   return KeyCode_Control;   
-            case VK_SHIFT:     return KeyCode_Shift;     
             case VK_ESCAPE:    return KeyCode_Escape;    
-            case VK_BACK:      return KeyCode_BackSpace; 
-            case VK_DELETE:    return KeyCode_Delete;    
-            case VK_RETURN:    return KeyCode_Return;    
-            case VK_MENU:      return KeyCode_Alt;       
             case VK_F1:        return KeyCode_F1;        
             case VK_F2:        return KeyCode_F2;        
             case VK_F3:        return KeyCode_F3;        
@@ -63,9 +51,45 @@ Win32ConvertVKCode(u32 VKCode){
             case VK_F9:        return KeyCode_F9;        
             case VK_F10:       return KeyCode_F10;       
             case VK_F11:       return KeyCode_F11;       
-            case VK_F12:       return KeyCode_F12;       
+            case VK_F12:       return KeyCode_F12; 
+            case VK_F13:       return KeyCode_F13;
+            case VK_F14:       return KeyCode_F14;
+            case VK_F15:       return KeyCode_F15;
+            case VK_F16:       return KeyCode_F16;
+            case VK_F17:       return KeyCode_F17;
+            case VK_F18:       return KeyCode_F18;
+            case VK_F19:       return KeyCode_F19;
+            case VK_F20:       return KeyCode_F20;
+            case VK_F21:       return KeyCode_F21;
+            case VK_F22:       return KeyCode_F22;
+            case VK_F23:       return KeyCode_F23;
+            case VK_F24:       return KeyCode_F24;
+            case VK_TAB:       return KeyCode_Tab;
+            case VK_SPACE:     return KeyCode_Space;     
+            case VK_MENU:      return KeyCode_Alt;       
+            case VK_CONTROL:   return KeyCode_Control;   
+            case VK_SHIFT:     return KeyCode_Shift;     
+            case VK_CAPITAL:   return KeyCode_CapsLock;
+            case VK_LWIN:
+            case VK_RWIN:      return KeyCode_Windows;
+            case VK_APPS:      return KeyCode_Menu;
+            case VK_BACK:      return KeyCode_BackSpace; 
+            case VK_RETURN:    return KeyCode_Return;    
+            case VK_SNAPSHOT:  return KeyCode_PrintScreen;
+            case VK_SCROLL:    return KeyCode_ScrollLock;
+            case VK_PAUSE:     return KeyCode_Pause;
+            case VK_INSERT:    return KeyCode_Insert;
+            case VK_DELETE:    return KeyCode_Delete;    
             case VK_HOME:      return KeyCode_Home;
             case VK_END:       return KeyCode_End;
+            case VK_PRIOR:     return KeyCode_PageUp;
+            case VK_NEXT:      return KeyCode_PageDown;
+            case VK_UP:        return KeyCode_Up;        
+            case VK_DOWN:      return KeyCode_Down;      
+            case VK_LEFT:      return KeyCode_Left;      
+            case VK_RIGHT:     return KeyCode_Right;     
+            case VK_NUMLOCK:   return KeyCode_NumLock;
+            case VK_CLEAR:     return KeyCode_Clear;
             
             //~ Normal ascii
             

@@ -31,17 +31,8 @@ enum os_key_code {
     
     // Insert ASCII values here!
     
-    KeyCode_Up = 256,
-    KeyCode_Down,
-    KeyCode_Left,
-    KeyCode_Right,
-    KeyCode_BackSpace,
-    KeyCode_Delete,
-    KeyCode_Escape,
-    KeyCode_Return,
-    KeyCode_Alt, 
-    KeyCode_Control,
-    KeyCode_Shift,
+    KeyCode_ASCIIEnd = 256,
+    KeyCode_Escape = KeyCode_ASCIIEnd,
     KeyCode_F1,
     KeyCode_F2,
     KeyCode_F3,
@@ -54,9 +45,48 @@ enum os_key_code {
     KeyCode_F10,
     KeyCode_F11,
     KeyCode_F12,
+    KeyCode_F13,
+    KeyCode_F14,
+    KeyCode_F15,
+    KeyCode_F16,
+    KeyCode_F17,
+    KeyCode_F18,
+    KeyCode_F19,
+    KeyCode_F20,
+    KeyCode_F21,
+    KeyCode_F22,
+    KeyCode_F23,
+    KeyCode_F24,
     
+    KeyCode_Alt, 
+    KeyCode_Control,
+    KeyCode_Shift,
+    KeyCode_CapsLock,
+    KeyCode_Windows,
+    KeyCode_Menu,
+    
+    KeyCode_BackSpace,
+    KeyCode_Return,
+    
+    KeyCode_PrintScreen,
+    KeyCode_ScrollLock,
+    KeyCode_Pause,
+    
+    KeyCode_Insert,
+    KeyCode_Delete,
     KeyCode_Home,
     KeyCode_End,
+    KeyCode_PageUp,
+    KeyCode_PageDown,
+    
+    KeyCode_Up,
+    KeyCode_Down,
+    KeyCode_Left,
+    KeyCode_Right,
+    
+    KeyCode_NumLock,
+    // NOTE(Tyler): On windows, this is the 5 on the numpad when numlock is off
+    KeyCode_Clear,
     
     KeyCode_TOTAL,
 };
