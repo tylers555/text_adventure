@@ -439,7 +439,7 @@ WinMain(HINSTANCE Instance,
     OSInput.WindowSize = {(f32)Width, (f32)Height};
     
     //~ Initialize game
-    InitializeState(&GameState);
+    StateInitialize(&GameState);
     LogMessage("Game initialized");
     
     //~ Audio thread
@@ -481,7 +481,7 @@ WinMain(HINSTANCE Instance,
     SwapBuffers(DeviceContext);
     while(Running){
         LARGE_INTEGER LastTime = Win32GetWallClock();
-        UpdateAndRenderState(&GameState);
+        StateDoFrame(&GameState);
         
         SwapBuffers(DeviceContext);
         

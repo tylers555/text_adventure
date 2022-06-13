@@ -49,7 +49,7 @@ String(const char *S){
 //~ 
 
 internal void
-InitializeState(game_state *State){
+StateInitialize(game_state *State){
     DEBUG = State;
     u64 Start = OSGetMicroseconds();
     
@@ -74,7 +74,6 @@ InitializeState(game_state *State){
     State->Assets.LoadAssetFile(ASSET_FILE_PATH);
     
     DebugInitTime = OSGetMicroseconds()-Start;
-    
 }
 
 //~
@@ -85,7 +84,7 @@ DoDefaultHotkeys(){
 }
 
 internal void
-UpdateAndRenderState(game_state *State){
+StateDoFrame(game_state *State){
     if(GameMode == GameMode_None){
         const char *S = GetVar(&State->Assets, start_game_mode);
         if(CompareCStrings(S, "game"))      GameMode = GameMode_Game;

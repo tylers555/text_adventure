@@ -482,7 +482,7 @@ ta_system::EndCommand(){
     ResponseBuilder = BeginStringBuilder(&GlobalTickMemory, DEFAULT_BUFFER_SIZE);
     
     u32 TokenCount;
-    char **Tokens = TokenizeCommand(&GlobalTransientMemory, Command, &TokenCount);
+    char **Tokens = TokenizeCommand(&GlobalTransientMemory, SavedCommand, &TokenCount);
     array<char *> Result = MakeFullArray(Tokens, TokenCount);
     
     return Result;
