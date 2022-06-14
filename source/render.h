@@ -75,8 +75,8 @@ struct game_renderer {
     //~
     render_texture WhiteTexture;
     
-    item_shader  GameShader;
-    framebuffer   GameScreenFramebuffer;
+    item_shader GameShader;
+    framebuffer GameScreenFramebuffer;
     v2    OutputSize;
     color ClearColor;
     stack<rect> ClipRects;
@@ -89,7 +89,7 @@ struct game_renderer {
     
     //~ Render functions
     void Initialize(memory_arena *Arena, v2 OutputSize_);
-    void NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_);
+    void NewFrame(os_input *Input, memory_arena *Arena, v2 OutputSize_, color ClearColor_);
     
     render_item *NewRenderItem(render_texture Texture, b8 HasAlpha, f32 Z);
     item_vertex *AddVertices(render_item *Item, u32 VertexCount);
@@ -114,8 +114,8 @@ struct render_group {
 };
 
 //~ Backend functions
-internal b8 InitializeRendererBackend();
-internal void RendererRenderAll(game_renderer *Renderer);
+internal b8 RendererBackendInitialize();
+internal void RendererBackendRenderAll(game_renderer *Renderer);
 
 internal render_texture MakeTexture(texture_flags Flags=TextureFlag_None);
 internal void TextureUpload(render_texture Texture, u8 *Pixels, 

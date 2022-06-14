@@ -1,13 +1,10 @@
 #include "main.h"
 
-global ta_system TextAdventure;
 global settings_state SettingsState;
 
 global asset_processor AssetProcessor;
 
 global memory_arena GlobalTickMemory;
-
-global game_mode GameMode = GameMode_None;
 
 //~ Helpers
 internal inline string

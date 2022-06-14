@@ -472,7 +472,7 @@ asset_system::ProcessCommand(){
 
 b8 asset_system::ProcessSpecialCommands(){
     b8 Result = false;
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     
     while(true){
         file_token Token = Reader.PeekToken();
@@ -495,7 +495,7 @@ b8 asset_system::ProcessSpecialCommands(){
 b8
 asset_system::ProcessVariables(){
     b8 Result = false;
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     
     while(true){
         file_token Token = Reader.PeekToken();
@@ -524,7 +524,7 @@ asset_system::ProcessVariables(){
 b8
 asset_system::ProcessTheme(){
     b8 Result = false;
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     
     const char *Name = Expect(&Reader, String);
     console_theme *Theme = HashTableGetPtr(&TA->ThemeTable, TAIDByName(TA, Name));
@@ -759,7 +759,7 @@ asset_system::ProcessTADescription(dynamic_array<ta_data *> *Descriptions, ta_da
 b8
 asset_system::ProcessTARoom(){
     b8 Result = false;
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     
     ta_name Name = ExpectTypeName();
     HandleError(&Reader);
@@ -851,7 +851,7 @@ asset_system::ProcessTARoom(){
 b8
 asset_system::ProcessTAItem(){
     b8 Result = false;
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     
     ta_name Name = ExpectTypeName();
     HandleError(&Reader);
@@ -906,7 +906,7 @@ b8
 asset_system::ProcessTAMap(){
     b8 Result = false;
     
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     ta_map *Map = &TA->Map;
     
     // Attributes
@@ -975,7 +975,7 @@ ReadTAString(stream *Stream){
 
 void
 asset_system::LoadProcessedAssets(void *Data, u32 DataSize){
-    ta_system *TA = &TextAdventure;
+    ta_system *TA = TextAdventure;
     
     stream Stream = MakeReadStream(Data, DataSize);
     sjap_header Header; StreamReadVar(&Stream, Header);

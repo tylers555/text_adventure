@@ -22,13 +22,13 @@
 
 global_constant DWORD WIN32_WINDOWED_STYLE = (WS_CAPTION|WS_THICKFRAME);
 
-global b32 Running;
-global s64 GlobalPerfCounterFrequency;
-global HWND MainWindow;
-global WINDOWPLACEMENT GlobalWindowPlacement = {sizeof(GlobalWindowPlacement)};
+global b32 Win32Running;
+global s64 Win32PerfCounterFrequency;
+global HWND Win32MainWindow;
+global WINDOWPLACEMENT Win32WindowPlacement = {sizeof(Win32WindowPlacement)};
 
-global IAudioClient *AudioClient;
-global IAudioRenderClient *AudioRenderClient;
+global IAudioClient *Win32AudioClient;
+global IAudioRenderClient *Win32AudioRenderClient;
 
 global u32 Win32SoundCursor;
 
@@ -139,16 +139,16 @@ Win32GetWallClock()
 internal f32
 Win32SecondsElapsed(LARGE_INTEGER Begin, LARGE_INTEGER End){
     // NOTE(Tyler): The (f32) cast must be done after the subtraction, because of precision
-    f32 Result = (f32)(End.QuadPart-Begin.QuadPart)/(f32)GlobalPerfCounterFrequency;
+    f32 Result = (f32)(End.QuadPart-Begin.QuadPart)/(f32)Win32PerfCounterFrequency;
     return Result;
 }
 
 internal inline v2
-Win32GetMouseP(){
+Win32GetMouseP(os_input *Input){
     POINT MouseP;
     GetCursorPos(&MouseP);
-    Assert(ScreenToClient(MainWindow, &MouseP));
-    v2 Result = V2((f32)MouseP.x, (f32)(OSInput.WindowSize.Height-MouseP.y));
+    Assert(ScreenToClient(Win32MainWindow, &MouseP));
+    v2 Result = V2((f32)MouseP.x, (f32)(Input->WindowSize.Height-MouseP.y));
     return(Result);
 }
 
@@ -159,7 +159,7 @@ Win32ToggleFullscreen(HWND Window){
     DWORD Style = GetWindowLong(Window, GWL_STYLE);
     if(Style & WIN32_WINDOWED_STYLE){
         MONITORINFO MonitorInfo = {sizeof(MonitorInfo)};
-        if(GetWindowPlacement(Window, &GlobalWindowPlacement) &&
+        if(GetWindowPlacement(Window, &Win32WindowPlacement) &&
            GetMonitorInfo(MonitorFromWindow(Window, MONITOR_DEFAULTTOPRIMARY), &MonitorInfo)){
             SetWindowLong(Window, GWL_STYLE, Style & ~WIN32_WINDOWED_STYLE);
             SetWindowPos(Window, HWND_TOP,
@@ -170,7 +170,7 @@ Win32ToggleFullscreen(HWND Window){
         }
     }else{
         SetWindowLong(Window, GWL_STYLE, Style | WIN32_WINDOWED_STYLE);
-        SetWindowPlacement(Window, &GlobalWindowPlacement);
+        SetWindowPlacement(Window, &Win32WindowPlacement);
         SetWindowPos(Window, 0, 0, 0, 0, 0,
                      SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
                      SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
@@ -301,17 +301,17 @@ OSDefaultFree(void *Pointer){
 }
 
 internal void
-OSVWriteToDebugConsole(os_file *Output, const char *Format, va_list VarArgs){
+OSVWriteToDebugConsole(const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
     stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
-    WriteConsole(Output, Buffer, (DWORD)CStringLength(Buffer), 0, 0);
+    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), Buffer, (DWORD)CStringLength(Buffer), 0, 0);
 }
 
 internal void
 OSWriteToDebugConsole(os_file *Output, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
-    OSVWriteToDebugConsole(Output, Format, VarArgs);
+    OSVWriteToDebugConsole(Format, VarArgs);
     va_end(VarArgs);
 }
 
@@ -327,13 +327,13 @@ OSProcessInput(os_input *Input){
     // NOTE(Tyler): This is done so that alt-tab does not cause problems, or when a key is pressed
     // and then unpressed when the window loses focus
     RECT ClientRect;
-    GetClientRect(MainWindow, &ClientRect);
+    GetClientRect(Win32MainWindow, &ClientRect);
     Input->WindowSize = {
         (f32)(ClientRect.right - ClientRect.left),
         (f32)(ClientRect.bottom - ClientRect.top),
     };
     Input->LastMouseP = Input->MouseP;
-    Input->MouseP = Win32GetMouseP();
+    Input->MouseP = Win32GetMouseP(Input);
     
     u8 KeyStates[256];
     GetKeyboardState(KeyStates);
@@ -373,7 +373,7 @@ OSProcessInput(os_input *Input){
         
         // TODO(Tyler): This may not actually be needed here
         if(Message.message == WM_QUIT){
-            Running = false;
+            Win32Running = false;
         }
         TranslateMessage(&Message);
         
@@ -383,10 +383,10 @@ OSProcessInput(os_input *Input){
                 SetCursor(Cursor);
             }break;
             case WM_CLOSE: {
-                Running = false;
+                Win32Running = false;
             }break;
             case WM_DESTROY: {
-                Running = false;
+                Win32Running = false;
             }break;
             case WM_SYSKEYDOWN: case WM_SYSKEYUP: 
             case WM_KEYDOWN: case WM_KEYUP: {
@@ -397,9 +397,9 @@ OSProcessInput(os_input *Input){
                 if(IsDown != WasDown){
                     if(IsDown){
                         if(VKCode == VK_F11){
-                            Win32ToggleFullscreen(MainWindow);
+                            Win32ToggleFullscreen(Win32MainWindow);
                         }else if((VKCode == VK_F4) && (Message.lParam & (1<<29))){
-                            Running = false;
+                            Win32Running = false;
                         }
                     }
                 }
@@ -437,7 +437,7 @@ internal void
 OSCopyChars(const char *Chars, u32 CharCount){
     if(CharCount == 0) return;
     
-    if(!OpenClipboard(MainWindow)){
+    if(!OpenClipboard(Win32MainWindow)){
         Assert(0);
         return;
     }
@@ -458,7 +458,7 @@ OSCopyChars(const char *Chars, u32 CharCount){
 internal char *
 OSPasteChars(memory_arena *Arena){
     if(!IsClipboardFormatAvailable(CF_TEXT)) return 0;
-    if(!OpenClipboard(MainWindow)){
+    if(!OpenClipboard(Win32MainWindow)){
         Assert(0);
         return 0;
     }
@@ -485,7 +485,7 @@ OSSleep(u32 Milliseconds){
 
 internal void
 OSEndGame(){
-    Running = false;
+    Win32Running = false;
 }
 
 internal u64
@@ -495,7 +495,7 @@ OSGetMicroseconds(){
     
     u64 Result = PerformanceCounter.QuadPart;
     Result *= 1000000;
-    Result /= GlobalPerfCounterFrequency;
+    Result /= Win32PerfCounterFrequency;
     
     return Result;
 }

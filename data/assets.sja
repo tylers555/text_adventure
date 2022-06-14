@@ -9,8 +9,6 @@
     
 : Variables
     ta_id "theme"           "theme_default"
-    # @sja_start_game_mode
-    var   "start_game_mode" "game"
     # @sja_start_room 
     ta_id "start_room"      "Bell tower playing room"
     
@@ -577,7 +575,11 @@
     description Tag("examine")
         "Organ pipes WIP"
     data_command Tag("use") "repair organ pipes" 
-    
+
+: TAItem Name("carillon page 1" Array("page" "1") Array("carillon" "page")) Tag("carillon-page")
+    description Tag("examine")
+        "Carillon page"
+
 #- @sja_keys
 
 : TAItem Name("small silver key" Array("key" "keys") Array("small" "silver")) Tag("organ" "key")

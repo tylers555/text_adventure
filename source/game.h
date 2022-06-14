@@ -19,4 +19,14 @@ enum pray_state {
     PrayState_TOTAL,
 };
 
+enum murkwell_event_type {
+    MurkwellEvent_None,
+    MurkwellEvent_CarillonPages,
+};
+
+struct murkwell_event {
+    murkwell_event_type Type;
+    
+};
+
 #endif //GAME_H

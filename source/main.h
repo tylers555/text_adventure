@@ -71,13 +71,6 @@ local_constant char *DIRECTION_TABLE[Direction_TOTAL] = {
     "Direction down"
 };
 
-//~ Miscallaneous
-enum game_mode {
-    GameMode_None,
-    GameMode_Menu,
-    GameMode_Game,
-};
-
 //~ Includes
 #include "random.h"
 #include "helpers.cpp"
@@ -96,6 +89,8 @@ struct game_state {
     asset_system Assets;
     game_renderer Renderer;
     audio_mixer Mixer;
+    ta_system TextAdventure;
+    os_input Input;
 };
 
 struct settings_state {

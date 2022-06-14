@@ -11,7 +11,7 @@ VLogMessage(char *Format, va_list VarArgs){
         Buffer[FormatLength+1] = '\0';
     }
     
-    OSVWriteToDebugConsole(OSInput.ConsoleErrorFile, Buffer, VarArgs);
+    OSVWriteToDebugConsole(Buffer, VarArgs);
     
 #if 0
     u32 Length = CStringLength(Buffer);

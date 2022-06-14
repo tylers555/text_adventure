@@ -110,6 +110,8 @@ MakeItemShaderFromData(entire_file File){
 
 void
 game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
+    RendererBackendInitialize();
+    
     OutputSize = OutputSize_;
     ClipRects = MakeStack<rect>(Arena, MAX_CLIP_RECTS);
     
@@ -234,9 +236,7 @@ game_renderer::ChangeScale(f32 NewScale){
 }
 
 void
-game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
-    local_persist v2 WindowSize;
-    
+game_renderer::NewFrame(os_input *Input, memory_arena *Arena, v2 OutputSize_, color ClearColor_){
     v2 OldOutputSize = OutputSize;
     OutputSize = OutputSize_;
     ClearColor = ClearColor_;
@@ -251,8 +251,7 @@ game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
     RenderNode = PushStruct(Arena, render_node);
     
     //~ Camera
-    if(OSInput.WasWindowResized()){
-        WindowSize = OSInput.WindowSize;
+    if(Input->WasWindowResized()){
         f32 Aspect = OutputSize.X/OutputSize.Y;
         f32 XFactor = 480.0f;
         f32 YFactor = 270.0f;

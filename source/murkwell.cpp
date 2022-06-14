@@ -142,4 +142,9 @@ GameProcessItem(ta_system *TA, ta_id ItemID, ta_item *Item){
 internal void
 GameTick(ta_system *TA, asset_system *Assets){
     GameUpdateGhosts(TA, Assets);
+    
+    //~ Carillon pages
+    {
+        
+    }
 }

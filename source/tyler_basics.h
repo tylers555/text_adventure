@@ -73,10 +73,10 @@ typedef double f64;
 #define S32_MAX 0x7fffffff
 #define S64_MAX 0x7fffffffffffffff
 
-#define S8_MIN  0x80
+#define S8_MIN  (-S8_MAX-1)
 #define S16_MIN (-S16_MAX-1)
-#define S32_MIN 0x80000000
-#define S64_MIN 0x8000000000000000
+#define S32_MIN (-S32_MAX-1)
+#define S64_MIN (-S64_MAX-1)
 
 #define F32_POSITIVE_INFINITY INFINITY 
 #define F32_NEGATIVE_INFINITY -INFINITY

@@ -104,6 +104,7 @@ struct ta_system {
     hash_table<const char *, ta_id> ItemNameTable;
     
     array<ta_id> Inventory;
+    ta_map Map;
     
     ta_room *CurrentRoom;
     
@@ -154,8 +155,7 @@ struct ta_system {
     array<ta_id> HauntedItems;
     pray_state PrayState;
     u32 Money;
-    
-    ta_map Map;
+    murkwell_event Event;
 };
 
 #define DIRECTIONS \

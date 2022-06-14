@@ -2,7 +2,7 @@
 
 #include "win32/win32_os.cpp"
 
-#include "opengl_renderer.cpp"
+#include "renderer_opengl.cpp"
 
 internal b32
 Win32LoadOpenGLFunctions(){
@@ -33,10 +33,10 @@ Win32MainWindowProc(HWND Window,
             DefWindowProcA(Window, Message, WParam, LParam);
         }break;
         case WM_CLOSE: {
-            Running = false;
+            Win32Running = false;
         }break;
         case WM_DESTROY: {
-            Running = false;
+            Win32Running = false;
         }break;
         case WM_GETMINMAXINFO: {
             LPMINMAXINFO lpMMI = (LPMINMAXINFO)LParam;
@@ -212,8 +212,7 @@ Win32AudioThreadProc(void *Parameter){
     b8 SleepIsGranular = (timeBeginPeriod(DesiredSchedulerMS) == TIMERR_NOERROR);
     
     u32 AudioSampleCount;
-    if(FAILED(Error = AudioClient->GetBufferSize(&AudioSampleCount))) Assert(0);
-    
+    if(FAILED(Error = Win32AudioClient->GetBufferSize(&AudioSampleCount))) Assert(0);
     
     int MonitorRefreshHz = 60;
     int RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
@@ -226,10 +225,10 @@ Win32AudioThreadProc(void *Parameter){
     f32 TargetSecondsPerFrame = 10.0f / 1000.0f;
     
     LARGE_INTEGER LastTime = Win32GetWallClock();
-    while(Running){
+    while(Win32Running){
         
         u32 PaddingSamplesCount;
-        if(FAILED(Error = AudioClient->GetCurrentPadding(&PaddingSamplesCount))) Assert(0);
+        if(FAILED(Error = Win32AudioClient->GetCurrentPadding(&PaddingSamplesCount))) Assert(0);
         if(PaddingSamplesCount != 0) continue;
         
         //~ Audio
@@ -243,7 +242,7 @@ Win32AudioThreadProc(void *Parameter){
         Data->Mixer->OutputSamples(&Arena, &OSSoundBuffer);
         
         u8 *BufferData;
-        if(SUCCEEDED(Error = AudioRenderClient->GetBuffer(ActualSamplesToWrite, &BufferData))){
+        if(SUCCEEDED(Error = Win32AudioRenderClient->GetBuffer(ActualSamplesToWrite, &BufferData))){
             s16 *DestSample = (s16 *)BufferData;
             s16 *InputSample = OSSoundBuffer.Samples;
             for(u32 I=0; I < ActualSamplesToWrite; I++){
@@ -251,7 +250,7 @@ Win32AudioThreadProc(void *Parameter){
                 *DestSample++ = *InputSample++;
             }
             
-            AudioRenderClient->ReleaseBuffer(ActualSamplesToWrite, 0);
+            Win32AudioRenderClient->ReleaseBuffer(ActualSamplesToWrite, 0);
         }
         
         f32 SecondsElapsed = Win32SecondsElapsed(LastTime, Win32GetWallClock());
@@ -270,7 +269,7 @@ Win32AudioThreadProc(void *Parameter){
             
             while(true)
             {
-                if(FAILED(Error = AudioClient->GetCurrentPadding(&PaddingSamplesCount))) Assert(0);
+                if(FAILED(Error = Win32AudioClient->GetCurrentPadding(&PaddingSamplesCount))) Assert(0);
                 if(PaddingSamplesCount == 0) break;
                 _mm_pause();
             }
@@ -300,7 +299,7 @@ Win32InitAudio(s32 SamplesPerSecond, s32 BufferSizeInSamples){
     IMMDevice *Device;
     if(FAILED(Error = Enumerator->GetDefaultAudioEndpoint(eRender, eConsole, &Device))) Assert(0);
     
-    if(FAILED(Error = Device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, 0, (void **)&AudioClient))) Assert(0);
+    if(FAILED(Error = Device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, 0, (void **)&Win32AudioClient))) Assert(0);
     
     WAVEFORMATEXTENSIBLE WaveFormat;
     
@@ -316,12 +315,12 @@ Win32InitAudio(s32 SamplesPerSecond, s32 BufferSizeInSamples){
     WaveFormat.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
     
     REFERENCE_TIME BufferDuration = 10000000ULL * BufferSizeInSamples / SamplesPerSecond;
-    if(FAILED(Error = AudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, BufferDuration, 0, &WaveFormat.Format, 0))) Assert(0);
+    if(FAILED(Error = Win32AudioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_NOPERSIST, BufferDuration, 0, &WaveFormat.Format, 0))) Assert(0);
     
-    if(FAILED(Error = AudioClient->GetService(__uuidof(IAudioRenderClient), (void **)&AudioRenderClient))) Assert(0);
+    if(FAILED(Error = Win32AudioClient->GetService(__uuidof(IAudioRenderClient), (void **)&Win32AudioRenderClient))) Assert(0);
     
     u32 AudioFrameCount;
-    if(FAILED(Error = AudioClient->GetBufferSize(&AudioFrameCount))) Assert(0);
+    if(FAILED(Error = Win32AudioClient->GetBufferSize(&AudioFrameCount))) Assert(0);
     
     Assert(BufferSizeInSamples <= (s32)AudioFrameCount);
 }
@@ -337,8 +336,6 @@ WinMain(HINSTANCE Instance,
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
     Assert(AllocConsole());
     SetConsoleCtrlHandler(Win32DefaultHandlerRoutine, true);
-    OSInput.ConsoleOutFile = (os_file *)GetStdHandle(STD_OUTPUT_HANDLE);
-    OSInput.ConsoleErrorFile = (os_file *)GetStdHandle(STD_ERROR_HANDLE);
 #endif // SNAIL_JUMPY_DEBUG_BUILD
     
     game_state GameState = {};
@@ -364,17 +361,17 @@ WinMain(HINSTANCE Instance,
         return -1;
     }
     
-    MainWindow = CreateWindowExA(0,
-                                 WindowClass.lpszClassName,
-                                 "FAKE WINDOW",
-                                 WS_OVERLAPPEDWINDOW,
-                                 CW_USEDEFAULT, CW_USEDEFAULT,
-                                 CW_USEDEFAULT, CW_USEDEFAULT,
-                                 0,
-                                 0,
-                                 Instance,
-                                 0);
-    if(!MainWindow){
+    Win32MainWindow = CreateWindowExA(0,
+                                      WindowClass.lpszClassName,
+                                      "FAKE WINDOW",
+                                      WS_OVERLAPPEDWINDOW,
+                                      CW_USEDEFAULT, CW_USEDEFAULT,
+                                      CW_USEDEFAULT, CW_USEDEFAULT,
+                                      0,
+                                      0,
+                                      Instance,
+                                      0);
+    if(!Win32MainWindow){
         // TODO(Tyler): Error logging!
         LogMessage("Win32: Failed to create window!");
         Assert(0);
@@ -382,17 +379,17 @@ WinMain(HINSTANCE Instance,
     }
     LogMessage("Window created");
     
-    if(!Win32InitOpenGL(Instance, &MainWindow)){
+    if(!Win32InitOpenGL(Instance, &Win32MainWindow)){
         Assert(0);
         return -1;
     }
     LogMessage("OpenGL initialized");
     
-    Win32ToggleFullscreen(MainWindow);
+    Win32ToggleFullscreen(Win32MainWindow);
     wglSwapIntervalEXT(1);
     
-    HDC DeviceContext = GetDC(MainWindow);
-    Running = true;
+    HDC DeviceContext = GetDC(Win32MainWindow);
+    Win32Running = true;
     
     //~ Timing setup
     UINT DesiredSchedulerMS = 1;
@@ -400,7 +397,7 @@ WinMain(HINSTANCE Instance,
     
     LARGE_INTEGER PerformanceCounterFrequencyResult;
     QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
-    GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
+    Win32PerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
     
     s32 MonitorRefreshHz = 60;
     s32 RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
@@ -415,17 +412,17 @@ WinMain(HINSTANCE Instance,
     }
     
     LogMessage("Timing calculated %u %d %d %f %f %'llu", SleepIsGranular, 
-               MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, GlobalPerfCounterFrequency);
+               MonitorRefreshHz, RefreshRate, GameUpdateHz, TargetSecondsPerFrame, Win32PerfCounterFrequency);
     
     //~ Audio
     s32 SamplesPerSecond = AUDIO_SAMPLES_PER_SECOND;
     u32 SamplesPerAudioFrame = (u32)((f32)SamplesPerSecond / (f32)MonitorRefreshHz);
     Win32InitAudio(SamplesPerSecond, SamplesPerSecond);
-    AudioClient->Start();
+    Win32AudioClient->Start();
     
     u32 AudioSampleCount;
     HRESULT Error;
-    if(FAILED(Error = AudioClient->GetBufferSize(&AudioSampleCount))) Assert(0);
+    if(FAILED(Error = Win32AudioClient->GetBufferSize(&AudioSampleCount))) Assert(0);
     
     u32 BufferSize = AudioSampleCount*2*sizeof(s16);
     OSSoundBuffer.SampleRate = AUDIO_SAMPLES_PER_SECOND;
@@ -433,10 +430,10 @@ WinMain(HINSTANCE Instance,
     
     //~ Prepare OSInput
     RECT ClientRect;
-    GetClientRect(MainWindow, &ClientRect);
+    GetClientRect(Win32MainWindow, &ClientRect);
     int Width = ClientRect.right - ClientRect.left;
     int Height = ClientRect.bottom - ClientRect.top;
-    OSInput.WindowSize = {(f32)Width, (f32)Height};
+    GameState.Input.WindowSize = {(f32)Width, (f32)Height};
     
     //~ Initialize game
     StateInitialize(&GameState);
@@ -477,9 +474,9 @@ WinMain(HINSTANCE Instance,
 #endif
     
     //~ Main loop
-    OSInput.dTime = TargetSecondsPerFrame;
+    GameState.Input.dTime = TargetSecondsPerFrame;
     SwapBuffers(DeviceContext);
-    while(Running){
+    while(Win32Running){
         LARGE_INTEGER LastTime = Win32GetWallClock();
         StateDoFrame(&GameState);
         
@@ -509,22 +506,22 @@ WinMain(HINSTANCE Instance,
                 LogMessage("Went past target time | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
             }
             
-            OSInput.dTime = SecondsElapsed;
+            GameState.Input.dTime = SecondsElapsed;
         }else if(SecondsElapsed > TargetSecondsPerFrame){
             //LogMessage("Missed FPS %f", SecondsElapsed);
-            OSInput.dTime = SecondsElapsed;
-            if(OSInput.dTime > MAXIMUM_SECONDS_PER_FRAME){
-                OSInput.dTime = MAXIMUM_SECONDS_PER_FRAME;
+            GameState.Input.dTime = SecondsElapsed;
+            if(GameState.Input.dTime > MAXIMUM_SECONDS_PER_FRAME){
+                GameState.Input.dTime = MAXIMUM_SECONDS_PER_FRAME;
             }
         }
         
-        if(OSInput.dTime <= 0.0){
+        if(GameState.Input.dTime <= 0.0){
             LogMessage("dTime is not valid! | DEBUG: %f %f", SecondsElapsed, TargetSecondsPerFrame);
-            OSInput.dTime = MINIMUM_SECONDS_PER_FRAME;
+            GameState.Input.dTime = MINIMUM_SECONDS_PER_FRAME;
         }
 #endif
         
-        ShowWindow(MainWindow, SW_SHOW);
+        ShowWindow(Win32MainWindow, SW_SHOW);
     }
     
     return(0);

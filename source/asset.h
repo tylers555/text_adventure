@@ -243,6 +243,7 @@ struct asset_variable {
 };
 
 //~ Asset system
+struct ta_system;
 struct asset_system {
     //~ Asset stuff
     memory_arena Memory;
@@ -254,6 +255,8 @@ struct asset_system {
     asset_font         Fonts[AssetFont_TOTAL];
     asset_variable     Variables[AssetVariable_TOTAL];
 #else
+    ta_system *TextAdventure;
+    
     hash_table<string, asset_sound_effect> SoundEffectTable;
     hash_table<string, asset_font> FontTable;
     hash_table<string, asset_variable> VariableTable;

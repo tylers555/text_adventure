@@ -19,8 +19,8 @@ internal u64  OSGetFileSize(os_file *File);
 internal u64  OSGetLastFileWriteTime(os_file *File);
 internal b8   OSDeleteFileAtPath(const char *Path);
 
-internal void OSVWriteToDebugConsole(os_file *Output, const char *Format, va_list VarArgs);
-internal void OSWriteToDebugConsole(os_file *Output, const char *Format, ...);
+internal void OSVWriteToDebugConsole(const char *Format, va_list VarArgs);
+internal void OSWriteToDebugConsole(const char *Format, ...);
 
 //~ Keyboard stuff
 enum os_key_code {
@@ -431,10 +431,6 @@ enum os_input_flags_ {
 };
 
 struct os_input {
-    //~ Console stuff
-    os_file *ConsoleOutFile;
-    os_file *ConsoleErrorFile;
-    
     //~ Other stuff
     v2 LastWindowSize;
     v2 WindowSize;
@@ -475,8 +471,6 @@ struct os_input {
     inline void EndTextInput();
 };
 
-global os_input OSInput;
-
 //~ Sound buffer
 struct os_sound_buffer {
     s16 *Samples;
@@ -504,6 +498,5 @@ internal void OSProcessInput(os_input *Input);
 internal void OSSleep(u32 Milliseconds);
 internal void OSEndGame();
 internal u64  OSGetMicroseconds();
-
 
 #endif // SNAIL_JUMPY_OS_H

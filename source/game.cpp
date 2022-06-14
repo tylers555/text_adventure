@@ -139,12 +139,11 @@ RenderTextInput(game_renderer *Renderer, console_theme *Theme, asset_font *Font,
 
 //~ 
 internal void
-GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
+GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input, ta_system *TA){
     DO_DEBUG_INFO();
     
-    ta_system *TA = &TextAdventure;
     console_theme *Theme = HashTableFindPtr(&TA->ThemeTable, GetVarTAID(Assets, theme));
-    Renderer->NewFrame(&GlobalTransientMemory, Input->WindowSize, Theme->BackgroundColor);
+    Renderer->NewFrame(Input, &GlobalTransientMemory, Input->WindowSize, Theme->BackgroundColor);
     
     if(!TA->CurrentRoom){
         Input->BeginTextInput(&TA->EditingCommandSentinel.Context);

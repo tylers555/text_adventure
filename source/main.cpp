@@ -9,21 +9,9 @@
 #include "main.h"
 
 //~ Engine variables
-global game_state *DEBUG;
-global u64 DebugInitTime;
-
-global ta_system TextAdventure;
 global settings_state SettingsState;
 
 global memory_arena GlobalTickMemory;
-
-global game_mode GameMode = GameMode_None;
-
-//~ Helpers
-internal inline string
-String(const char *S){
-    return Strings.GetString(S);
-}
 
 //~ Includes
 #include "os.cpp"
@@ -47,8 +35,7 @@ String(const char *S){
 
 internal void
 StateInitialize(game_state *State){
-    DEBUG = State;
-    u64 Start = OSGetMicroseconds();
+    DEBUG_DATA_INITIALIZE(State);
     
     {
         umw Size = Gigabytes(1);
@@ -59,17 +46,15 @@ StateInitialize(game_state *State){
     GlobalTransientMemory = MakeArena(&GlobalPermanentMemory, Megabytes(512));
     GlobalTickMemory      = MakeArena(&GlobalPermanentMemory, Megabytes(256));
     
-    InitializeRendererBackend();
-    State->Renderer.Initialize(&GlobalPermanentMemory, OSInput.WindowSize);
-    State->Renderer.NewFrame(&GlobalTransientMemory, OSInput.WindowSize, PINK);
+    State->Renderer.Initialize(&GlobalPermanentMemory, State->Input.WindowSize);
+    State->Renderer.NewFrame(&State->Input, &GlobalTransientMemory, State->Input.WindowSize, PINK);
     State->Mixer.Initialize(&GlobalPermanentMemory);
     
     Strings.Initialize(&GlobalPermanentMemory);
-    TextAdventure.Initialize(&State->Assets, &GlobalPermanentMemory);
+    State->TextAdventure.Initialize(&State->Assets, &GlobalPermanentMemory);
+    State->Assets.TextAdventure = &State->TextAdventure;
     State->Assets.Initialize(&GlobalPermanentMemory);
     State->Assets.LoadAssetFile(ASSET_FILE_PATH);
-    
-    DebugInitTime = OSGetMicroseconds()-Start;
 }
 
 //~
@@ -80,34 +65,15 @@ DoDefaultHotkeys(){
 
 internal void
 StateDoFrame(game_state *State){
-    if(GameMode == GameMode_None){
-        const char *S = GetVar(&State->Assets, start_game_mode);
-        if(CompareCStrings(S, "game"))      GameMode = GameMode_Game;
-        else if(CompareCStrings(S, "menu")) GameMode = GameMode_Menu;
-        else                                GameMode = GameMode_Game;
-    }
-    
-    u64 Start = OSGetMicroseconds();
     ArenaClear(&GlobalTransientMemory);
     
-    OSProcessInput(&OSInput);
+    OSProcessInput(&State->Input);
     
-    switch(GameMode){
-        case GameMode_Game: {
-            GameDoFrame(&State->Renderer, &State->Mixer, &State->Assets, &OSInput);
-        }break;
-    }
+    GameDoFrame(&State->Renderer, &State->Mixer, &State->Assets, &State->Input, &State->TextAdventure);
     
-    RendererRenderAll(&State->Renderer);
+    RendererBackendRenderAll(&State->Renderer);
     
     State->Assets.LoadAssetFile(ASSET_FILE_PATH);
-    Counter += OSInput.dTime;
+    Counter += State->Input.dTime;
     FrameCounter++;
-    
-    if(FrameCounter == 1){
-        u64 FirstFrameTime = OSGetMicroseconds()-Start;
-        DebugInitTime += FirstFrameTime;
-        f32 Time = (f32)DebugInitTime/1000000.0f;
-        LogMessage("Time to initialize: %f | First frame: %f", Time, FirstFrameTime);
-    }
 }
