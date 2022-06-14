@@ -45,7 +45,7 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, wo
     if(FoundRoom){
         asset_tag *Tag = &TA->CurrentRoom->AdjacentTags[FoundIndex];
         if(HasTag(*Tag, AssetTag_Locked)){
-            if(TAAttemptToUnlock(Mixer, TA, Assets, TA->CurrentRoom, Tag)){
+            if(TA->AttemptToUnlock(Mixer, Assets, TA->CurrentRoom, Tag)){
                 TA->Respond(GetVar(Assets, auto_unlock));
             }else{
                 TA->Respond(GetVar(Assets, locked));
@@ -95,14 +95,14 @@ HighestMatch = Match; \
         
         asset_tag *Tag = &CurrentRoom->AdjacentTags[Direction];
         if(HasTag(*Tag, AssetTag_Locked)){
-            if(TAAttemptToUnlock(Mixer, TA, Assets, CurrentRoom, Tag)){
+            if(TA->AttemptToUnlock(Mixer, Assets, CurrentRoom, Tag)){
                 TA->Respond(GetVar(Assets, auto_unlock));
                 break;
             }else{
                 TA->Respond(GetVar(Assets, locked));
                 return false;
             }
-        }else if(TAIsClosed(TA, *Tag)){
+        }else if(TA->IsClosed(*Tag)){
             return false;
         }
         
@@ -126,7 +126,7 @@ HighestMatch = Match; \
 
 b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
-    ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Exit));
+    ta_data *Data = TA->FindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Exit));
     if(!Data){
         // TODO(Tyler): Callback!
         TA->Respond(GetVar(Assets, exit_where));
@@ -137,14 +137,14 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         if(Room->Adjacents[I] == Data->TAID){
             asset_tag *Tag = &Room->AdjacentTags[I];
             if(HasTag(*Tag, AssetTag_Locked)){
-                if(TAAttemptToUnlock(Mixer, TA, Assets, Room, Tag)){
+                if(TA->AttemptToUnlock(Mixer, Assets, Room, Tag)){
                     TA->Respond(GetVar(Assets, auto_unlock));
                     break;
                 }else{
                     TA->Respond(GetVar(Assets, locked));
                     return false;
                 }
-            }else if(TAIsClosed(TA, *Tag)){
+            }else if(TA->IsClosed(*Tag)){
                 return false;
             }
         }
@@ -171,7 +171,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
     }
     
     ta_room *Room = TA->CurrentRoom;
-    ta_data *Data = TAFindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Enter));
+    ta_data *Data = TA->FindData(&Room->Datas, TADataType_Room, AssetTag(AssetTag_Enter));
     if(!Data){
         TA->Respond(GetVar(Assets, enter_where));
         return false;
@@ -181,14 +181,14 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
         if(Room->Adjacents[I] == Data->TAID){
             asset_tag *Tag = &Room->AdjacentTags[I];
             if(HasTag(*Tag, AssetTag_Locked)){
-                if(TAAttemptToUnlock(Mixer, TA, Assets, Room, Tag)){
+                if(TA->AttemptToUnlock(Mixer, Assets, Room, Tag)){
                     TA->Respond(GetVar(Assets, auto_unlock));
                     break;
                 }else{
                     TA->Respond(GetVar(Assets, locked));
                     return false;
                 }
-            }else if(TAIsClosed(TA, *Tag)){
+            }else if(TA->IsClosed(*Tag)){
                 return false;
             }
         }
@@ -234,7 +234,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, w
         TA->Respond(GetVar(Assets, buy_callback_prompt), Item->Name);
         TA->Callback = CallbackConfirmBuy;
     }else if(PositiveWeight > NegativeWeight){
-        if(TA->AddItem(Room->Items[TA->BuyItemIndex])) TARoomRemoveItem(TA, Room, TA->BuyItemIndex);
+        if(TA->InventoryAddItem(Room->Items[TA->BuyItemIndex])) TA->RoomRemoveItem(Room, TA->BuyItemIndex);
         else return false;
         TA->Money -= Item->Cost;
         Item->Dirty = true;
@@ -242,7 +242,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, w
         
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
         
-        ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
+        ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
         if(Description) TA->Respond(Description->Data);
     }else{
         TA->Respond(GetVar(Assets, buy_callback_no));
@@ -265,7 +265,7 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         u32 Index = FoundItem->ItemIndex;
         
         if(HasTag(Item->Tag, AssetTag_Static)){
-            ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Take));
+            ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Take));
             if(Description){
                 TA->Respond("%s", Description->Data);
                 continue;
@@ -278,11 +278,11 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
             break;
         }
         
-        if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
+        if(TA->InventoryAddItem(Room->Items[Index-RemovedItems])) TA->RoomRemoveItem(Room, Index-RemovedItems);
         else return false;
         RemovedItems++;
         
-        ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
+        ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
         if(!Description) return false;
         TA->Respond(Description->Data);
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
@@ -304,7 +304,7 @@ b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         ta_item *Item = FoundItem->Item;
         u32 Index = FoundItem->ItemIndex;
         
-        if(TARoomDropItem(TA, Assets, Room, TA->Inventory[Index-RemovedItems])) ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
+        if(TA->RoomDropItem(Assets, Room, TA->Inventory[Index-RemovedItems])) TA->InventoryRemoveItem(Index-RemovedItems);
         RemovedItems++;
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_dropped)));
     }
@@ -332,11 +332,11 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
         
         if(Item->Cost == 0){
             TA->Respond(GetVar(Assets, buy_free));
-            if(TA->AddItem(Room->Items[Index-RemovedItems])) TARoomRemoveItem(TA, Room, Index-RemovedItems);
+            if(TA->InventoryAddItem(Room->Items[Index-RemovedItems])) TA->RoomRemoveItem(Room, Index-RemovedItems);
             else return false;
             RemovedItems++;
             
-            ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
+            ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
             if(!Description) continue;
             TA->Respond(Description->Data);
             Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
@@ -365,7 +365,7 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
         ta_item *Item = FoundItem->Item;
         u32 Index = FoundItem->ItemIndex;
         
-        ta_data *Description = TAFindDescription(&Item->Datas, AssetTag(AssetTag_Eat));
+        ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Eat));
         if(!Description){
             TA->Respond(GetVar(Assets, eat_cant));
             continue;
@@ -373,10 +373,10 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
         TA->Respond(Description->Data);
         
         if(HasTag(Item->Tag, AssetTag_Bread)){
-            TA->AddItem(TAItemByName(TA, "bread crumbs"));
+            TA->InventoryAddItem(TAItemByName(TA, "bread crumbs"));
         }
         
-        ArrayOrderedRemove(&TA->Inventory, Index-RemovedItems);
+        TA->InventoryRemoveItem(Index-RemovedItems);
         RemovedItems++;
     }
     
@@ -397,26 +397,41 @@ b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
     TAContinueFindItems(TA, &Room->Items, Words, &FoundItems);
     HANDLE_FOUND_ITEMS(FoundItems, CommandPlay, "play");
     
+    b8 DidPlay = false;
     for(u32 I=0; I<FoundItems.Items.Count; I++){
         ta_found_item *FoundItem = &FoundItems.Items[I];
         
         ta_item *Item = FoundItem->Item;
         
-        asset_tag Tag = AssetTag(AssetTag_Play);
-        if(HasTag(Item->Tag, AssetTag_Organ)){
-            ta_data *Sound = TAFindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, TA->OrganState));
-            if(Sound){
-                Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
-            }
-            Tag.B = (u8)TA->OrganState;
-        }
+        asset_tag_id Extra = AssetTag_None;
+        if(HasTag(Item->Tag, AssetTag_Organ)) Extra = TA->OrganState;
         
-        ta_data *Description = TAFindDescription(&Item->Datas, Tag);
-        if(!Description) continue;;
+        ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, Extra));
+        if(Sound) Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+        
+        ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Play, Extra));
+        if(!Description) continue;
         TA->Respond(Description->Data);
+        DidPlay = true;
     }
     
-    return true;
+    if(DidPlay) return true;
+    
+    for(u32 I=0; I<Room->Items.Count; I++){
+        ta_item *Item = TA->FindItem(Room->Items[I]);
+        ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Play));
+        if(Description){
+            asset_tag_id Extra = AssetTag_None;
+            if(HasTag(Item->Tag, AssetTag_Organ)) Extra = TA->OrganState;
+            ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, Extra));
+            if(Sound) Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+            
+            TA->Respond(Description->Data);
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
@@ -438,7 +453,7 @@ b8 CommandExamine(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_
             Tag = AssetTag(AssetTag_Examine, AssetTag_Repaired);
         }
         
-        ta_data *Description = TAFindDescription(&Item->Datas, Tag);
+        ta_data *Description = TA->FindDescription(&Item->Datas, Tag);
         if(!Description) continue;
         TA->Respond(Description->Data);
     }
@@ -462,7 +477,7 @@ b8 CommandUnlock(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_a
     for(u32 I=0; I<Direction_TOTAL; I++){
         asset_tag Tag = CurrentRoom->AdjacentTags[I];
         if(!HasTag(Tag, AssetTag_Locked)) continue;
-        if(TAAttemptToUnlock(Mixer, TA, Assets, CurrentRoom, &Tag)){
+        if(TA->AttemptToUnlock(Mixer, Assets, CurrentRoom, &Tag)){
             TA->Respond(GetVar(Assets, auto_unlock));
         }else{
             TA->Respond(GetVar(Assets, locked));
@@ -493,7 +508,7 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_a
             continue;
         }
         
-        ta_data *Data = TAFindData(&Item->Datas, TADataType_Item, AssetTag(AssetTag_Fixer));
+        ta_data *Data = TA->FindData(&Item->Datas, TADataType_Item, AssetTag(AssetTag_Fixer));
         if(!Data){
             TA->Respond(GetVar(Assets, repair_cant));
             continue;
@@ -504,8 +519,8 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_a
             if(FixerItemID != Data->TAID) continue;
             
             SwitchTag(&Item->Tag, AssetTag_Broken, AssetTag_Repaired);
-            ArrayOrderedRemove(&TA->Inventory, J);
-            ta_data *Sound = TAFindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Repaired));
+            TA->InventoryRemoveItem(J);
+            ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Repaired));
             TAUpdateOrganState(TA);
             if(!Sound) break;
             Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
@@ -530,14 +545,14 @@ b8 CommandUse(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
         ta_found_item *FoundItem = &FoundItems.Items[I];
         ta_item *Item = FoundItem->Item;
         
-        ta_data *Data = TAFindData(&Item->Datas, TADataType_Command, AssetTag(AssetTag_Use));
+        ta_data *Data = TA->FindData(&Item->Datas, TADataType_Command, AssetTag(AssetTag_Use));
         if(!Data){
             TA->Respond(GetVar(Assets, use_dont_know));
             continue;
         }
         
         word_array Tokens = TokenizeCommand(&GlobalTransientMemory, Data->Data);
-        TADispatchCommand(Mixer, TA, Assets, Tokens);
+        TA->DispatchCommand(Mixer, Assets, Tokens);
         
         return true;
     }

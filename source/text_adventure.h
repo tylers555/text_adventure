@@ -116,8 +116,23 @@ struct ta_system {
     };
     
     void Initialize(asset_system *Assets, memory_arena *Arena);
-    inline b8 AddItem(ta_id Item);
+    inline b8 InventoryAddItem(ta_id Item);
+    inline b8 InventoryRemoveItem(u32 Index);
+    inline b8 InventoryRemoveItemByID(ta_id ID);
     
+    inline ta_room *FindRoom(ta_id Room);
+    inline b8 RoomAddItem(ta_room *Room, ta_id Item);
+    inline b8 RoomDropItem(asset_system *Assets, ta_room *Room, ta_id Item);
+    inline b8 RoomRemoveItem(ta_room *Room, u32 Index);
+    inline b8 RoomRemoveItemByID(ta_room *Room, ta_id ID);
+    
+    inline ta_item *FindItem(ta_id Item);
+    
+    inline ta_data *FindData(array<ta_data *> *Datas, ta_data_type Type, asset_tag Tag);
+    inline ta_data *FindDescription(array<ta_data *> *Descriptions, asset_tag Tag);
+    void Unlock(audio_mixer *Mixer, asset_system *Assets, ta_room *Room, asset_tag *Locked);
+    b8 AttemptToUnlock(audio_mixer *Mixer, asset_system *Assets, ta_room *Room, asset_tag *Locked);
+    b8 IsClosed(asset_tag Tag);
     inline void Respond(const char *Format, ...);
     
     memory_arena CommandMemory;
@@ -127,6 +142,8 @@ struct ta_system {
     u32 CurrentPeekedCommand;
     
     inline array<char *> EndCommand();
+    inline void DispatchCommand(audio_mixer *Mixer, asset_system *Assets, word_array Tokens);
+    
     inline ta_editing_command_node *AllocEditingCommand();
     void EditingCommandCycleUp(os_input *Input);
     void EditingCommandCycleDown(os_input *Input);
@@ -194,8 +211,5 @@ WORD("nada") \
 WORD("negative")
 
 global_constant f32 WORD_MATCH_THRESHOLD = 0.5f;
-
-internal inline void 
-TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Tokens);
 
 #endif //TEXT_ADVENTURE_H

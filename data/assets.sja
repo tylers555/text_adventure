@@ -1,8 +1,9 @@
 #~ @sja_variables
 
 : SpecialCommands
-    #give_item "a town map"
+    give_item "a town map"
     #give_item "small silver key"
+    give_item "bell tower key"
     #give_item "leather sheet"
     #give_item "organ pipes"
     
@@ -10,9 +11,10 @@
     ta_id "theme"           "theme_default"
     # @sja_start_game_mode
     var   "start_game_mode" "game"
-    # @sja_start_room
-    ta_id "start_room"      "Cathedral altar"
+    # @sja_start_room 
+    ta_id "start_room"      "Bell tower playing room"
     
+: Variables
     var "invalid_command"     "That is not a valid command!\n"
                               "\1You fool\0!!!"
     var "ambiguous_items"     "You will have to be more specific, what item do you want to %s\n" 
@@ -446,6 +448,9 @@
     path "asset_sound_effects/osj/LoseFX.wav"
     
 : SoundEffect "sound_organ_play_repaired"
+    path "asset_sound_effects/osj/PowerMusic.wav"
+    
+: SoundEffect "sound_bell_tower_play"
     path "asset_sound_effects/osj/PowerMusic.wav"
     
 : SoundEffect "sound_bellows_repaired"
@@ -1205,7 +1210,7 @@
     # TODO(Tyler): south "Cathedral nave" 
     items Array("small silver key")
 
-: TAItem Name("organ console static" Array("organ" "organs" "console" "consoles") Array("organ" "once" "great")) Tag("organ" "static")
+: TAItem Name("organ console static" Array("organ" "console" "keyboard") Array("organ" "once" "great")) Tag("organ" "static")
     description Tag("examine" "broken")
         "The console appears to be in poor condition, and you suspect the same for the rest of the organ. "
         "You can see that it is missing a few stops, but you suspect its state of disrepair may extend beyond what you merely see here."
@@ -1292,13 +1297,23 @@
     adjacents
         east "Bell tower programming room"
 
+: TAItem Name("bell tower clavier" Array("clavier" "console" "keyboard")) Tag("bell-tower" "static")
+    description Tag("examine")
+        "The bell tower clavier"
+    description Tag("play")
+        "From within the enclosed playing room, you can faintly hear the sound of the tremendous bells. "
+        "Something ghosty happens!"
+    data_asset Tag("sound" "play") "sound_bell_tower_play"
+
 : TARoom Name("Bell tower playing room" Array("playing" "room") Array("bell" "tower" "playing"))
     area "Bell tower"
     description
+        "Bell tower playing room"
     description Tag("adjacents")
     adjacents
         up   "Bell tower belfrey"
         down "Bell tower programming room"
+    items Array("bell tower clavier")
 
 : TARoom Name("Bell tower belfrey" Array("belfrey") Array("bell" "tower"))
     area "Bell tower"

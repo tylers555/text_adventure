@@ -25,8 +25,8 @@ ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
     PrayState = PrayState_None;
 }
 
-internal inline void
-TADispatchCommand(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Tokens){
+inline void
+ta_system::DispatchCommand(audio_mixer *Mixer, asset_system *Assets, word_array Tokens){
     command_func *Func = 0;
     f32 HighestMatch = 0.0f;
     for(u32 I=0; I < Tokens.Count; I++){
@@ -81,12 +81,12 @@ HighestMatch = Match; \
 #undef TEST_COMMAND
         
         if(HighestMatch > WORD_MATCH_THRESHOLD){
-            (*Func)(Mixer, TA, Assets, Tokens);
+            (*Func)(Mixer, this, Assets, Tokens);
             return;
         }
     }
     
-    TA->Respond(GetVar(Assets, invalid_command));
+    Respond(GetVar(Assets, invalid_command));
 }
 
 //~ 
@@ -139,7 +139,7 @@ RenderTextInput(game_renderer *Renderer, console_theme *Theme, asset_font *Font,
 
 //~ 
 internal void
-UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
+GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input){
     DO_DEBUG_INFO();
     
     ta_system *TA = &TextAdventure;
@@ -161,7 +161,6 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
         TA->Money = 10;
     }
     
-    //RenderTexture(Renderer, MakeRect(V2(0), V2(30)), 10.0, RED);
     asset_font *BoldFont = GetFont(Assets, Theme->TitleFont);
     asset_font *Font = GetFont(Assets, Theme->BasicFont);
     Assert(Font);
@@ -186,14 +185,14 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
             if(!GhostOverrideDescription(Renderer, TA, Assets, Theme, Font, &RoomDescriptionRect, Room)){
                 ta_data *Description = Room->Datas[0];
                 if(HasTag(Room->Tag, AssetTag_Organ)){
-                    ta_data *New = TARoomFindDescription(Room, AssetTag(TA->OrganState));
+                    ta_data *New = TA->FindDescription(&Room->Datas, AssetTag(TA->OrganState));
                     if(New) Description = New;
                 }
                 
                 DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                          Description->Data, &RoomDescriptionRect);
                 
-                ta_data *Adjacents = TARoomFindDescription(Room, AssetTag(AssetTag_Adjacents));
+                ta_data *Adjacents = TA->FindDescription(&Room->Datas, AssetTag(AssetTag_Adjacents));
                 if(Adjacents){
                     DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
                              Adjacents->Data, &RoomDescriptionRect);
@@ -218,7 +217,7 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
             if(HasDisplayedItems){
                 InventoryRect.Y1 -= FontLineHeight(BoldFont);
                 
-                ta_data *Items = TARoomFindDescription(Room, AssetTag(AssetTag_Items));
+                ta_data *Items = TA->FindDescription(&Room->Datas, AssetTag(AssetTag_Items));
                 if(Items){
                     f32 L = FontStringAdvance(Font, Items->Data, RectSize(InventoryRect).X).X;
                     DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies), 
@@ -257,7 +256,7 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
     //~ Map
     {
         s32 MapIndex = TAFindItemByTag(TA, &TA->Inventory, AssetTag(AssetTag_Map));
-        if(MapIndex >= 0 || true){
+        if(MapIndex >= 0){
             ta_map *Map = &TA->Map;
             render_texture Texture = Map->Texture;
             v2 BR = V2(MapRect.X1, MapRect.Y0);
@@ -313,7 +312,7 @@ UpdateAndRenderGame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *A
                 (*Callback)(Mixer, TA, Assets, Tokens);
             }else{
                 GameTick(TA, Assets);
-                TADispatchCommand(Mixer, TA, Assets, Tokens);
+                TA->DispatchCommand(Mixer, Assets, Tokens);
             }
             
             Input->BeginTextInput(&TA->EditingCommandSentinel.Context);

@@ -251,15 +251,6 @@ game_renderer::NewFrame(memory_arena *Arena, v2 OutputSize_, color ClearColor_){
     RenderNode = PushStruct(Arena, render_node);
     
     //~ Camera
-#if 0 
-    CameraTargetP.X = Clamp(CameraTargetP.X, CameraBounds.Min.X, CameraBounds.Max.X);
-    CameraTargetP.Y = Clamp(CameraTargetP.Y, CameraBounds.Min.Y, CameraBounds.Max.Y);
-    
-    f32 dTime = OSInput.dTime;
-    v2 Delta = dTime*CameraSpeed*(CameraTargetP-CameraFinalP);
-    CameraFinalP += Delta;
-#endif
-    
     if(OSInput.WasWindowResized()){
         WindowSize = OSInput.WindowSize;
         f32 Aspect = OutputSize.X/OutputSize.Y;

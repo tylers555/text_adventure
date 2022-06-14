@@ -12,7 +12,6 @@
 global game_state *DEBUG;
 global u64 DebugInitTime;
 
-global menu_state MenuState;
 global ta_system TextAdventure;
 global settings_state SettingsState;
 
@@ -43,8 +42,6 @@ String(const char *S){
 
 #include "debug.cpp"
 #include "game.cpp"
-#include "map.cpp"
-#include "menu.cpp"
 
 //~ 
 
@@ -79,7 +76,6 @@ StateInitialize(game_state *State){
 
 internal void 
 DoDefaultHotkeys(){
-    if(OSInput.KeyJustDown(PAUSE_KEY, KeyFlag_Any) && (GameMode != GameMode_Menu)) OpenPauseMenu();
 }
 
 internal void
@@ -97,11 +93,8 @@ StateDoFrame(game_state *State){
     OSProcessInput(&OSInput);
     
     switch(GameMode){
-        case GameMode_Menu: {
-            UpdateAndRenderMenu(&State->Renderer);
-        }break;
         case GameMode_Game: {
-            UpdateAndRenderGame(&State->Renderer, &State->Mixer, &State->Assets, &OSInput);
+            GameDoFrame(&State->Renderer, &State->Mixer, &State->Assets, &OSInput);
         }break;
     }
     

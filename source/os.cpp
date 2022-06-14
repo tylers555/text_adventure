@@ -172,11 +172,11 @@ text_input_context::HistoryAddNode(){
     while(Node != &HistorySentinel){
         text_input_history_node *Next = Node->Next;
         DLIST_REMOVE(Node);
-        FREELIST_FREE(FreeHistoryNode, Node);
+        FREELIST_FREE(Input->TextInputFreeHistoryNode, Node);
         Node = Next;
     }
     
-    text_input_history_node *Result = FREELIST_ALLOC(FreeHistoryNode, 
+    text_input_history_node *Result = FREELIST_ALLOC(Input->TextInputFreeHistoryNode, 
                                                      PushStruct(HistoryMemory, text_input_history_node));
     
     Result->Buffer = PushArray(HistoryMemory, char, BufferLength);
@@ -229,7 +229,6 @@ text_input_context::HistoryChangeEvent(text_input_event_type Type){
     if((LastEvent != Type) && 
        (Flags & TextInputFlag_IsDirty)){
         HistoryAddNode();
-        Flags &= ~TextInputFlag_IsDirty;
     }
     LastEvent = Type;
 }

@@ -1761,6 +1761,7 @@ ArrayInsertAlloc(array<T> *Array, u32 Index){
 
 template<typename T> tyler_function inline void
 ArrayOrderedRemove(array<T> *Array, u32 Index){
+    Assert(Index < Array->Count);
     MoveMemory(&Array->Items[Index], 
                &Array->Items[Index+1], 
                (Array->Count-Index)*sizeof(T));
@@ -1773,11 +1774,15 @@ ArrayUnorderedRemove(array<T> *Array, u32 Index){
     Array->Count--;
 }
 
-template<typename T> tyler_function inline void
-ArraySwap(array<T> Array, u32 IndexA, u32 IndexB){
-    T Temp = Array[IndexA];
-    Array[IndexA] = Array[IndexB];
-    Array[IndexB] = Temp;
+template<typename T> tyler_function inline b8
+ArrayRemoveByValue(array<T> *Array, T Value){
+    for(u32 I=0; I<Array->Count; I++){
+        if(ArrayGet(Array, I) == Value){
+            ArrayOrderedRemove(Array, I);
+            return true;
+        }
+    }
+    return false;
 }
 
 template<typename T> tyler_function inline array<T>

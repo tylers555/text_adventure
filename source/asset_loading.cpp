@@ -485,7 +485,7 @@ b8 asset_system::ProcessSpecialCommands(){
             for(u32 I=0; I<TA->Inventory.Count; I++){
                 if(TA->Inventory[I] == Item) { FoundIt = true; break; }
             }
-            if(!FoundIt) TA->AddItem(Item);
+            if(!FoundIt) TA->InventoryAddItem(Item);
         }else{ HANDLE_INVALID_ATTRIBUTE(Attribute);  }
     }
     

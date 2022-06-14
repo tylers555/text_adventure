@@ -27,13 +27,13 @@ GameAddGhost(ta_system *TA, asset_system *Assets, ta_id Room=MakeTAID(0)){
     Ghost->Item = TAItemByName(TA, "Albert (Ghost)");
     Ghost->CurrentRoom = Room.ID ? Room : ChooseRandomTARoom(TA);
     GhostEnsureRoom(TA, Ghost);
-    TAFindRoom(TA, Ghost->CurrentRoom)->Ghost = Ghost->Item;
+    TA->FindRoom(Ghost->CurrentRoom)->Ghost = Ghost->Item;
 }
 
 internal void
 GameRemoveGhost(ta_system *TA, u32 Index){
     entity_ghost *Ghost = &TA->Ghosts[Index];
-    TAFindRoom(TA, Ghost->CurrentRoom)->Ghost = MakeTAID(0);
+    TA->FindRoom(Ghost->CurrentRoom)->Ghost = MakeTAID(0);
     ArrayUnorderedRemove(&TA->Ghosts, Index);
 }
 
@@ -41,17 +41,17 @@ internal void
 GameRemoveAllGhosts(ta_system *TA){
     for(u32 I=0; I<TA->Ghosts.Count; I++){
         entity_ghost *Ghost = &TA->Ghosts[I];
-        TARoomRemoveItemByID(TA, TAFindRoom(TA, Ghost->CurrentRoom), Ghost->Item);
+        TA->RoomRemoveItemByID(TA->FindRoom(Ghost->CurrentRoom), Ghost->Item);
     }
     ArrayClear(&TA->Ghosts);
 }
 
 internal void
 GhostChangeRoom(ta_system *TA, asset_system *Assets, entity_ghost *Ghost, ta_id NewRoom){
-    TAFindRoom(TA, Ghost->CurrentRoom)->Ghost = MakeTAID(0);
+    TA->FindRoom(Ghost->CurrentRoom)->Ghost = MakeTAID(0);
     Ghost->CurrentRoom = NewRoom;
     GhostEnsureRoom(TA, Ghost);
-    TAFindRoom(TA, Ghost->CurrentRoom)->Ghost = Ghost->Item;
+    TA->FindRoom(Ghost->CurrentRoom)->Ghost = Ghost->Item;
 }
 
 internal void
@@ -115,8 +115,8 @@ GhostOverrideDescription(game_renderer *Renderer, ta_system *TA, asset_system *A
                          console_theme *Theme, asset_font *Font, rect *RoomDescriptionRect,
                          ta_room *Room){
     if(Room->Ghost.ID){
-        ta_item *Ghost = TAFindItem(TA, Room->Ghost);
-        ta_data *GhostDescription = TAFindDescription(&Ghost->Datas, AssetTag(AssetTag_Ghost));
+        ta_item *Ghost = TA->FindItem(Room->Ghost);
+        ta_data *GhostDescription = TA->FindDescription(&Ghost->Datas, AssetTag(AssetTag_Ghost));
         if(GhostDescription){
             DoString(Renderer, Font, Theme->DescriptionFancies, ArrayCount(Theme->DescriptionFancies),
                      GhostDescription->Data, RoomDescriptionRect);

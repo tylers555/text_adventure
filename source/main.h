@@ -91,8 +91,6 @@ enum game_mode {
 #include "game.h"
 #include "text_adventure.h"
 
-#include "menu.h"
-
 //~ 
 struct game_state {
     asset_system Assets;

@@ -413,7 +413,6 @@ struct text_input_context {
     memory_arena *HistoryMemory;
     text_input_event_type LastEvent;
     text_input_history_node HistorySentinel;
-    text_input_history_node *FreeHistoryNode;
     text_input_history_node *CurrentHistoryNode;
     
     inline text_input_history_node *HistoryAddNode();
@@ -469,6 +468,8 @@ struct os_input {
     //~ Text input
     
     text_input_context *TextInput;
+    // NOTE(Tyler): This is here, so that there is only one freelist of history nodes
+    text_input_history_node *TextInputFreeHistoryNode;
     inline void BeginTextInput(text_input_context *Context);
     inline b8   MaybeEndTextInput();
     inline void EndTextInput();
