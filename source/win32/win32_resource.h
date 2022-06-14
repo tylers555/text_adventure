@@ -1,6 +1,0 @@
-#ifndef RESOURCE_H
-#define RESOURCE_H
-
-#define WIN32_PROCESSED_ASSETS 101
-
-#endif //RESOURCE_H
