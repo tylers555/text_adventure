@@ -6,12 +6,6 @@ global asset_processor AssetProcessor;
 
 global memory_arena GlobalTickMemory;
 
-//~ Helpers
-internal inline string
-String(const char *S){
-    return Strings.GetString(S);
-}
-
 //~ Stubs
 internal render_texture 
 MakeTexture(texture_flags Flags){

@@ -178,7 +178,7 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
     ta_room *Room = TA->CurrentRoom;
     //~ Room display
     {
-        DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->Name, &RoomDescriptionRect);
+        DoString(Renderer, BoldFont, &Theme->RoomTitleFancy, 1, Room->NameData.Name, &RoomDescriptionRect);
         
         if(Room->Datas.Count > 0){
             if(!GhostOverrideDescription(Renderer, TA, Assets, Theme, Font, &RoomDescriptionRect, Room)){
@@ -230,7 +230,7 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
                     ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
                     if(!Item) continue;
                     if(!DoDisplayItem(Item)) continue;
-                    DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->Name, &InventoryRect);
+                    DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->NameData.Name, &InventoryRect);
                 }
                 
                 InventoryRect.Y1 -= Padding;
@@ -248,7 +248,7 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
         for(u32 I=0; I<TA->Inventory.Count; I++){
             ta_item *Item = HashTableFindPtr(&TA->ItemTable, TA->Inventory[I]);
             Assert(Item);
-            DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->Name, &InventoryRect);
+            DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->NameData.Name, &InventoryRect);
         }
     }
     

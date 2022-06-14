@@ -58,18 +58,15 @@ debug_info::Display(debug_scope_time_elapsed Elapsed) {
     
     asset_font *Font = GetFont(Assets, AssetID(font_basic));
     v2 DebugP = V2(10, 10);
-    {
-        char Buffer[DEFAULT_BUFFER_SIZE];
-        DebugP.Y -= FontRenderString(Renderer, Font, DebugP, WHITE, 
-                                     "Counter: %.2f | Cycles: %08llu | FPS: %.2f | Scale: %.1f", 
-                                     Counter, Elapsed.Cycles, 1.0/Input->dTime, Renderer->CameraScale);
-    }
+    DebugP.Y -= FontRenderString(Renderer, Font, DebugP, WHITE, 
+                                 "Counter: %.2f | Cycles: %08llu | Time: %04llu | FPS: %.2f | Scale: %.1f", 
+                                 Counter, Elapsed.Cycles, Elapsed.Microseconds, 1.0/Input->dTime, Renderer->CameraScale);
     
     DebugP = V2(200, 230);
     for(u32 I=0; I<TA->Ghosts.Count; I++){
         ta_room *Room = TA->FindRoom(TA->Ghosts[I].CurrentRoom);
         DebugP.Y -= FontRenderString(Renderer, Font, DebugP, WHITE,
-                                     "Ghost[%u] Room: %s", I, Room->Name);
+                                     "Ghost[%u] Room: %s", I, Room->NameData.Name);
     }
     
     //~ @debug_text_input_undo

@@ -761,11 +761,13 @@ asset_system::ProcessTARoom(){
     b8 Result = false;
     ta_system *TA = TextAdventure;
     
-    ta_name Name = ExpectTypeName();
+    const char *Identifier = Expect(&Reader, String);
+    ta_id ID = TAIDByName(TA, Identifier);
+    ta_room *Room = HashTableGetPtr(&TA->RoomTable, ID);
+    Room->NameData = ExpectTypeName();
     HandleError(&Reader);
-    ta_room *Room = HashTableGetPtr(&TA->RoomTable, TAIDByName(TA, Name.Name));
-    Room->NameData = Name;
     Room->Tag = MaybeExpectTag();
+    HandleError(&Reader);
     
     dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &GlobalTransientMemory);
     
@@ -853,12 +855,13 @@ asset_system::ProcessTAItem(){
     b8 Result = false;
     ta_system *TA = TextAdventure;
     
-    ta_name Name = ExpectTypeName();
-    HandleError(&Reader);
-    ta_id ID = TAIDByName(TA, Name.Name);
+    const char *Identifier = Expect(&Reader, String);
+    ta_id ID = TAIDByName(TA, Identifier);
     ta_item *Item = HashTableGetPtr(&TA->ItemTable, ID);
-    Item->NameData = Name;
+    Item->NameData = ExpectTypeName();
+    HandleError(&Reader);
     Item->Tag = MaybeExpectTag();
+    HandleError(&Reader);
     
     // Attributes
     dynamic_array<ta_data *> Descriptions = MakeDynamicArray<ta_data *>(8, &GlobalTransientMemory);

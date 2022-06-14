@@ -336,7 +336,6 @@ struct sjap_header {
 #pragma pack(pop)
 
 //~ Miscellaneous
-struct ta_system;
 struct ta_item;
 internal void GameProcessItem(ta_system *TA, ta_id ItemID, ta_item *Item);
 

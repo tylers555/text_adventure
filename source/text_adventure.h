@@ -50,10 +50,7 @@ struct ta_map {
 
 struct ta_item {
     b8 Dirty;
-    union{
-        ta_name NameData;
-        const char *Name;
-    };
+    ta_name NameData;
     asset_tag Tag;
     u32 Cost;
     array<ta_data *> Datas;
@@ -68,10 +65,7 @@ enum room_flags_ {
 
 struct ta_room {
     room_flags Flags;
-    union{
-        ta_name NameData;
-        const char *Name;
-    };
+    ta_name NameData;
     ta_id Area;
     asset_tag Tag;
     array<ta_data *> Datas;

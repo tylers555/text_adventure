@@ -69,6 +69,7 @@ CompareKeys(ta_id A, ta_id B){
 }
 
 #if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+#error These functions are used and won't work! Changes needed!
 internal inline ta_id
 TAItemByName(ta_system *TA, const char *S){
     ta_id ItemID = HashTableFind(&TA->ItemNameTable, S);

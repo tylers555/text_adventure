@@ -223,9 +223,3 @@ StringBuilderAddString(string_builder *Builder, char *S){
 //~ Globals
 global string_manager Strings;
 
-//~ Helpers
-internal inline string
-String(const char *S){
-    return Strings.GetString(S);
-}
-

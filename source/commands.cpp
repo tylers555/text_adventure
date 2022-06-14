@@ -231,7 +231,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, w
     }
     
     if(Maximum(PositiveWeight, NegativeWeight) <= WORD_MATCH_THRESHOLD){
-        TA->Respond(GetVar(Assets, buy_callback_prompt), Item->Name);
+        TA->Respond(GetVar(Assets, buy_callback_prompt), Item->NameData.Name);
         TA->Callback = CallbackConfirmBuy;
     }else if(PositiveWeight > NegativeWeight){
         if(TA->InventoryAddItem(Room->Items[TA->BuyItemIndex])) TA->RoomRemoveItem(Room, TA->BuyItemIndex);
