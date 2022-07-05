@@ -101,6 +101,11 @@ typedef double f64;
 #define GLUE_(a,b) a##b
 #define GLUE(a,b) GLUE_(a,b)
 
+// TODO(Tyler): I'm not sure how I feel about these
+#define FOR_RANGE_(Type, Iterator, Start, End) for(Type Iterator=(Start); Iterator<(End); Iterator++)
+#define FOR_RANGE(Iterator, Start, End) FOR_RANGE_(u32, Iterator, Start, End)
+
+
 //~ Miscellaneous constants
 global_constant u32 DEFAULT_BUFFER_SIZE = 512;
 
@@ -1397,6 +1402,7 @@ TicketMutexEnd(ticket_mutex *Mutex){
 
 //~ General helpers
 
+// NOTE(Tyler): Length excluding the null terminator
 tyler_function u32
 CStringLength(const char *String){
     u32 Result = 0;
@@ -1409,16 +1415,16 @@ CStringLength(const char *String){
 tyler_function void
 CopyCString(char *To, const char *From, u32 MaxSize){
     u32 I = 0;
-    while(From[I] && (I < MaxSize)){
+    while(From[I] && (I < MaxSize-1)){
         To[I] = From[I];
         I++;
     }
-    To[I] = '\0';
+    To[I] = 0;
 }
 
 tyler_function void
 CopyCString(char *To, const char *From){
-    CopyCString(To, From, CStringLength(From));
+    CopyCString(To, From, CStringLength(From)+1);
 }
 
 //~
@@ -1627,6 +1633,43 @@ ArenaPushFormatCString(memory_arena *Arena, const char *Format, ...){
     char *Result = VArenaPushFormatCString(Arena, Format, VarArgs);
     va_end(VarArgs);
     return Result;
+}
+
+tyler_function char *
+VArenaCStringConcatenateN(memory_arena *Arena, u32 N, va_list VarArgs){
+    u32 TotalLength = 0;
+    va_list LengthArgs;
+    va_copy(LengthArgs, VarArgs);
+    FOR_RANGE(I, 0, N){
+        const char *String = va_arg(LengthArgs, const char *);
+        TotalLength += CStringLength(String);
+    }
+    va_end(LengthArgs);
+    
+    char *Result = ArenaPushArray(Arena, char, TotalLength+1);
+    u32 LengthCounter = 0;
+    FOR_RANGE(I, 0, N){
+        const char *String = va_arg(VarArgs, const char *);
+        u32 Length = CStringLength(String);
+        CopyMemory(Result+LengthCounter, String, Length);
+        LengthCounter += Length;
+    }
+    
+    return Result;
+}
+
+tyler_function char *
+ArenaCStringConcatenateN(memory_arena *Arena, u32 N, ...){
+    va_list VarArgs;
+    va_start(VarArgs, N);
+    char *Result = VArenaCStringConcatenateN(Arena, N, VarArgs);
+    va_end(VarArgs);
+    return Result;
+}
+
+tyler_function char *
+ArenaCStringConcatenate(memory_arena *Arena, const char *A, const char *B){
+    return ArenaCStringConcatenateN(Arena, 2, A, B);
 }
 
 tyler_function inline char *
@@ -2065,9 +2108,6 @@ for(auto &Item = (Array)->Items[Index]; Keep; Keep=false)
 
 #define FOR_EACH_PTR(Item, Array) FOR_EACH_PTR_(Item, I_, Array)
 #define FOR_EACH(Item, Array) FOR_EACH_(Item, I_, Array)
-
-#define FOR_RANGE_(Type, Iterator, Start, End) for(Type Iterator=(Start); Iterator<(End); Iterator++)
-#define FOR_RANGE(Iterator, Start, End) FOR_RANGE_(u32, Iterator, Start, End)
 
 //~ Bucket array
 

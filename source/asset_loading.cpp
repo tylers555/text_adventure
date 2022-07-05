@@ -119,6 +119,7 @@ void
 asset_system::BeginCommand(const char *Name){
     CurrentCommand = Name;
     CurrentAttribute = 0;
+    CurrentAsset = 0;
 }
 
 void 
@@ -128,12 +129,13 @@ asset_system::LogWarning(const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
     
-    char *Message;
-    if(CurrentAttribute){
-        Message = ArenaPushFormatCString(&GlobalTransientMemory, "(%s,%s Line: %u) WARNING: %s", CurrentCommand, CurrentAttribute, Reader.Line, Format);
-    }else{
-        Message = ArenaPushFormatCString(&GlobalTransientMemory, "(%s Line: %u) WARNING: %s", CurrentCommand, Reader.Line, Format);
-    }
+    
+    const char *Attribute = "";
+    if(CurrentAttribute) Attribute = ArenaCStringConcatenate(&GlobalTransientMemory, ",", CurrentAttribute);
+    const char *Asset = "";
+    if(CurrentAsset) Asset = ArenaCStringConcatenateN(&GlobalTransientMemory, 3, ",\"", CurrentAsset, "\"");
+    
+    char *Message = ArenaPushFormatCString(&GlobalTransientMemory, "(%s%s%s Line: %u) WARNING: %s", CurrentCommand, Asset, Attribute, Reader.Line, Format);
     VLogMessage(Message, VarArgs);
     
     va_end(VarArgs);
@@ -144,12 +146,12 @@ asset_system::LogError(const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
     
-    char *Message;
-    if(CurrentAttribute){
-        Message = ArenaPushFormatCString(&GlobalTransientMemory, "(%s,%s Line: %u) %s", CurrentCommand, CurrentAttribute, Reader.Line, Format);
-    }else{
-        Message = ArenaPushFormatCString(&GlobalTransientMemory, "(%s Line: %u) %s", CurrentCommand, Reader.Line, Format);
-    }
+    const char *Attribute = "";
+    if(CurrentAttribute) Attribute = ArenaCStringConcatenate(&GlobalTransientMemory, ",", CurrentAttribute);
+    const char *Asset = "";
+    if(CurrentAsset) Asset = ArenaCStringConcatenateN(&GlobalTransientMemory, 3, ",\"", CurrentAsset, "\"");
+    
+    char *Message = ArenaPushFormatCString(&GlobalTransientMemory, "(%s%s%s Line: %u) %s", CurrentCommand, Asset, Attribute, Reader.Line, Format);
     VLogMessage(Message, VarArgs);
     
     va_end(VarArgs);
@@ -475,7 +477,7 @@ asset_system::LoadAssetFile(const char *Path){
     return ChooseStatus(Status);
 }
 
-#define IfCommand(Command)                 \
+#define ASSET_LOADER_COMMMAND(Command)                 \
 if(CompareCStrings(String, #Command)) { \
 BeginCommand(#Command);            \
 return Process##Command(); \
@@ -487,20 +489,21 @@ asset_system::ProcessCommand(){
     
     const char *String = Expect(&Reader, Identifier);
     
-    IfCommand(Ignore);
-    IfCommand(SpecialCommands);
-    IfCommand(Variables);
-    IfCommand(Theme);
-    IfCommand(Font);
-    IfCommand(SoundEffect);
-    IfCommand(TARoom);
-    IfCommand(TAItem);
-    IfCommand(TAMap);
+    ASSET_LOADER_COMMMAND(Ignore);
+    ASSET_LOADER_COMMMAND(SpecialCommands);
+    ASSET_LOADER_COMMMAND(Variables);
+    ASSET_LOADER_COMMMAND(Theme);
+    ASSET_LOADER_COMMMAND(Font);
+    ASSET_LOADER_COMMMAND(SoundEffect);
+    ASSET_LOADER_COMMMAND(TARoom);
+    ASSET_LOADER_COMMMAND(TAItem);
+    ASSET_LOADER_COMMMAND(TAMap);
     
     LogMessage("(Line: %u) '%s' isn't a valid command!", Reader.Line, String);
+    ProcessIgnore();
     return AssetLoadingStatus_Warnings;
 }
-#undef IfCommand
+#undef ASSET_LOADER_COMMMAND
 
 //~ Variables
 
@@ -570,6 +573,7 @@ asset_system::ProcessTheme(){
     ta_system *TA = TextAdventure;
     
     const char *Name = Expect(&Reader, String);
+    CurrentAsset = Name;
     console_theme *Theme = HashTableGetPtr(&TA->ThemeTable, TAIDByName(TA, Name));
     
     while(true){
@@ -607,6 +611,7 @@ asset_system::ProcessSoundEffect(){
     asset_loading_status Result = AssetLoadingStatus_Okay;
     
     const char *Name = Expect(&Reader, String);
+    CurrentAsset = Name;
     asset_sound_effect *Sound = Strings.HashTableGetPtr(&SoundEffectTable, Name);
     TicketMutexBegin(&Mixer->SoundMutex);
     
@@ -640,6 +645,7 @@ asset_system::ProcessFont(){
     asset_loading_status Result = AssetLoadingStatus_Okay;
     
     const char *Name = Expect(&Reader, String);
+    CurrentAsset = Name;
     asset_font *Font = Strings.HashTableGetPtr(&FontTable, Name);
     *Font = {};
     
@@ -791,6 +797,7 @@ asset_system::ProcessTARoom(){
     ta_system *TA = TextAdventure;
     
     const char *Identifier = Expect(&Reader, String);
+    CurrentAsset = Identifier;
     ta_id ID = TAIDByName(TA, Identifier);
     ta_room *Room = HashTableGetPtr(&TA->RoomTable, ID);
     Room->ID = ID;
@@ -888,6 +895,7 @@ asset_system::ProcessTAItem(){
     ta_system *TA = TextAdventure;
     
     const char *Identifier = Expect(&Reader, String);
+    CurrentAsset = Identifier;
     ta_id ID = TAIDByName(TA, Identifier);
     ta_item *Item = HashTableGetPtr(&TA->ItemTable, ID);
     Item->ID = ID;

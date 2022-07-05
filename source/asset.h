@@ -286,6 +286,7 @@ struct asset_system {
     
     //~ Logging 
     const char *CurrentCommand;
+    const char *CurrentAsset;
     const char *CurrentAttribute;
     asset_loading_status LoadingStatus;
     
