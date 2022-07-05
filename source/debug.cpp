@@ -91,7 +91,7 @@ debug_info::Display(debug_scope_time_elapsed Elapsed) {
     
     if(DisplayFlags & DebugDisplay_AssetLoading){
         if(AssetLoadingStatus == AssetLoadingStatus_Warnings){
-            DebugP.Y += FontRenderString(Renderer, Font, DebugP, WHITE, 
+            DebugP.Y += FontRenderString(Renderer, Font, DebugP, RED,
                                          "Asset loader warnings!", 
                                          Counter, Elapsed.Cycles, Elapsed.Microseconds, 1.0/Input->dTime, Renderer->CameraScale);
         }

@@ -425,8 +425,6 @@ asset_system::LoadAssetFile(const char *Path){
     CurrentCommand = 0;
     CurrentAttribute = 0;
     
-    asset_loading_status Status = LoadingStatus;
-    
     os_file *File = OSOpenFile(Path, OpenFile_Read);
     u64 NewFileWriteTime = OSGetLastFileWriteTime(File);
     OSCloseFile(File);
@@ -434,23 +432,22 @@ asset_system::LoadAssetFile(const char *Path){
     if(LastFileWriteTime < NewFileWriteTime){
         ArenaClear(&Memory);
         LoadingStatus = AssetLoadingStatus_Okay;
-        Status = LoadingStatus;
         
         Reader = MakeFileReader(Path, this);
         
-        while(Status != AssetLoadingStatus_Errors){
+        while(LoadingStatus != AssetLoadingStatus_Errors){
             file_token Token = Reader.NextToken();
             
             switch(Token.Type){
                 case FileTokenType_BeginCommand: {
-                    Status = ProcessCommand();
+                    ChooseStatus(ProcessCommand());
                 }break;
                 case FileTokenType_EndFile: {
                     goto end_loop;
                 }break;
                 default: {
                     LogMessage("(Line: %u) Token: %s was not expected!", Reader.Line, TokenToString(Token));
-                    Status = AssetLoadingStatus_Errors;
+                    LoadingStatus = AssetLoadingStatus_Errors;
                 }break;
             }
         }
@@ -459,8 +456,7 @@ asset_system::LoadAssetFile(const char *Path){
     
     LastFileWriteTime = NewFileWriteTime;
     
-    Assert(Status >= LoadingStatus);
-    if(Status == AssetLoadingStatus_Errors) return ChooseStatus(Status);
+    if(LoadingStatus == AssetLoadingStatus_Errors) return LoadingStatus;
     
     { //- Post processing
         ta_system *TA = TextAdventure;
@@ -474,7 +470,7 @@ asset_system::LoadAssetFile(const char *Path){
         }
     }
     
-    return ChooseStatus(Status);
+    return LoadingStatus;
 }
 
 #define ASSET_LOADER_COMMMAND(Command)                 \
