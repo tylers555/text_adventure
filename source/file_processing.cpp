@@ -98,13 +98,6 @@ TokenToString(file_token Token){
 //~ File reader
 #if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
 
-#define HandleError(Reader) \
-if((Reader)->LastError == FileReaderError_InvalidToken) return(Result) \
-
-#define Expect(Reader, Name) \
-(Reader)->ExpectToken(FileTokenType_##Name).Name; \
-HandleError(Reader);
-
 char *
 file_reader::ConsumeTextIdentifier(){
     char *Buffer = ArenaPushArray(&GlobalTransientMemory, char, DEFAULT_BUFFER_SIZE);
@@ -329,6 +322,7 @@ file_token
 file_reader::ExpectToken(file_token_type Type){
     LastError = FileReaderError_None;
     file_token Token = NextToken();
+    Token.IsValid = true;
     if(Type == FileTokenType_Float){
         Token = MaybeTokenIntegerToFloat(Token);
     }
@@ -336,141 +330,12 @@ file_reader::ExpectToken(file_token_type Type){
     if(Token.Type == Type){
         return(Token);
     }else {
-        System->LogError("Expected %s, instead read: %s", TokenTypeName(Type), TokenToString(Token));
+        //System->LogError("Expected %s, instead read: %s", TokenTypeName(Type), TokenToString(Token));
     }
     
     LastError = FileReaderError_InvalidToken;
+    Token.IsValid = false;
     return(Token);
 }
 
-v2
-file_reader::ExpectTypeV2(){
-    v2 Result = V2(0);
-    
-    const char *Identifier = Expect(this, Identifier);
-    if(CompareCStrings(Identifier, "V2")){
-        ExpectToken(FileTokenType_BeginArguments);
-        HandleError(this);
-        
-        Result.X = Expect(this, Float);
-        file_token Token = PeekToken();
-        if(Token.Type != FileTokenType_EndArguments){
-            Result.Y = Expect(this, Float);
-        }else{
-            Result.Y = Result.X;
-        }
-        
-        ExpectToken(FileTokenType_EndArguments);
-        HandleError(this);
-        
-    }else{
-        LastError = FileReaderError_InvalidToken;
-        return(Result);
-    }
-    
-    return(Result);
-}
-
-array<s32>
-file_reader::ExpectTypeArrayS32(){
-    array<s32> Result = MakeArray<s32>(&GlobalTransientMemory, SJA_MAX_ARRAY_ITEM_COUNT);
-    
-    const char *Identifier = Expect(this, Identifier);
-    if(CompareCStrings(Identifier, "Array")){
-        ExpectToken(FileTokenType_BeginArguments);
-        HandleError(this);
-        
-        file_token Token = PeekToken();
-        while(Token.Type != FileTokenType_EndArguments){
-            s32 Integer = Expect(this, Integer);
-            ArrayAdd(&Result, Integer);
-            
-            Token = PeekToken();
-        }
-        
-        ExpectToken(FileTokenType_EndArguments);
-        HandleError(this);
-        
-    }else{
-        LastError = FileReaderError_InvalidToken;
-        return(Result);
-    }
-    
-    return(Result);
-}
-
-array<const char *>
-file_reader::ExpectTypeArrayCString(){
-    array<const char *> Result = MakeArray<const char *>(&GlobalTransientMemory, SJA_MAX_ARRAY_ITEM_COUNT);
-    
-    const char *Identifier = Expect(this, Identifier);
-    if(CompareCStrings(Identifier, "Array")){
-        ExpectToken(FileTokenType_BeginArguments);
-        HandleError(this);
-        
-        file_token Token = PeekToken();
-        while(Token.Type != FileTokenType_EndArguments){
-            const char *String = Expect(this, String);
-            ArrayAdd(&Result, String);
-            
-            Token = PeekToken();
-        }
-        
-        ExpectToken(FileTokenType_EndArguments);
-        HandleError(this);
-        
-    }else{
-        LastError = FileReaderError_InvalidToken;
-        return(Result);
-    }
-    
-    return(Result);
-}
-
-color
-file_reader::ExpectTypeColor(){
-    color Result = {};
-    
-    file_token Token = PeekToken();
-    if(Token.Type != FileTokenType_Identifier) return Result;
-    if(CompareCStrings(Token.Identifier, "Color")){
-        Expect(this, Identifier);
-        
-        ExpectToken(FileTokenType_BeginArguments);
-        HandleError(this);
-        
-        Token = PeekToken();
-        if(Token.Type == FileTokenType_Float){
-            for(u32 I=0; I<4; I++){
-                Result.E[I] = Expect(this, Float);
-            }
-        }else if(Token.Type == FileTokenType_Integer){
-            file_token First = NextToken();
-            Token = PeekToken();
-            if((Token.Type == FileTokenType_Integer) ||
-               (Token.Type == FileTokenType_Float)){
-                First = MaybeTokenIntegerToFloat(First);
-                Assert(First.Type == FileTokenType_Float);
-                Result.R = First.Float;
-                for(u32 I=1; I<4; I++){
-                    Result.E[I] = Expect(this, Float);
-                }
-            }else if(Token.Type == FileTokenType_EndArguments){
-                Result = MakeColor(First.Integer);
-            }else{
-                System->LogError("Expected ) or a number, and %s is neither!", TokenToString(Token));
-                LastError = FileReaderError_InvalidToken;
-                return Result;
-            }
-        }
-        
-        ExpectToken(FileTokenType_EndArguments);
-        HandleError(this);
-    }else{
-        LastError = FileReaderError_InvalidToken;
-        return(Result);
-    }
-    
-    return(Result);
-}
 #endif // SNAIL_JUMPY_USE_PROCESSED_ASSETS

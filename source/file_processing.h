@@ -38,6 +38,7 @@ enum file_reader_error {
 };
 
 struct file_token {
+    b8 IsValid;
     file_token_type Type;
     u32 Line;
     
@@ -64,10 +65,6 @@ struct file_reader {
     char *ConsumeTextIdentifier();
     char *ConsumeTextString();
     inline u32 ConsumeTextHexNumber();
-    v2                  ExpectTypeV2();
-    array<s32>          ExpectTypeArrayS32();
-    array<const char *> ExpectTypeArrayCString();
-    color               ExpectTypeColor();
     
     file_token NextToken();
     file_token PeekToken(u32 N=1);

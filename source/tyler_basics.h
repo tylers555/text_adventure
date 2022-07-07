@@ -1706,6 +1706,11 @@ ArenaEndMarker(memory_arena *Arena, memory_arena_marker *Marker){
     Arena->Used = Marker->Used;
 }
 
+tyler_function inline void 
+ArenaMarkerAdd(memory_arena_marker *Marker, u32 Used){
+    Marker->Used += Used;
+}
+
 struct scoped_memory_arena_marker {
     memory_arena *Arena;
     memory_arena_marker Marker;
@@ -2108,6 +2113,8 @@ for(auto &Item = (Array)->Items[Index]; Keep; Keep=false)
 
 #define FOR_EACH_PTR(Item, Array) FOR_EACH_PTR_(Item, I_, Array)
 #define FOR_EACH(Item, Array) FOR_EACH_(Item, I_, Array)
+
+#define ARRAY_REMOVE_IN_LOOP(Array, Index) ArrayUnorderedRemove(Array, Index); Index--;
 
 //~ Bucket array
 

@@ -102,7 +102,7 @@
     
 : Variables # @sja_event_descriptions
     var "carillon_pages_bench_ghost_following" "There is a \5ghost\0 here!"    
-    var "event_carillon_pages" "The bell tower rings with incredible disonnance with all the bells sounding at once. "
+    var "event_carillon_pages" "The bell tower rings with incredible dissonance with all the bells sounding at once. "
                                "You observe what appear to be several pages go flying out of the window, "
                                "moving and flying in strange and various directions. "
                                "A frantic man comes running out of the cathedral. "

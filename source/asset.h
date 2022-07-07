@@ -199,6 +199,14 @@ MakeFancyFormat(color Color1, color Color2,
     return Result;
 }
 
+internal inline fancy_font_format
+MakeFancyFormat(color Color){
+    fancy_font_format Result = {};
+    Result.Color1 = Color;
+    return Result;
+}
+
+
 global_constant u32 FONT_STRING_MAX_LINES = 16;
 struct font_string_metrics {
     u32 LineCount;
@@ -260,6 +268,9 @@ enum asset_loading_status {
     AssetLoadingStatus_Errors,
 };
 
+global_constant color             ERROR_COLOR = MakeColor(1.0f, 0.0f, 1.0f);
+global_constant fancy_font_format ERROR_FANCY = MakeFancyFormat(ERROR_COLOR);
+
 struct ta_system;
 struct audio_mixer;
 struct asset_system {
@@ -289,12 +300,14 @@ struct asset_system {
     const char *CurrentAsset;
     const char *CurrentAttribute;
     asset_loading_status LoadingStatus;
+    u32 LoadCounter;
     
     asset_loading_status ChooseStatus(asset_loading_status Status);
     void BeginCommand(const char *Name);
     void LogWarning(const char *Format, ...);
     void LogError(const char *Format, ...);
     b8 SeekNextAttribute();
+    b8 SeekEndOfFunction();
     
     //~ SJA reading and parsing
     u64 LastFileWriteTime;
@@ -308,9 +321,13 @@ struct asset_system {
     u32 ExpectPositiveInteger_();
     image *LoadImage(const char *Path);
     
-    fancy_font_format ExpectTypeFancy();
-    asset_tag         MaybeExpectTag();
-    ta_name           ExpectTypeName();
+    v2                  ExpectTypeV2();
+    array<s32>          ExpectTypeArrayS32();
+    array<const char *> ExpectTypeArrayCString();
+    color               ExpectTypeColor();
+    fancy_font_format   ExpectTypeFancy();
+    asset_tag           MaybeExpectTag();
+    ta_name             ExpectTypeName();
     
     void InitializeLoader(memory_arena *Arena);
     

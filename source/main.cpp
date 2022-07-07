@@ -21,6 +21,7 @@ global memory_arena GlobalTickMemory;
 #include "render.cpp"
 #include "wav.cpp"
 #include "asset.cpp"
+#include "debug.cpp"
 #include "text_adventure.cpp"
 #include "asset_loading.cpp"
 #include "audio_mixer.cpp"
@@ -28,7 +29,6 @@ global memory_arena GlobalTickMemory;
 #include "murkwell.cpp"
 #include "commands.cpp"
 
-#include "debug.cpp"
 #include "game.cpp"
 
 //~ 

@@ -325,8 +325,8 @@ inline void
 ta_system::Respond(const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
-    StringBuilderVAdd(&ResponseBuilder, Format, VarArgs);
-    StringBuilderAdd(&ResponseBuilder, '\n');
+    VBuilderAdd(&ResponseBuilder, Format, VarArgs);
+    BuilderAdd(&ResponseBuilder, '\n');
     va_end(VarArgs);
 }
 

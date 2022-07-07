@@ -137,6 +137,7 @@ string_manager::HashTableFindPtr(hash_table<string, T> *Table, const char *Key){
 
 //~ String builder
 struct string_builder {
+    memory_arena *Arena;
     char *Buffer;
     u32 BufferSize;
     u32 BufferCapacity;
@@ -147,6 +148,13 @@ BeginStringBuilder(memory_arena *Arena, u32 Capacity){
     string_builder Result = {};
     Result.Buffer = ArenaPushArray(Arena, char, Capacity);
     Result.BufferCapacity = Capacity;
+    return Result;
+}
+
+internal inline string_builder 
+BeginResizeableStringBuilder(memory_arena *Arena, u32 Capacity){
+    string_builder Result = BeginStringBuilder(Arena, Capacity);
+    Result.Arena = Arena;
     return Result;
 }
 
@@ -165,59 +173,66 @@ EndStringBuilder(string_builder *Builder){
     return Result;
 }
 
+internal inline void 
+BuilderMaybeResize(string_builder *Builder, u32 NeededSize){
+    NeededSize += 1; // NOTE(Tyler): Leave an extra byte for a possible null terminator
+    if(!Builder->Arena) return;
+    if(NeededSize < Builder->BufferCapacity-Builder->BufferSize) return;
+    
+    u32 Capacity = Builder->BufferCapacity;
+    while(Capacity-Builder->BufferSize <= NeededSize){
+        Capacity *= 2;
+    }
+    
+    ArenaResizeMemory(Builder->Arena, Builder->Buffer, Builder->BufferCapacity, Capacity);
+    Builder->BufferCapacity = Capacity;
+}
+
 internal inline void
-StringBuilderToFile(string_builder *Builder, os_file *File, u64 Offset=0){
+BuilderToFile(string_builder *Builder, os_file *File, u64 Offset=0){
     OSWriteToFile(File, Offset, Builder->Buffer, Builder->BufferSize);
 }
 
 internal inline void
-StringBuilderAdd(string_builder *Builder, char C){
-    Assert(Builder->BufferSize+1 <= Builder->BufferCapacity-1);
+BuilderAdd(string_builder *Builder, char C){
+    BuilderMaybeResize(Builder, 1);
+    
     Builder->Buffer[Builder->BufferSize++] = C;
     Builder->Buffer[Builder->BufferSize] = 0;
 }
 
 internal inline void
-StringBuilderAddData(string_builder *Builder, void *Data, u32 DataSize){
-    Assert(Builder->BufferSize+DataSize <= Builder->BufferCapacity-1);
+BuilderAddData(string_builder *Builder, void *Data, u32 DataSize){
+    BuilderMaybeResize(Builder, DataSize);
     CopyMemory(&Builder->Buffer[Builder->BufferSize], Data, DataSize);
     Builder->BufferSize += DataSize;
     Builder->Buffer[Builder->BufferSize] = 0;
 }
 
-internal inline void 
-StringBuilderAlign(string_builder *Builder, u32 Alignment){
-    //char *BufferPos = Builder->Buffer+Builder->BufferSize;
-    //char *EndPos = AlignValue(BufferPos, 
-}
-
-#define StringBuilderAddVar(Builder, Data) StringBuilderAddData(Builder, &Data, sizeof(Data))
+#define BuilderAddVar(Builder, Data) BuilderAddData(Builder, &Data, sizeof(Data))
 
 internal inline void
-StringBuilderVAdd(string_builder *Builder, const char *Format, va_list VarArgs){
-    char Buffer[DEFAULT_BUFFER_SIZE];
-    s32 CharactersWritten = stbsp_vsnprintf(Buffer, DEFAULT_BUFFER_SIZE, Format, VarArgs);
-    Assert(CharactersWritten >= 0);
-    Assert(CharactersWritten < DEFAULT_BUFFER_SIZE);
-    const char *S = Buffer;
-    u32 Length = CStringLength(S);
-    Assert(Builder->BufferSize+Length < Builder->BufferCapacity-1);
-    CopyCString(&Builder->Buffer[Builder->BufferSize], S, Length);
-    Builder->BufferSize += Length;
-    Builder->Buffer[Builder->BufferSize] = 0;
+VBuilderAdd(string_builder *Builder, const char *Format, va_list VarArgs){
+    s32 ExpectedSize = TYLER_VSNPRINTF(0, 0, Format, VarArgs);
+    BuilderMaybeResize(Builder, ExpectedSize);
+    
+    s32 RemainingSize = Builder->BufferCapacity-Builder->BufferSize;
+    s32 Characters = TYLER_VSNPRINTF(&Builder->Buffer[Builder->BufferSize], RemainingSize, Format, VarArgs);
+    Assert(Characters >= 0);
+    Builder->BufferSize += Characters;
 }
 
 internal inline void
-StringBuilderAdd(string_builder *Builder, const char *Format, ...){
+BuilderAdd(string_builder *Builder, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
-    StringBuilderVAdd(Builder, Format, VarArgs);
+    VBuilderAdd(Builder, Format, VarArgs);
     va_end(VarArgs);
 }
 
 internal inline void
-StringBuilderAddString(string_builder *Builder, char *S){
-    StringBuilderAddData(Builder, S, CStringLength(S));
+BuilderAddString(string_builder *Builder, char *S){
+    BuilderAddData(Builder, S, CStringLength(S));
 }
 
 //~ Globals
