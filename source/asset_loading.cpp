@@ -177,7 +177,7 @@ asset_system::LogWarning(const char *Format, ...){
     char *Message = EndStringBuilder(&Builder);
     LogMessage("%s", Message);
     // NOTE(Tyler): Use the asset loader memory, because it will last until the asset system is reset. 
-    DebugInfo.SubmitMessage(DebugMessage_AssetWarning, FinalizeStringBuilder(&Memory, &Builder));
+    DebugInfo.SubmitMessage(DebugMessage_Asset, FinalizeStringBuilder(&Memory, &Builder));
     
     va_end(VarArgs);
 }
@@ -196,7 +196,7 @@ asset_system::LogError(const char *Format, ...){
     char *Message = EndStringBuilder(&Builder);
     LogMessage("%s", Message);
     // NOTE(Tyler): Use the asset loader memory, because it will last until the asset system is reset. 
-    DebugInfo.SubmitMessage(DebugMessage_AssetError, FinalizeStringBuilder(&Memory, &Builder));
+    DebugInfo.SubmitMessage(DebugMessage_Asset, FinalizeStringBuilder(&Memory, &Builder));
     
     va_end(VarArgs);
 }
@@ -631,7 +631,7 @@ asset_system::ProcessCommand(){
     
     char *Message = ArenaPushFormatCString(&Memory, "(Line: %u) '%s' isn't a valid command!", Reader.Line, String);
     LogMessage(Message);
-    DebugInfo.SubmitMessage(DebugMessage_AssetWarning, Message);
+    DebugInfo.SubmitMessage(DebugMessage_Asset, Message);
     ProcessIgnore();
     return AssetLoadingStatus_Warnings;
 }

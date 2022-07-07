@@ -105,6 +105,12 @@ typedef double f64;
 #define FOR_RANGE_(Type, Iterator, Start, End) for(Type Iterator=(Start); Iterator<(End); Iterator++)
 #define FOR_RANGE(Iterator, Start, End) FOR_RANGE_(u32, Iterator, Start, End)
 
+tyler_function void *CantAlloc_(){
+    INVALID_CODE_PATH;
+    return 0;
+}
+
+#define CANT_ALLOC(Type) (Type *)CantAlloc_()
 
 //~ Miscellaneous constants
 global_constant u32 DEFAULT_BUFFER_SIZE = 512;
@@ -831,7 +837,7 @@ ColorMix(color A, color B, f32 Value){
 }
 
 tyler_function inline color
-Alphiphy(color Color, f32 Alpha){
+ColorAlphiphy(color Color, f32 Alpha){
     Alpha = Clamp(Alpha, 0.0f, 1.0f);
     color Result = Color;
     Result.A *= Alpha;
@@ -883,7 +889,7 @@ operator/=(color &Color, f32 X)
 
 typedef u32 color_u32;
 tyler_function inline color_u32
-ColorU32(color C){
+MakeColorU32(color C){
     C*=255.0f;
     
     color_u32 Result = ((((u32)C.R) << 24) |
@@ -2114,7 +2120,8 @@ for(auto &Item = (Array)->Items[Index]; Keep; Keep=false)
 #define FOR_EACH_PTR(Item, Array) FOR_EACH_PTR_(Item, I_, Array)
 #define FOR_EACH(Item, Array) FOR_EACH_(Item, I_, Array)
 
-#define ARRAY_REMOVE_IN_LOOP(Array, Index) ArrayUnorderedRemove(Array, Index); Index--;
+#define ARRAY_REMOVE_IN_LOOP(Array, Index) { ArrayUnorderedRemove(Array, Index); Index--; continue; }
+#define ARRAY_REMOVE_IN_LOOP_ORDERED(Array, Index) { ArrayOrderedRemove(Array, Index); Index--; continue; }
 
 //~ Bucket array
 

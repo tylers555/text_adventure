@@ -37,15 +37,24 @@ enum debug_display_flags_ {
 };
 
 enum debug_message_type {
-    DebugMessage_Debug,
-    DebugMessage_AssetWarning,
-    DebugMessage_AssetError,
+    DebugMessage_PerFrame,
+    DebugMessage_Fadeout,
+    DebugMessage_Asset,
+};
+
+union debug_string_node {
+    char Buffer[512];
+    debug_string_node *NextFree;
 };
 
 struct debug_message {
     debug_message_type Type;
+    union{
+        const char *Message;
+        debug_string_node *StringNode;
+    };
     u32 AssetLoadCounter;
-    const char *Message;
+    f32 Timeout;
 };
 
 struct debug_info {
@@ -53,9 +62,15 @@ struct debug_info {
     u64 InitTime;
     debug_display_flags DisplayFlags = (DebugDisplay_Basic|DebugDisplay_AssetLoading|DebugDisplay_Messages);
     asset_loading_status AssetLoadingStatus;
-    dynamic_array<debug_message> Messages;
     
-    inline void SubmitMessage(debug_message_type Type, const char *Message);
+    dynamic_array<debug_message> Messages;
+    debug_string_node StringNodes[512];
+    debug_string_node *FirstFreeStringNode;
+    
+    inline void SubmitStringMessage(debug_message_type Type, const char *Message, f32 Timeout=0.0f);
+    inline void VSubmitMessage(debug_message_type Type, f32 Timeout, const char *Format, va_list VarArgs);
+    inline void SubmitMessage(debug_message_type Type, const char *Format, ...);
+    inline void SubmitMessage(debug_message_type Type, f32 Timeout, const char *Format, ...);
     inline void EndFrame(debug_scope_time_elapsed Elapsed);
     inline void DoDebugHotkeys();
 };
@@ -68,6 +83,9 @@ struct debug_info_initializer {
     debug_info_initializer(main_state *State_){
         DebugInfo.State = State_;
         StartTime = OSGetMicroseconds();
+        FOR_RANGE(I, 0, ArrayCount(DebugInfo.StringNodes)){
+            FREELIST_FREE(DebugInfo.FirstFreeStringNode, &DebugInfo.StringNodes[I]);
+        }
     }
     
     ~debug_info_initializer(){
@@ -87,15 +105,43 @@ debug_info::DoDebugHotkeys(){
 }
 
 inline void
-debug_info::SubmitMessage(debug_message_type Type, const char *String){
+debug_info::SubmitStringMessage(debug_message_type Type, const char *String, f32 Timeout){
     if(!Messages.Items){
         DebugInfo.Messages = MakeDynamicArray<debug_message>(8);
     }
     debug_message Message = {};
     Message.Type = Type;
-    Message.AssetLoadCounter = State->Assets.LoadCounter;
+    
     Message.Message = String;
+    if(Type == DebugMessage_Fadeout){
+        Message.StringNode = FREELIST_ALLOC(FirstFreeStringNode, CANT_ALLOC(debug_string_node));
+        CopyCString(Message.StringNode->Buffer, String);
+    }
+    
+    Message.AssetLoadCounter = State->Assets.LoadCounter;
+    Message.Timeout = Timeout;
     ArrayAdd(&Messages, Message);
+}
+
+inline void
+debug_info::VSubmitMessage(debug_message_type Type, f32 Timeout, const char *Format, va_list VarArgs){
+    SubmitStringMessage(Type, VArenaPushFormatCString(&GlobalTransientMemory, Format, VarArgs), Timeout);
+}
+
+inline void
+debug_info::SubmitMessage(debug_message_type Type, const char *Format, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Format);
+    VSubmitMessage(Type, 0.0f, Format, VarArgs);
+    va_end(VarArgs);
+}
+
+inline void
+debug_info::SubmitMessage(debug_message_type Type, f32 Timeout, const char *Format, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Format);
+    VSubmitMessage(Type, Timeout, Format, VarArgs);
+    va_end(VarArgs);
 }
 
 inline void
@@ -160,11 +206,32 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
     if(DisplayFlags & DebugDisplay_Messages){
         v2 DebugP = V2(250, 190);
         FOR_EACH_(Message, Index, &Messages){
-            if(Message.AssetLoadCounter < Assets->LoadCounter){
-                ARRAY_REMOVE_IN_LOOP(&Messages, Index);
+            if((Message.Type == DebugMessage_Asset) && 
+               (Message.AssetLoadCounter < Assets->LoadCounter)){
+                ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
             }
             
-            DebugP.Y -= FontRenderString(Renderer, Font, DebugP, GREEN, "%s", Message.Message);
+            local_constant f32 FADEOUT_RANGE = 0.5f;
+            local_constant f32 EPSILON       = 0.05f;
+            color Color = GREEN;
+            if(Message.Type == DebugMessage_Fadeout){
+                if(Message.Timeout <= FADEOUT_RANGE){
+                    f32 T = Message.Timeout/FADEOUT_RANGE;
+                    Color = ColorAlphiphy(Color, Square(T));
+                }
+                if(Message.Timeout <= EPSILON){
+                    FREELIST_FREE(FirstFreeStringNode, Message.StringNode);
+                    ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
+                }
+            }
+            
+            DebugP.Y -= FontRenderString(Renderer, Font, DebugP, Color, "%s", Message.Message);
+            
+            Message.Timeout -= Input->dTime;
+            
+            if(Message.Type == DebugMessage_PerFrame){
+                ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
+            }
         }
     }
 }
