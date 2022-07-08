@@ -1,4 +1,4 @@
 @echo off
 pushd data
-..\build\Win32TAGame.exe
+..\build\Win32TAGameDebug.exe
 popd
