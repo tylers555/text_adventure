@@ -236,7 +236,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, w
         if(TA->InventoryAddItem(Room->Items[TA->BuyItemIndex])) TA->RoomRemoveItem(Room, TA->BuyItemIndex);
         else return false;
         TA->Money -= Item->Cost;
-        Item->Dirty = true;
+        Item->IsDirty = true;
         Item->Cost = 0;
         
         Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));

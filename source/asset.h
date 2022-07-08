@@ -13,6 +13,24 @@ struct image {
     };
 };
 
+enum asset_loading_status {
+    AssetLoadingStatus_Okay,
+    AssetLoadingStatus_Warnings,
+    AssetLoadingStatus_Errors,
+};
+
+struct asset_loading_data {
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+#else
+    asset_loading_status Status;
+#endif
+};
+
+internal inline b8 
+IsLoadedAssetValid(asset_loading_data *Data){
+    return (Data->Status != AssetLoadingStatus_Errors);
+}
+
 //~ Assets
 
 global_constant u32 SJA_MAX_ARRAY_ITEM_COUNT = 256;
@@ -139,6 +157,7 @@ struct sound_data {
 };
 
 struct asset_sound_effect {
+    asset_loading_data LoadingData;
     sound_data Sound;
     f32 VolumeMultiplier;
 };
@@ -165,6 +184,8 @@ struct asset_font_glyph {
 };
 
 struct asset_font {
+    asset_loading_data LoadingData;
+    
     render_texture Texture;
     v2s Size;
     f32 Height;
@@ -262,12 +283,6 @@ enum special_commands_ {
 
 
 //~ Asset system
-enum asset_loading_status {
-    AssetLoadingStatus_Okay,
-    AssetLoadingStatus_Warnings,
-    AssetLoadingStatus_Errors,
-};
-
 global_constant color             ERROR_COLOR = MakeColor(1.0f, 0.0f, 1.0f);
 global_constant fancy_font_format ERROR_FANCY = MakeFancyFormat(ERROR_COLOR);
 
@@ -279,14 +294,14 @@ struct asset_system {
     
     void Initialize(memory_arena *Arena);
     
+    //~ Processed assets loading
+    void LoadProcessedAssets(void *Data, u32 DataSize);
+    
 #if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
     asset_sound_effect SoundEffects[AssetSoundEffect_TOTAL];
     asset_font         Fonts[AssetFont_TOTAL];
     asset_variable     Variables[AssetVariable_TOTAL];
 #else
-    ta_system *TextAdventure;
-    audio_mixer *Mixer;
-    
     hash_table<string, asset_sound_effect> SoundEffectTable;
     hash_table<string, asset_font> FontTable;
     hash_table<string, asset_variable> VariableTable;
@@ -294,6 +309,16 @@ struct asset_system {
     asset_sound_effect *GetSoundEffectByString(string Name);
     asset_font *GetFontByString(string Name);
     asset_variable *GetVariableByString(string Name);
+#endif
+    
+};
+
+//~ Asset loading
+struct asset_loader {
+    ta_system *TextAdventure;
+    audio_mixer *Mixer;
+    asset_system *MainAssets;
+    asset_system InProgress;
     
     //~ Logging 
     const char *CurrentCommand;
@@ -305,9 +330,13 @@ struct asset_system {
     asset_loading_status ChooseStatus(asset_loading_status Status);
     void BeginCommand(const char *Name);
     void LogWarning(const char *Format, ...);
+    void VLogWarning(const char *Format, va_list VarArgs);
     void LogError(const char *Format, ...);
+    void VLogError(const char *Format, va_list VarArgs);
     b8 SeekNextAttribute();
     b8 SeekEndOfFunction();
+    b8 SeekNextCommand();
+    void FailCommand(asset_loading_data *Data, const char *Format, ...);
     
     //~ SJA reading and parsing
     u64 LastFileWriteTime;
@@ -329,7 +358,7 @@ struct asset_system {
     asset_tag           MaybeExpectTag();
     ta_name             ExpectTypeName();
     
-    void InitializeLoader(memory_arena *Arena);
+    void Initialize(memory_arena *Arena, audio_mixer *Mixer_, asset_system *Assets, ta_system *TA);
     
     b8 DoAttribute(const char *String, const char *Attribute);
     
@@ -349,12 +378,8 @@ struct asset_system {
     asset_loading_status ProcessTARoom();
     asset_loading_status ProcessTAItem();
     asset_loading_status ProcessTAMap();
-#endif
     
     asset_loading_status LoadAssetFile(const char *Path);
-    
-    //~ Processed assets loading
-    void LoadProcessedAssets(void *Data, u32 DataSize);
 };
 
 //~ Asset processing

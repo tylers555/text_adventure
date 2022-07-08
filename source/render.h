@@ -89,7 +89,7 @@ struct game_renderer {
     
     //~ Render functions
     void Initialize(memory_arena *Arena, v2 OutputSize_);
-    void NewFrame(os_input *Input, memory_arena *Arena, v2 OutputSize_, color ClearColor_);
+    void NewFrame(os_input *Input, memory_arena *Arena, v2 OutputSize_);
     
     render_item *NewRenderItem(render_texture Texture, b8 HasAlpha, f32 Z);
     item_vertex *AddVertices(render_item *Item, u32 VertexCount);

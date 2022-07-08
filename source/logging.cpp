@@ -1,7 +1,7 @@
 
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
 internal void
-VLogMessage(char *Format, va_list VarArgs){
+VLogMessage(const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
     u32 FormatLength = CStringLength(Format)+1;
     CopyMemory(Buffer, Format, Minimum(FormatLength, DEFAULT_BUFFER_SIZE));
@@ -21,7 +21,7 @@ VLogMessage(char *Format, va_list VarArgs){
 }
 
 internal void
-LogMessage(char *Format, ...){
+LogMessage(const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
     
@@ -30,6 +30,6 @@ LogMessage(char *Format, ...){
     va_end(VarArgs);
 }
 #else
-internal void VLogMessage(char *Format, va_list VarArgs){}
-internal void LogMessage(char *Format, ...) {}
+internal void VLogMessage(const char *Format, va_list VarArgs){}
+internal void LogMessage(const char *Format, ...) {}
 #endif

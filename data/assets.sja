@@ -12,7 +12,7 @@
     # -Review: "cathedral_*"
     # -"cathedral_*" adjacent descriptions
     # "cathedral_maintenance_room"
-    # -"bench" ghost and non-ghost descriptiosn
+    # -"bench" ghost and non-ghost descriptions
         # -"carillon_pages_bench_ghost"
     # -most bell_tower rooms
     # -"art_studio"
@@ -569,7 +569,7 @@
     description Tag("examine")
         "Its a very dark black, and appears very durable."
     data_command Tag("use") "open umbrella" 
-    
+     
 : TAItem "lantern" Name("Lantern" Array("lantern" "lanterns")) Tag("light")
     cost 10
     description Tag("examine")
@@ -617,7 +617,7 @@
         "The bread is warm, with a light brown crust."
     description Tag("eat")
         "Nothing beats fresh bread from the bakery. "
-        "You feel more full—physically, and emotionally. "
+        "You feel more fullâ€”physically, and emotionally. "
         "As you eat it, the thin, crispy crust turns into bread crumbs. "
     data_command Tag("use") "eat large loaves of wheat bread"
     
@@ -625,7 +625,7 @@
     description Tag("examine")
         "It's literally just a handful of crumbs... from bread."
     description Tag("eat")
-        "You must be really desperate or really don’t like wasting food."
+        "You must be really desperate or really donâ€™t like wasting food."
     data_command Tag("use") "eat bread crumbs"
     
 : TAItem "leather_sheet" Name("Leather sheet" Array("sheet" "leather") Array("leather")) Tag("fixer")
@@ -1522,3 +1522,5 @@
     adjacents
         east "library_front"
     items Array("carillon_pages_ritual_book")
+
+

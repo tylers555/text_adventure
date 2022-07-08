@@ -327,7 +327,8 @@ ResizeFramebuffer(framebuffer *Framebuffer, v2s Size){
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, 
                               Framebuffer->RenderbufferID);
     
-    if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE){
+    GLenum Status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if(Status != GL_FRAMEBUFFER_COMPLETE){
         LogMessage("ERROR: framebuffer not complete!");
         INVALID_CODE_PATH;
     }

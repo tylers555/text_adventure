@@ -408,7 +408,10 @@ inline b8
 ta_system::CheckAndLogItemID(ta_id ItemID){
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
     ta_item *Item = FindItem(ItemID);
-    if(!Item) LogMessage("Item %s does not exist!", Strings.GetString(MakeString(ItemID.ID)));
+    if(!Item){
+        DebugInfo.SubmitMessage(DebugMessage_Fadeout, 
+                                "Item %s does not exist!", Strings.GetString(MakeString(ItemID.ID)));
+    }
     return (Item != 0);
 #else 
     return true;
@@ -427,16 +430,26 @@ ta_system::CheckAndLogRoomID(ta_id RoomID){
 
 //~ Inventory
 inline b8
-ta_system::InventoryAddItem(ta_id Item){
-    // NOTE(Tyler): We don't want to CheckAndLogItemID here, 
-    // because we add items that don't exist yet in the asset system.
-    b8 Result = ArrayMaybeAdd(&Inventory, Item);
+ta_system::MaybeMarkItemDirty(ta_id ItemID){
+    ta_item *Item = FindItem(ItemID);
+    if(Item){
+        Item->IsDirty = true;
+        return true;
+    }
+    return false;
+}
+
+inline b8
+ta_system::InventoryAddItem(ta_id ItemID){
+    MaybeMarkItemDirty(ItemID);
+    b8 Result = ArrayMaybeAdd(&Inventory, ItemID);
     if(!Result) Respond("You are far too \002\002weak\002\001 to carry that many items!!!");
     return Result;
 }
 
 inline b8
 ta_system::InventoryRemoveItem(u32 Index){
+    MaybeMarkItemDirty(Inventory[Index]);
     ArrayOrderedRemove(&Inventory, Index);
     return (Index < Inventory.Count);
 }
@@ -444,6 +457,7 @@ ta_system::InventoryRemoveItem(u32 Index){
 inline b8
 ta_system::InventoryRemoveItemByID(ta_id ID){
     if(!CheckAndLogItemID(ID)) return false;
+    MaybeMarkItemDirty(ID);
     b8 Result = ArrayRemoveByValue(&Inventory, ID);
     Assert(Result);
     
@@ -465,6 +479,7 @@ ta_system::RoomAddItem(ta_room *Room, ta_id Item){
     }
     
     b8 Result = ArrayMaybeAdd(&Room->Items, Item);
+    if(Result) MaybeMarkItemDirty(Item);
     Room->Flags |= RoomFlag_Dirty;
     return Result;
 }
@@ -472,7 +487,9 @@ ta_system::RoomAddItem(ta_room *Room, ta_id Item){
 inline b8
 ta_system::RoomDropItem(asset_system *Assets, ta_room *Room, ta_id Item){
     b8 Result = RoomAddItem(Room, Item);
-    if(!Result) Respond(GetVar(Assets, room_too_small));
+    if(!Result){
+        Respond(GetVar(Assets, room_too_small));
+    }
     return Result;
 }
 
@@ -480,6 +497,7 @@ inline b8
 ta_system::RoomRemoveItem(ta_room *Room, u32 Index){
     Room->Flags |= RoomFlag_Dirty;
     ArrayOrderedRemove(&Room->Items, Index);
+    MaybeMarkItemDirty(Room->Items[Index]);
     return (Index < Room->Items.Count);
 }
 
@@ -487,6 +505,7 @@ inline b8
 ta_system::RoomRemoveItemByID(ta_room *Room, ta_id ID){
     b8 Result = ArrayRemoveByValue(&Room->Items, ID);
     Assert(Result);
+    MaybeMarkItemDirty(ID);
     
     return Result;
 }
@@ -494,6 +513,16 @@ ta_system::RoomRemoveItemByID(ta_room *Room, ta_id ID){
 inline b8
 ta_system::RoomHasItem(ta_room *Room, ta_id ID){
     return ArrayHasItem(&Room->Items, ID);
+}
+
+inline b8
+ta_system::RoomEnsureItem(ta_room *Room, ta_id ID){
+    CheckAndLogItemID(ID);
+    if(!RoomHasItem(Room, ID)){
+        Assert(RoomAddItem(Room, ID));
+        return false;
+    }
+    return true;
 }
 
 //~ Miscellaneous

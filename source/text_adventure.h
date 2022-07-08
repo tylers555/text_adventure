@@ -24,10 +24,10 @@ struct console_theme {
     union{
         struct {
             fancy_font_format BasicFancy;     // '\0'
-            fancy_font_format DirectionFancy; // '\3'
+            fancy_font_format DirectionFancy; // '\1'
             fancy_font_format RoomFancy;      // '\2'
-            fancy_font_format ItemFancy;      // '\1'
-            fancy_font_format MiscFancy;      // '\4'
+            fancy_font_format ItemFancy;      // '\3'
+            fancy_font_format MiscFancy;      // '\'
             fancy_font_format MoodFancy;      // '\5'
         };
         fancy_font_format DescriptionFancies[6];
@@ -53,7 +53,7 @@ struct ta_map {
 };
 
 struct ta_item {
-    b8 Dirty;
+    b8 IsDirty;
     
     ta_id ID;
     ta_name NameData;
@@ -117,6 +117,8 @@ struct ta_system {
         u32 BuyItemIndex;
     };
     
+    inline b8 MaybeMarkItemDirty(ta_id ItemID);
+    
     void Initialize(asset_system *Assets, memory_arena *Arena);
     inline b8 InventoryAddItem(ta_id Item);
     inline b8 InventoryRemoveItem(u32 Index);
@@ -129,6 +131,7 @@ struct ta_system {
     inline b8 RoomRemoveItem(ta_room *Room, u32 Index);
     inline b8 RoomRemoveItemByID(ta_room *Room, ta_id ID);
     inline b8 RoomHasItem(ta_room *Room, ta_id ID);
+    inline b8 RoomEnsureItem(ta_room *Room, ta_id ID);
     
     inline ta_item *FindItem(ta_id Item);
     

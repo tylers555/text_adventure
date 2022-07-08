@@ -57,8 +57,10 @@ struct file_reader {
     u8 *FilePos;
     u8 *FileEnd;
     u32    Line;
-    file_reader_error LastError;
     asset_system *System;
+    
+    file_reader_error LastError;
+    file_token LastToken;
     
     file_token ExpectToken(file_token_type Type);
     

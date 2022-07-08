@@ -156,7 +156,12 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
     DO_DEBUG_INFO();
     
     console_theme *Theme = HashTableFindPtr(&TA->ThemeTable, GetVarTAID(Assets, theme));
-    Renderer->NewFrame(Input, &GlobalTransientMemory, Input->WindowSize, Theme->BackgroundColor);
+    if(!Theme){
+        DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
+                                "Theme: \"%s\" does not exist does not exist!", GetVar(Assets, theme));
+        return;
+    }
+    Renderer->ClearColor = Theme->BackgroundColor;
     
     if(!TA->CurrentRoom){
         Input->BeginTextInput(&TA->EditingCommandSentinel.Context);
@@ -175,7 +180,14 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
     
     asset_font *BoldFont = GetFont(Assets, Theme->TitleFont);
     asset_font *Font = GetFont(Assets, Theme->BasicFont);
-    Assert(Font);
+    if(!BoldFont){
+        DebugInfo.SubmitMessage(DebugMessage_PerFrame, "Theme title font does not exist does not exist!");
+        return;
+    }
+    if(!Font){
+        DebugInfo.SubmitMessage(DebugMessage_PerFrame, "Theme basic font does not exist does not exist!");
+        return;
+    }
     
     v2 WindowSize = V2Round(Renderer->ScreenToWorld(Input->WindowSize));
     

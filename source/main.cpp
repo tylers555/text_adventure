@@ -42,19 +42,19 @@ MainStateInitialize(main_state *State){
         Assert(Memory);
         InitializeArena(&GlobalPermanentMemory, Memory, Size);
     }
-    GlobalTransientMemory = MakeArena(&GlobalPermanentMemory, Megabytes(512));
+    GlobalTransientMemory = MakeArena(&GlobalPermanentMemory, Megabytes(256));
     GlobalTickMemory      = MakeArena(&GlobalPermanentMemory, Megabytes(256));
     
     State->Renderer.Initialize(&GlobalPermanentMemory, State->Input.WindowSize);
-    State->Renderer.NewFrame(&State->Input, &GlobalTransientMemory, State->Input.WindowSize, PINK);
+    State->Renderer.NewFrame(&State->Input, &GlobalTransientMemory, State->Input.WindowSize);
     State->Mixer.Initialize(&GlobalPermanentMemory);
     
     Strings.Initialize(&GlobalPermanentMemory);
     State->TextAdventure.Initialize(&State->Assets, &GlobalPermanentMemory);
-    State->Assets.TextAdventure = &State->TextAdventure;
-    State->Assets.Mixer = &State->Mixer;
     State->Assets.Initialize(&GlobalPermanentMemory);
-    State->Assets.LoadAssetFile(ASSET_FILE_PATH);
+    
+    State->AssetLoader.Initialize(&GlobalPermanentMemory, &State->Mixer, &State->Assets, &State->TextAdventure);
+    State->AssetLoader.LoadAssetFile(ASSET_FILE_PATH);
 }
 
 //~
@@ -64,10 +64,12 @@ MainStateDoFrame(main_state *State){
     
     OSProcessInput(&State->Input);
     
-    asset_loading_status LoadingStatus = State->Assets.LoadAssetFile(ASSET_FILE_PATH);
+    asset_loading_status LoadingStatus = State->AssetLoader.LoadAssetFile(ASSET_FILE_PATH);
     DebugInfo.AssetLoadingStatus = LoadingStatus;
     
     if(LoadingStatus != AssetLoadingStatus_Errors){
+        State->Renderer.NewFrame(&State->Input, &GlobalTransientMemory, State->Input.WindowSize);
+        
         GameDoFrame(&State->Renderer, &State->Mixer, &State->Assets, &State->Input, &State->TextAdventure);
         
         RendererBackendRenderAll(&State->Renderer);

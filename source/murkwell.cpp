@@ -145,7 +145,7 @@ MurkwellStartCarillonPages(ta_system *TA, asset_system *Assets){
     
     //MurkwellPostEvent(TA, MurkwellEvent_CarillonPages);
     TA->CarillonPages.QuestStatus = QuestStatus_Active;
-    Assert(TA->RoomAddItem(GetRoom(TA, bench), GetItemID(TA, carillon_pages_bench_ghost)));
+    TA->RoomEnsureItem(GetRoom(TA, bench), GetItemID(TA, carillon_pages_bench_ghost));
     
     return true;
 }

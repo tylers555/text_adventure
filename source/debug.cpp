@@ -40,6 +40,8 @@ enum debug_message_type {
     DebugMessage_PerFrame,
     DebugMessage_Fadeout,
     DebugMessage_Asset,
+    
+    DebugMessage_EndPerFrame,
 };
 
 union debug_string_node {
@@ -49,6 +51,7 @@ union debug_string_node {
 
 struct debug_message {
     debug_message_type Type;
+    u64 Hash;
     union{
         const char *Message;
         debug_string_node *StringNode;
@@ -111,6 +114,7 @@ debug_info::SubmitStringMessage(debug_message_type Type, const char *String, f32
     }
     debug_message Message = {};
     Message.Type = Type;
+    Message.Hash = HashString(String);
     
     Message.Message = String;
     if(Type == DebugMessage_Fadeout){
@@ -118,7 +122,22 @@ debug_info::SubmitStringMessage(debug_message_type Type, const char *String, f32
         CopyCString(Message.StringNode->Buffer, String);
     }
     
-    Message.AssetLoadCounter = State->Assets.LoadCounter;
+    b8 SendToConsole = true;
+    if(Type == DebugMessage_PerFrame){
+        FOR_EACH(OtherMessage, &Messages){
+            if(OtherMessage.Type == DebugMessage_EndPerFrame){
+                if(OtherMessage.Hash == Message.Hash){
+                    SendToConsole = false;
+                }
+            }
+        }
+    }
+    
+    if(SendToConsole){
+        LogMessage(String);
+    }
+    
+    Message.AssetLoadCounter = State->AssetLoader.LoadCounter;
     Message.Timeout = Timeout;
     ArrayAdd(&Messages, Message);
 }
@@ -147,6 +166,7 @@ debug_info::SubmitMessage(debug_message_type Type, f32 Timeout, const char *Form
 inline void
 debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
     asset_system *Assets = &State->Assets;
+    asset_loader *Loader = &State->AssetLoader;
     game_renderer *Renderer = &State->Renderer;
     ta_system *TA = &State->TextAdventure;
     os_input *Input = &State->Input;
@@ -207,7 +227,11 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
         v2 DebugP = V2(250, 190);
         FOR_EACH_(Message, Index, &Messages){
             if((Message.Type == DebugMessage_Asset) && 
-               (Message.AssetLoadCounter < Assets->LoadCounter)){
+               (Message.AssetLoadCounter < Loader->LoadCounter)){
+                ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
+            }
+            
+            if(Message.Type == DebugMessage_EndPerFrame){
                 ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
             }
             
@@ -230,7 +254,7 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
             Message.Timeout -= Input->dTime;
             
             if(Message.Type == DebugMessage_PerFrame){
-                ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
+                Message.Type = DebugMessage_EndPerFrame;
             }
         }
     }

@@ -236,10 +236,10 @@ game_renderer::ChangeScale(f32 NewScale){
 }
 
 void
-game_renderer::NewFrame(os_input *Input, memory_arena *Arena, v2 OutputSize_, color ClearColor_){
+game_renderer::NewFrame(os_input *Input, memory_arena *Arena, v2 OutputSize_){
     v2 OldOutputSize = OutputSize;
     OutputSize = OutputSize_;
-    ClearColor = ClearColor_;
+    ClearColor = ERROR_COLOR;
     StackClear(&ClipRects);
     StackPush(&ClipRects, SizeRect(V2(0), OutputSize));
     

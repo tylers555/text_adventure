@@ -6,7 +6,6 @@ asset_system::Initialize(memory_arena *Arena){
     SoundEffectTable = MakeHashTable<string, asset_sound_effect>(Arena, MAX_ASSETS_PER_TYPE);
     FontTable        = MakeHashTable<string, asset_font>(Arena, MAX_ASSETS_PER_TYPE);
     VariableTable    = MakeHashTable<string, asset_variable>(Arena, MAX_VARIABLES);
-    InitializeLoader(Arena);
 #endif
     
     //~ Dummy assets
@@ -76,25 +75,27 @@ SwitchTag(asset_tag *ID, asset_tag_id From, asset_tag_id To){
 }
 
 #if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-//~ Sound effects
 
+//~ Sound effects
 asset_sound_effect *
 asset_system::GetSoundEffectByString(string Name){
-    asset_sound_effect *Result = 0;
     if(Name.ID){
-        Result = HashTableFindPtr(&SoundEffectTable, Name);
+        asset_sound_effect *Result = HashTableFindPtr(&SoundEffectTable, Name);
+        if(Result && !IsLoadedAssetValid(&Result->LoadingData)) return 0;
+        return Result;
     }
-    return(Result);
+    return 0;
 }
 
 //~ Fonts
 asset_font *
 asset_system::GetFontByString(string Name){
-    asset_font *Result = 0;
     if(Name.ID){
-        Result = HashTableFindPtr(&FontTable, Name);
+        asset_font *Result = HashTableFindPtr(&FontTable, Name);
+        if(Result && !IsLoadedAssetValid(&Result->LoadingData)) return 0;
+        return Result;
     }
-    return(Result);
+    return 0;
 }
 
 //~ Variables

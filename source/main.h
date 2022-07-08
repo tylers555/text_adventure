@@ -65,6 +65,10 @@ enum direction {
 #include "text_adventure.h"
 
 //~ 
+struct settings_state {
+    sound_handle MusicHandle;
+};
+
 struct main_state {
     asset_system Assets;
     game_renderer Renderer;
@@ -72,10 +76,10 @@ struct main_state {
     os_input Input;
     
     ta_system TextAdventure;
-};
-
-struct settings_state {
-    sound_handle MusicHandle;
+    
+#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+    asset_loader AssetLoader;
+#endif
 };
 
 #endif

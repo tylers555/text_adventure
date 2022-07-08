@@ -301,6 +301,8 @@ file_reader::NextToken(){
         }
     }
     
+    Result.IsValid = true;
+    LastToken = Result;
     return(Result);
 }
 
@@ -322,15 +324,12 @@ file_token
 file_reader::ExpectToken(file_token_type Type){
     LastError = FileReaderError_None;
     file_token Token = NextToken();
-    Token.IsValid = true;
     if(Type == FileTokenType_Float){
         Token = MaybeTokenIntegerToFloat(Token);
     }
     
     if(Token.Type == Type){
         return(Token);
-    }else {
-        //System->LogError("Expected %s, instead read: %s", TokenTypeName(Type), TokenToString(Token));
     }
     
     LastError = FileReaderError_InvalidToken;
