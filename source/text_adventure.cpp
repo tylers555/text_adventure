@@ -88,6 +88,7 @@ TAIDByName(ta_system *TA, const char *S){
 #define GetRoom(TA, Name) (TA)->FindRoom(GetRoomID(TA, Name))
 #define GetItemID(TA, Name) TAIDByName((TA), #Name)
 #define GetItem(TA, Name) (TA)->FindItem(GetItemID(TA, Name))
+#define GetAreaID(TA, Name) TAIDByName(TA, #Name)
 
 global_constant u32 ROOM_TABLE_SIZE = 64;
 global_constant u32 ITEM_TABLE_SIZE = 128;
@@ -409,7 +410,7 @@ ta_system::CheckAndLogItemID(ta_id ItemID){
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
     ta_item *Item = FindItem(ItemID);
     if(!Item){
-        DebugInfo.SubmitMessage(DebugMessage_Fadeout, 
+        DebugInfo.SubmitMessage(DebugMessage_Fadeout, 1.0f,
                                 "Item %s does not exist!", Strings.GetString(MakeString(ItemID.ID)));
     }
     return (Item != 0);

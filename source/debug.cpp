@@ -2,6 +2,8 @@
 
 //#define DEBUG_DISPLAY_TEXT_INPUT_UNDO
 
+local_constant f32 DEBUG_FADEOUT_RANGE = 0.5f;
+
 //~ 
 struct debug_scope_time_elapsed {
     u64 Microseconds;
@@ -70,7 +72,7 @@ struct debug_info {
     debug_string_node StringNodes[512];
     debug_string_node *FirstFreeStringNode;
     
-    inline void SubmitStringMessage(debug_message_type Type, const char *Message, f32 Timeout=0.0f);
+    inline void SubmitStringMessage(debug_message_type Type, const char *Message, f32 Timeout=1.0f);
     inline void VSubmitMessage(debug_message_type Type, f32 Timeout, const char *Format, va_list VarArgs);
     inline void SubmitMessage(debug_message_type Type, const char *Format, ...);
     inline void SubmitMessage(debug_message_type Type, f32 Timeout, const char *Format, ...);
@@ -117,29 +119,39 @@ debug_info::SubmitStringMessage(debug_message_type Type, const char *String, f32
     Message.Hash = HashString(String);
     
     Message.Message = String;
-    if(Type == DebugMessage_Fadeout){
-        Message.StringNode = FREELIST_ALLOC(FirstFreeStringNode, CANT_ALLOC(debug_string_node));
-        CopyCString(Message.StringNode->Buffer, String);
-    }
     
     b8 SendToConsole = true;
+    b8 KeepMessage = true;
     if(Type == DebugMessage_PerFrame){
         FOR_EACH(OtherMessage, &Messages){
-            if(OtherMessage.Type == DebugMessage_EndPerFrame){
-                if(OtherMessage.Hash == Message.Hash){
-                    SendToConsole = false;
-                }
+            if((OtherMessage.Type == DebugMessage_EndPerFrame) &&
+               (OtherMessage.Hash == Message.Hash)){
+                SendToConsole = false;
+            }
+        }
+    }else if(Type == DebugMessage_Fadeout){
+        FOR_EACH(OtherMessage, &Messages){
+            if((OtherMessage.Type == DebugMessage_Fadeout) && 
+               (OtherMessage.Hash == Message.Hash)){
+                KeepMessage = false;
+                if(OtherMessage.Timeout > DEBUG_FADEOUT_RANGE) SendToConsole = false;
+                OtherMessage.Timeout = Timeout;
             }
         }
     }
     
-    if(SendToConsole){
-        LogMessage(String);
-    }
-    
     Message.AssetLoadCounter = State->AssetLoader.LoadCounter;
     Message.Timeout = Timeout;
-    ArrayAdd(&Messages, Message);
+    
+    if(SendToConsole) LogMessage(String); 
+    if(KeepMessage){
+        if(Type == DebugMessage_Fadeout){
+            Message.StringNode = FREELIST_ALLOC(FirstFreeStringNode, CANT_ALLOC(debug_string_node));
+            CopyCString(Message.StringNode->Buffer, String);
+        }
+        
+        ArrayAdd(&Messages, Message);
+    }
 }
 
 inline void
@@ -151,7 +163,7 @@ inline void
 debug_info::SubmitMessage(debug_message_type Type, const char *Format, ...){
     va_list VarArgs;
     va_start(VarArgs, Format);
-    VSubmitMessage(Type, 0.0f, Format, VarArgs);
+    VSubmitMessage(Type, 1.0f, Format, VarArgs);
     va_end(VarArgs);
 }
 
@@ -188,7 +200,7 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
         }
     }
     
-    DebugP = V2(200, 230);
+    DebugP = V2(200, 200);
     if(DisplayFlags & DebugDisplay_Ghosts){
         FOR_EACH_PTR_(Ghost, Index, &TA->Ghosts){
             ta_room *Room = TA->FindRoom(Ghost->CurrentRoom);
@@ -216,6 +228,7 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
     if(DisplayFlags & DebugDisplay_StaticItems){
         ta_room *Room = TA->CurrentRoom;
         FOR_EACH(ItemID, &Room->Items){
+            if(!TA->CheckAndLogItemID(ItemID)) continue;
             ta_item *Item = TA->FindItem(ItemID);
             if(HasTag(Item->Tag, AssetTag_Static)){
                 DebugP.Y -= FontRenderString(Renderer, Font, DebugP, WHITE, "%s", Item->NameData.Name);
@@ -235,12 +248,11 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
                 ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
             }
             
-            local_constant f32 FADEOUT_RANGE = 0.5f;
             local_constant f32 EPSILON       = 0.05f;
             color Color = GREEN;
             if(Message.Type == DebugMessage_Fadeout){
-                if(Message.Timeout <= FADEOUT_RANGE){
-                    f32 T = Message.Timeout/FADEOUT_RANGE;
+                if(Message.Timeout <= DEBUG_FADEOUT_RANGE){
+                    f32 T = Message.Timeout/DEBUG_FADEOUT_RANGE;
                     Color = ColorAlphiphy(Color, Square(T));
                 }
                 if(Message.Timeout <= EPSILON){

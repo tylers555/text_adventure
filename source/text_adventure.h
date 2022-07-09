@@ -211,7 +211,7 @@ WORD("yep") \
 WORD("sure") \
 WORD("absolutely") \
 WORD("ok") \
-WORD("nay") \
+WORD("yay") \
 WORD("positive") \
 
 #define NEGATIVES \

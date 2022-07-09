@@ -28,6 +28,7 @@ enum quest_status {
 //~ @quest_carillon_pages_h
 struct carillon_pages_state {
     quest_status QuestStatus;
+    b8 OrganWasRepaired;
     b8 BenchGhostIsFollowing;
 };
 

@@ -81,6 +81,7 @@ HighestMatch = Match; \
         TA_COMMAND("perform",  CommandPerform);
         TA_COMMAND("setup",    CommandSetupCandles);
         TA_COMMAND("prepare",  CommandSetupCandles);
+        TA_COMMAND("place",    CommandSetupCandles);
         
         //- Testing commands
         TA_COMMAND("testaddmoney",      CommandTestAddMoney);

@@ -206,28 +206,6 @@ asset_loader::LogWarning(const char *Format, ...){
     va_end(VarArgs);
 }
 
-void
-asset_loader::VLogError(const char *Format, va_list VarArgs){
-    LoadingStatus = AssetLoadingStatus_Errors;
-    string_builder Builder = BeginResizeableStringBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
-    BuilderAdd(&Builder, "(Line: %u)[%s", Reader.Line, CurrentCommand);
-    if(CurrentAsset)     BuilderAdd(&Builder, ",\"%s\"", CurrentAsset);
-    if(CurrentAttribute) BuilderAdd(&Builder, ",%s", CurrentAttribute);
-    BuilderAdd(&Builder, "] ");
-    VBuilderAdd(&Builder, Format, VarArgs);
-    char *Message = EndStringBuilder(&Builder);
-    // NOTE(Tyler): Use the asset loader memory, because it will last until the asset system is reset. 
-    DebugInfo.SubmitMessage(DebugMessage_Asset, FinalizeStringBuilder(&InProgress.Memory, &Builder));
-}
-
-void
-asset_loader::LogError(const char *Format, ...){
-    va_list VarArgs;
-    va_start(VarArgs, Format);
-    VLogError(Format, VarArgs);
-    va_end(VarArgs);
-}
-
 b8
 asset_loader::SeekEndOfFunction(){
     file_token Token = Reader.PeekToken();

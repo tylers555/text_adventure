@@ -9,6 +9,7 @@
     
     # -var "event_carillon_pages"
 
+    # -Ghost orb
     # -Review: "cathedral_*"
     # -"cathedral_*" adjacent descriptions
     # "cathedral_maintenance_room"
@@ -37,12 +38,14 @@
     give_item "ritual_book"
     give_item "apple_pie"
     give_item "ritual_candles"
+    give_item "carillon_pages_church_robes"
+    give_item "carillon_pages_magic_staff"
     start_carillon_pages
     
 : Variables
     ta_id "theme"           "theme_default"
     # @sja_start_room 
-    ta_id "start_room"      "bench"
+    ta_id "start_room"      "cathedral_quire"
     
 : Variables # @sja_command_messages
     var "invalid_command"     "That is not a valid command!\n"
@@ -87,7 +90,8 @@
 
     var "pray_response"             "You pray, but nothing seems to happen. "
     var "pray_carillon_pages_bench" "You see the ghost slightly shudder as you pray. \1TODO\0 "
-    var "feed_carillon_pages_bench_ghost_pie" "The ghost positively glows from the pie, and seems to releas,e the pages from its hold. "
+    var "pray_carillon_pages_cathedral" "You see an entire ghost congregation appear in the nave. \1TODO\0 "
+    var "feed_carillon_pages_bench_ghost_pie" "The ghost positively glows from the pie, and seems to release the pages from its hold. "
 
     # TODO(Tyler): "ritual_book" display name?
     var "setup_candles_carillon_pages" "You setup the candles delicately, closely the following 'Gadbury's Ghostly Guide'"
@@ -102,6 +106,7 @@
     
 : Variables # @sja_event_descriptions
     var "carillon_pages_bench_ghost_following" "There is a \5ghost\0 here!"    
+    var "carillon_pages_cathedral_singing" "A beautiful room fills the cathedral. \3TODO\0"
     var "event_carillon_pages" "The bell tower rings with incredible dissonance with all the bells sounding at once. "
                                "You observe what appear to be several pages go flying out of the window, "
                                "moving and flying in strange and various directions. "
@@ -516,7 +521,6 @@
 : SoundEffect "sound_pipes_repaired"
     path "asset_sound_effects/osj/PowUpFX.wav"
 
-
 : SoundEffect "sound_read" # TODO(Tyler): Perhaps?
     path "asset_sound_effects/testing/glide_00.wav"
 
@@ -532,29 +536,29 @@
 #~ @sja_map
 : TAMap 
     path "asset_arts/map_colored.png"
-    area "Art studio"      V2(79 75)
-    area "Bakery"          V2(103 41)
-    area "Bar"             V2(83 31)
-    area "Bell tower"      V2(87 57)
-    area "Cathedral"       V2(94 52)
-    area "Concert hall"    V2(45 21)
-    area "Dark alley"      V2(59 53)
-    area "Bench"           V2(51 60)
-    area "Garden lawn"     V2(106 50)
-    area "Garden tree"     V2(107  56)
-    area "Garden fountain" V2(115 56)
-    area "Graveyard"       V2(109 67)
-    area "Inn"             V2(71 44)
-    area "Plant shop"      V2(60 60)
-    area "Southeast plaza" V2(93 41)
-    area "Southwest plaza" V2(83 43)
-    area "Northwest plaza" V2(84 48)
-    area "Restaurant"      V2(45 45)
-    area "Shop"            V2(93 31)
-    area "Thorn Lane"      V2(61 35)
-    area "East Thorn Lane" V2(72 38)
-    area "West Thorn Lane" V2(47 36)
-    area "Tailor"          V2(61 27)
+    area "art_studio"      V2(79 75)
+    area "bakery"          V2(103 41)
+    area "bar"             V2(83 31)
+    area "bell_tower"      V2(87 57)
+    area "cathedral"       V2(94 52)
+    area "concert_hall"    V2(45 21)
+    area "dark_alley"      V2(59 53)
+    area "bench"           V2(51 60)
+    area "garden_lawn"     V2(106 50)
+    area "garden_tree"     V2(107  56)
+    area "garden_fountain" V2(115 56)
+    area "graveyard"       V2(109 67)
+    area "inn"             V2(71 44)
+    area "plant_shop"      V2(60 60)
+    area "southeast_plaza" V2(93 41)
+    area "southwest_plaza" V2(83 43)
+    area "northwest_plaza" V2(84 48)
+    area "restaurant"      V2(45 45)
+    area "shop"            V2(93 31)
+    area "thorn_lane"      V2(61 35)
+    area "east_thorn_lane" V2(72 38)
+    area "west_thorn_lane" V2(47 36)
+    area "tailor"          V2(61 27)
 
 #~ @sja_items
 
@@ -639,6 +643,34 @@
     data_command Tag("use") "repair organ pipes" 
 
 #~ @sja_carillon_pages
+
+
+# TODO(Tyler): 
+: TAItem "carillon_pages_singing_ghost" Name("Singing ghost" Array("ghost") Array("singing")) Tag("static")
+    description Tag("examine")
+        "A singing ghost."
+
+# TODO(Tyler): 
+: TAItem "carillon_pages_ghostly_congregation" Name("Ghostly congregation" Array("congregation" "ghost") Array("ghostly")) Tag("static")
+    description Tag("examine")
+        "Ghostly congregation"
+    description Tag("override")
+        "A ghostly congregation is here!"
+
+# TODO(Tyler): 
+: TAItem "carillon_pages_church_robes" Name("Church robes" Array("robes") Array("church"))
+    description Tag("examine") 
+        "Church robes that provide powerful protection against the spiritual elements."
+
+# TODO(Tyler): 
+: TAItem "carillon_pages_magic_staff" Name("Magic staff" Array("staff") Array("magic"))
+    description Tag("examine") 
+        "Magical staff for casting out spirits."
+
+# TODO(Tyler): 
+: TAItem "ghost_orb" Name("Ghost orb" Array("orb") Array("ghost"))
+    description Tag("examine")
+        "A ghost orb. "
 
 # TODO(Tyler): 
 : TAItem "carillon_pages_bench_ghost" Name("Ghost" Array("ghost") Array("bench")) Tag("ghost" "static")
@@ -728,11 +760,11 @@
 
 # TODO(Tyler): Description
 : TAItem "plaza_southeast_cathedral" Name("Southeast plaza cathedral" Array("cathedral")) Tag("static")
-    description
+    description Tag("examine")
         "The cathedral"
 
 : TARoom "plaza_southeast" Name("Southeast plaza" Array("plaza") Array("se" "southeast" "south" "east"))
-    area "Southeast plaza"
+    area "southeast_plaza"
     description
         "There is very little here, aside from several tall and \5looming oak trees\0 in the \1northeast\0. "
         "The ground is damp from the rainy weather, and the blowing breeze brings a crisp chill. "
@@ -759,7 +791,7 @@
         "The bell tower is easily the tallest building in the town and could likely be seen for miles. "
 
 : TARoom "plaza_southwest" Name("Southwest plaza" Array("plaza") Array("sw" "southwest" "south" "west"))
-    area "Southwest plaza"
+    area "southwest_plaza"
     description
         "When looking \1northeast\0, you see the side of the \5cathedral\0, which seems small next to the monolithic \5bell tower\0. "
         "A cool crisp breeze flows accross your face."
@@ -776,7 +808,7 @@
     items Array("plaza_southwest" "plaza_southwest_bell_tower")    
 
 : TARoom "plaza_northwest" Name("Northwest plaza" Array("plaza") Array("nw" "northwest" "north" "west"))
-    area "Northwest plaza"
+    area "northwest_plaza"
     description
         "This area of the plaza is rather empty and lacks significant defining features, "
         "aside from a wall in the \1west\0."
@@ -806,7 +838,7 @@
     data_item Tag("fixer")             "organ_pipes"
     
 : TARoom "cathedral_front" Name("Cathedral front" Array("cathedral" "church" "front") Array("cathedral" "church" ))
-    area "Cathedral"
+    area "cathedral"
     description
         "The cathedral stands tall and proud right in front of you, radiating a certain holiness. "
         "A weathered wooden door, framed by intricate stone priests and gargoyles, looms before you, "
@@ -819,7 +851,7 @@
         south "plaza_southeast"
     
 : TARoom "cathedral_nave" Name("Cathedral nave" Array("cathedral" "church" "nave") Array("cathedral" "church" ))
-    area "Cathedral"
+    area "cathedral"
     description
         "Lines of stone pillars reach up into arches at a vaulted ceiling. "
         "Despite the large stained-glass windows on either side, the cathedral is oddly dim, lit more by candelabras than natural light. "
@@ -831,10 +863,10 @@
     adjacents
         north     "cathedral_quire"
         south     "cathedral_front"
-    items Array("carillon_pages_candles")    
+    items Array("ritual_candles")    
 
 : TARoom "cathedral_quire" Name("Cathedral quire" Array("quire") Array("cathedral" "church"))
-    area "Cathedral"
+    area "cathedral"
     description
         "Cathedral quire"
     description Tag("adjacents") # TODO(Tyler)
@@ -847,7 +879,7 @@
         west  "cathedral_transpect_left"
 
 : TARoom "cathedral_apse" Name("Cathedral apse" Array("apse") Array("cathedral" "church"))
-    area "Cathedral"
+    area "cathedral"
     description
         "You cannot help but feel that you are in the presence of a spiritual being..."
     description Tag("adjacents") # TODO(Tyler)
@@ -858,7 +890,7 @@
         west  "cathedral_vestry"
     
 : TARoom "cathedral_vestry" Name("Cathedral vestry" Array("vestry") Array("cathedral" "church"))
-    area "Cathedral"
+    area "cathedral"
     description
         "This appears to be a room made for official church duties. "
         "Wardrobes line the chilled stone wall, holding pristine jet-black church robes. "
@@ -873,7 +905,7 @@
     items Array("organ_key")
 
 : TARoom "cathedral_transept_right" Name("Cathedral right transept" Array("transept" "right") Array("cathedral" "church" "right"))
-    area "Cathedral"
+    area "cathedral"
     description
         "Cathedral transept"
     description Tag("adjacents") # TODO(Tyler)
@@ -900,7 +932,7 @@
     data_asset Tag("sound" "play" "repaired") "sound_organ_play_repaired"
     
 : TARoom "cathedral_organ_console" Name("Cathedral organ console" Array("console" "organ") Array("cathedral" "organ" "church")) Tag("organ")
-    area "Cathedral"
+    area "cathedral"
     description Tag("broken")
         "A \5once-great pipe organ\0 sits in neglected despair. "
         "It looks to be missing some parts. "
@@ -914,7 +946,7 @@
     items Array("cathedral_organ_console_organ_console")
 
 : TARoom "cathedral_maintenance_room" Name("Cathedral maintenance room" Array("maintenance" "room") Array("cathedral" "maintenance")) Tag("organ")
-    area "Cathedral"
+    area "cathedral"
     description Tag("broken")
         "This small room is crammed full of the vital components of the organ. "
         "There are a bountiful number of \3bellows\0 to breathe air and life into the marvelous machine. "
@@ -931,7 +963,7 @@
 
 #- @sja_bell_tower
 : TARoom "cathedral_transept_left" Name("Cathedral left transept" Array("transept" "left") Array("cathedral" "church" "left"))
-    area "Bell tower"
+    area "bell_tower"
     description
         "You work your way up the spiral staircase. "
         "The steep, narrow stone steps have been worn smooth through years of regular use. "
@@ -948,7 +980,7 @@
 
 : TARoom "bell_tower_programming_room" Name("Bell tower programming room" Array("programming" "room" "bell" "tower" "carillon") 
               Array("bell" "tower" "programming" "carillon"))
-    area "Bell tower"
+    area "bell_tower"
     description
     description Tag("adjacents")
         "There is a small open door in the \1west\0 connecting to a \2storage room\0"
@@ -958,7 +990,7 @@
         down "cathedral_staircase"
 
 : TARoom "bell_tower_storage_room" Name("Bell tower storage room" Array("storage" "room") Array("bell" "tower" "storage"))
-    area "Bell tower"
+    area "bell_tower"
     description
     description Tag("adjacents")
         "There is only an open door in the \1east\0 connecting to the \2programming room\0"
@@ -975,7 +1007,7 @@
     data_asset Tag("sound" "play") "sound_bell_tower_play"
 
 : TARoom "bell_tower_playing_room" Name("Bell tower playing room" Array("playing" "room") Array("bell" "tower" "playing"))
-    area "Bell tower"
+    area "bell_tower"
     description
         "Bell tower playing room"
     description Tag("adjacents")
@@ -985,7 +1017,7 @@
     items Array("bell__clavier")
 
 : TARoom "bell_tower_belfrey" Name("Bell tower belfrey" Array("belfrey") Array("bell" "tower"))
-    area "Bell tower"
+    area "bell_tower"
     description
     description Tag("adjacents")
     adjacents
@@ -993,7 +1025,7 @@
         down "bell_tower_playing_room"
 
 : TARoom "bell_tower_lookout" Name("Bell tower lookout" Array("lookout") Array("bell" "tower"))
-    area "Bell tower"
+    area "bell_tower"
     description
         "As you reach the top of the ladder you are immediately confronted with a rainy gust of wind. "
         "A fierce flock of crows sits scheming on the stone railing. "
@@ -1010,7 +1042,7 @@
 
 #- @sja_garden
 : TARoom "garden_lawn" Name("Garden lawn" Array("garden" "lawn") Array("garden"))
-    area "Garden lawn"
+    area "garden_lawn"
     description
         "Garden lawn"
     adjacents
@@ -1020,7 +1052,7 @@
     items Array("ghost_albert")
 
 : TARoom "graveyard" Name("Graveyard" Array("graveyard"))
-    area "Graveyard"
+    area "graveyard"
     description
         "Graveyard"
     adjacents
@@ -1028,7 +1060,7 @@
         southeast "garden_fountain"
 
 : TARoom "garden_fountain" Name("Garden fountain" Array("fountain") Array("garden"))
-    area "Garden fountain"
+    area "garden_fountain"
     description
         "Garden fountain"
     adjacents
@@ -1038,7 +1070,7 @@
         southwest "garden_lawn"
 
 : TARoom "garden_tree" Name("Garden tree" Array("tree") Array("garden"))
-    area "Garden tree"
+    area "garden_tree"
     description
         "Garden tree"
     adjacents
@@ -1048,7 +1080,7 @@
 
 #- @sja_shop
 : TARoom "shop_front" Name("Shop front" Array("shop" "front") Array("shop"))
-    area "Shop"
+    area "shop"
     description
         "A thin but sturdy wooden door is surrounded by brick on either side, welcoming you to enter. "
         "There is a large sign above the door that reads: \4'Susan's Shop'"
@@ -1065,7 +1097,7 @@
         west  "bar_front"
     
 : TARoom "shop" Name("Shop" Array("shop"))
-    area "Shop"
+    area "shop"
     description
         "The shop boasts nothing more than a modestly sized room, with a large counter at the far wall. "
         "The sides of the room are surrounded by shelves, serving as homes to numerous common goods. "
@@ -1081,7 +1113,7 @@
 
 #- @sja_bakery
 : TARoom "bakery_front" Name("Bakery front" Array("bakery" "front") Array("bakery"))
-    area "Bakery"
+    area "bakery"
     description
         "The warmth almost penetrates the solid wall and seems to infect even the door. "
         "A beautiful aroma permeates through a large area infront of the bakery. "
@@ -1095,7 +1127,7 @@
         west "plaza_southeast"
     
 : TARoom "bakery" Name("Bakery" Array("bakery"))
-    area "Bakery"
+    area "bakery"
     description
         "A glass counter consumes the majority of the space inside the small bakery. " 
         "Behind it extends a vast kitchen, which seems to be the source of the beautiful aroma. "
@@ -1111,7 +1143,7 @@
     items Array("muffins" "honeyed_almond_pastries" "churros" "croissants" "wheat_bread")
     
 : TARoom "bar_front" Name("Bar front" Array("bar" "front") Array("bar"))
-    area "Bar"
+    area "bar"
     description
         "The front of the bar. "
     description Tag("adjacents")
@@ -1126,7 +1158,7 @@
 
 #- @sja_bar
 : TARoom "bar" Name("Bar" Array("bar"))
-    area "Bar"
+    area "bar"
     description
         "A bar."        
     description Tag("adjacents")
@@ -1138,7 +1170,7 @@
         down  "bar_cellar"
     
 : TARoom "bar_cellar" Name("Bar cellar" Array("cellar") Array("bar"))
-    area "Bar"
+    area "bar"
     description
         "There are lots of large casks filled with beer, wine, and other alcoholic beverages."
     description Tag("adjacents")
@@ -1147,7 +1179,7 @@
         up "bar"
     
 : TARoom "bar_billiard_room" Name("Bar billiard room" Array("billiard" "room") Array("bar" "billiard"))
-    area "Bar"
+    area "bar"
     description
         "Bar billiard room"        
     description Tag("adjacents")
@@ -1158,7 +1190,7 @@
 #~ @sja_thorn_lane
 
 : TARoom "thorn_lane_east" Name("East Thorn Lane" Array("thorn" "lane") Array("e" "east" "thorn"))
-    area "East Thorn Lane"
+    area "east_thorn_lane"
     description
         "East Thorn Lane"
     description Tag("adjacents")
@@ -1170,7 +1202,7 @@
         west  "thorn_lane"
     
 : TARoom "thorn_lane" Name("Thorn Lane" Array("thorn" "lane") Array("thorn"))
-    area "Thorn Lane"
+    area "thorn_lane"
     description
         "Thorn Lane"
     description Tag("adjacents")
@@ -1181,7 +1213,7 @@
         west  "thorn_lane_west"
     
 : TARoom "thorn_lane_west" Name("West Thorn Lane" Array("thorn" "lane") Array("w" "west" "thorn"))
-    area "West Thorn Lane"
+    area "west_thorn_lane"
     description
         "West Thorn Lane"
     description Tag("adjacents")
@@ -1192,7 +1224,7 @@
         west  "bridge"
         
 : TARoom "dark_alley" Name("Dark alley" Array("alley") Array("dark"))
-    area "Dark alley"
+    area "dark_alley"
     description
         "The alley is rather dark and quite secluded. "
         "You feel quite uneasy, unsure of what might happen here. "
@@ -1207,7 +1239,7 @@
         west  "bench"
     
 : TARoom "bench" Name("Bench" Array("bench")) Tag("carillon-pages")
-    area "Bench"
+    area "bench"
     description
         "Bench description, carillon pages not active"
     description Tag("carillon-pages")
@@ -1244,7 +1276,7 @@
         "For a while you enjoy watching pigeons perch on spires and fly down to the plaza to hunt for food crumbs."
     
 : TARoom "inn_front" Name("Inn front" Array("inn" "front") Array("inn"))
-    area "Inn"
+    area "inn"
     description
         "Wide glass windows emit a warm glow, and through the streaks of raindrops you see a few animated silhouettes of those inside. "
         "A sign over the door reads \2'Murkwell Inn'\0."
@@ -1257,7 +1289,7 @@
         west  "thorn_lane"
     
 : TARoom "inn_lobby" Name("Inn lobby" Array("inn" "lobby") Array("inn"))
-    area "Inn"
+    area "inn"
     description
         "A few travelers sit on cushions, engaged in worldly discussions and drinking mint tea. "
         "An old woman sits behind the front desk, engrossed in the pages of a short novel. "
@@ -1270,7 +1302,7 @@
     items Array("inn_lobby_plant_pot")
     
 : TARoom "inn_hallway" Name("Inn hallway" Array("hallway") Array("inn"))
-    area "Inn"
+    area "inn"
     description
         "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
     description Tag("adjacents")
@@ -1280,7 +1312,7 @@
         down "inn_lobby"
     
 : TARoom "inn_room_1" Name("Inn room 1" Array("1" "room") Array("inn" "room"))
-    area "Inn"
+    area "inn"
     description
         "The room is smaller than you expected."
         "A tiny window lets a cool ray of light into the room. "
@@ -1293,7 +1325,7 @@
     items Array("inn_room_1_window")
     
 : TARoom "inn_room_2" Name("Inn room 2" Array("2" "room") Array("inn" "room"))
-    area "Inn"
+    area "inn"
     description
         "The room is darker than you expected."
     description Tag("adjacents")
@@ -1302,7 +1334,7 @@
         south "inn_hallway"
     
 : TARoom "inn_room_3" Name("Inn room 3" Array("3" "room") Array("inn" "room"))
-    area "Inn"
+    area "inn"
     description
         "The room is colder than you expected."
     description Tag("adjacents")
@@ -1314,7 +1346,7 @@
 
 #- @sja_tailor_shop
 : TARoom "tailor_shop_front" Name("Tailor shop front" Array("tailor" "shop" "front") Array("tailor" "shop"))
-    area "Tailor"
+    area "tailor"
     description
         "You stand in front of a simple building. "
         "The only thing that differentiates it is the elaborate, "
@@ -1326,7 +1358,7 @@
         south "tailor_shop"
     
 : TARoom "tailor_shop" Name("Tailor shop" Array("tailor" "shop"))
-    area "Tailor"
+    area "tailor"
     description
         "Silken robes and tufted carpets hang from the beamed ceiling. "
         "Tightly-woven suits and fluffy dresses spread across worn tables. "
@@ -1370,7 +1402,7 @@
         "A \1small rusty doorknob\0 that appears almost \1leaflike\0"
     
 : TARoom "plant_shop_front" Name("Plant shop front" Array("front" "shop") Array("plant" "shop"))
-    area "Plant shop"
+    area "plant_shop"
     description
         "You glance forward and are greeted with the sight of a small wooden door, "
         "covered in scraggly ivy and vibrant moss. "
@@ -1408,7 +1440,7 @@
         "An \1awe-inspiring variety of plants\0 lines every inch of the room."
     
 : TARoom "plant_shop" Name("Plant shop" Array("shop") Array("plant"))
-    area "Plant shop"
+    area "plant_shop"
     description
         "The shop is dark and damp, being illuminated by candles carefully arranged throughout the space, "
         "yet the room secretes feelings of comfort, not fear. "
@@ -1428,7 +1460,7 @@
                 "lush green plants" "dainty philodendron micans"  "ferns" "calatheas" "silvery scindapsus")
     
 : TARoom "plant_shop_greenhouse" Name("Plant shop greenhouse" Array("greenhouse" "house") Array("plant" "shop" "green"))
-    area "Plant shop"
+    area "plant_shop"
     description
         "Greenhouse"
     description Tag("adjacents")
@@ -1509,14 +1541,14 @@
 #- @sja_library
 
 : TARoom "library_front" Name("Library front" Array("library"))
-    area "Library"
+    area "library"
     description
         "Library front"
     adjacents
         west "library"
 
 : TARoom "library" Name("Library" Array("library"))
-    area "Library"
+    area "library"
     description
         "Library"
     adjacents

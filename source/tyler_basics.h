@@ -2377,6 +2377,8 @@ CompareKeys(u64 A, u64 B){
 }
 
 //- Implementation
+//#define HASH_TABLE_FOR_EACH_KEY(Table, 
+
 template <typename KeyType, typename ValueType>
 struct hash_table_bucket {
     u64 Hash;

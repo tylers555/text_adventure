@@ -145,6 +145,11 @@ MurkwellStartCarillonPages(ta_system *TA, asset_system *Assets){
     
     //MurkwellPostEvent(TA, MurkwellEvent_CarillonPages);
     TA->CarillonPages.QuestStatus = QuestStatus_Active;
+    TA->CarillonPages.OrganWasRepaired = MurkwellIsOrganQuestDone(TA);
+    if(!TA->CarillonPages.OrganWasRepaired){
+        TA->RoomEnsureItem(GetRoom(TA, cathedral_quire), GetItemID(TA, carillon_pages_singing_ghost));
+    }
+    
     TA->RoomEnsureItem(GetRoom(TA, bench), GetItemID(TA, carillon_pages_bench_ghost));
     
     return true;
@@ -181,7 +186,12 @@ internal const char *
 MurkwellAdditionalRoomDescription(ta_system *TA, asset_system *Assets, ta_room *Room){
     if(TA->CarillonPages.BenchGhostIsFollowing){
         return GetVar(Assets, carillon_pages_bench_ghost_following);
+    }else if(TA->RoomHasItem(Room, GetItemID(TA, carillon_pages_ghostly_congregation))){
+        ta_data *Data = TA->FindDescription(&GetItem(TA, carillon_pages_ghostly_congregation)->Datas, 
+                                            AssetTag(AssetTag_Override));
+        if(Data) return Data->Data;
     }
+    
     return 0;
 }
 

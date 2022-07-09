@@ -81,6 +81,7 @@ ASSET_TAG("food",       Food) \
 ASSET_TAG("haunted",    Haunted) \
 ASSET_TAG("ghost",      Ghost) \
 ASSET_TAG("ritual",     Ritual) \
+ASSET_TAG("override",   Override) \
 
 #define ASSET_TAG(S, N) AssetTag_##N,
 enum asset_tag_id {
@@ -331,8 +332,6 @@ struct asset_loader {
     void BeginCommand(const char *Name);
     void LogWarning(const char *Format, ...);
     void VLogWarning(const char *Format, va_list VarArgs);
-    void LogError(const char *Format, ...);
-    void VLogError(const char *Format, va_list VarArgs);
     b8 SeekNextAttribute();
     b8 SeekEndOfFunction();
     b8 SeekNextCommand();

@@ -601,6 +601,10 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         if(Room == GetRoom(TA, bench)){
             TA->Respond(GetVar(Assets, pray_carillon_pages_bench));
             return true;
+        }else if(Room->Area == GetAreaID(TA, cathedral)){
+            TA->RoomEnsureItem(GetRoom(TA, cathedral_nave), GetItemID(TA, carillon_pages_ghostly_congregation));
+            TA->Respond(GetVar(Assets, pray_carillon_pages_cathedral));
+            return true;
         }
     }
     
