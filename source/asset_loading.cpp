@@ -5,8 +5,8 @@
 //~ Initialization
 void
 asset_loader::Initialize(memory_arena *Arena, audio_mixer *Mixer_, asset_system *Assets, ta_system *TA){
-    InProgress.Initialize(Arena);
     
+    InProgress.Initialize(Arena);
     Mixer = Mixer_;
     MainAssets = Assets;
     TextAdventure = TA;

@@ -2111,11 +2111,11 @@ ArrayForEachGet_(dynamic_array<T> *Array, u32 I, int *Item){
 }
 
 #define FOR_EACH_PTR_(Item, Index, Array) \
-for(u32 Index = 0, Keep=true; Index < (Array)->Count; Index++, Keep=true) \
-for(auto *Item = &(Array)->Items[Index]; Keep; Keep=false)
+for(u32 Index = 0, Keep_=true; Index < (Array)->Count; Index++, Keep_=true) \
+for(auto *Item = &(Array)->Items[Index]; Keep_; Keep_=false)
 #define FOR_EACH_(Item, Index, Array) \
-for(u32 Index = 0, Keep=true; Index < (Array)->Count; Index++, Keep=true) \
-for(auto &Item = (Array)->Items[Index]; Keep; Keep=false)
+for(u32 Index = 0, Keep_=true; Index < (Array)->Count; Index++, Keep_=true) \
+for(auto &Item = (Array)->Items[Index]; Keep_; Keep_=false)
 
 #define FOR_EACH_PTR(Item, Array) FOR_EACH_PTR_(Item, I_, Array)
 #define FOR_EACH(Item, Array) FOR_EACH_(Item, I_, Array)
@@ -2377,8 +2377,6 @@ CompareKeys(u64 A, u64 B){
 }
 
 //- Implementation
-//#define HASH_TABLE_FOR_EACH_KEY(Table, 
-
 template <typename KeyType, typename ValueType>
 struct hash_table_bucket {
     u64 Hash;
@@ -2622,6 +2620,35 @@ HashTableRemove(hash_table<KeyType, ValueType> *Table, KeyType Key){
     }
     
     return(Result);
+}
+
+#define HASH_TABLE_FOR_EACH_KEY_(Key, Index, Table) \
+for(u32 Index=0, Keep_=true; Index<(Table)->MaxBuckets; Index++, Keep_=true) \
+for(auto &Key=(Table)->Keys[Index]; Keep_&&(Table)->Hashes[Index]; Keep_=false)
+#define HASH_TABLE_FOR_EACH_KEY(Key, Table) HASH_TABLE_FOR_EACH_KEY_(Key, I_, Table)
+
+#define HASH_TABLE_FOR_EACH_VALUE_(Value, Index, Table) \
+for(u32 Index=0, Keep_=true; Index<(Table)->MaxBuckets; Index++, Keep_=true) \
+for(auto &Value=(Table)->Values[Index]; Keep_ && (Table)->Hashes[Index]; Keep_=false)
+#define HASH_TABLE_FOR_EACH_VALUE(Value, Table) HASH_TABLE_FOR_EACH_VALUE_(Value, I_, Table)
+
+#define HASH_TABLE_FOR_EACH_BUCKET_(Bucket, Index, Table) \
+for(u32 Index=0, Keep_=true; Index<(Table)->MaxBuckets; Index++, Keep_=true) \
+for(auto Bucket=HashTableIteratorGetBucketAtIndex_((Table), Index); Keep_ && (Table)->Hashes[Index]; Keep_=false)
+#define HASH_TABLE_FOR_EACH_BUCKET(Bucket, Table) HASH_TABLE_FOR_EACH_BUCKET_(Bucket, I_, Table)
+
+template<typename KeyType, typename ValueType>
+struct hash_table_iterator_bucket {
+    KeyType &Key;
+    ValueType &Value;
+    hash_table_iterator_bucket(KeyType &Key_, ValueType &Value_) : Key(Key_), Value(Value_) {}
+};
+
+template<typename KeyType, typename ValueType>
+tyler_function inline hash_table_iterator_bucket<KeyType, ValueType>
+HashTableIteratorGetBucketAtIndex_(hash_table<KeyType, ValueType> *Table, u32 Index){
+    hash_table_iterator_bucket Result(Table->Keys[Index], Table->Values[Index]);
+    return Result;
 }
 
 #endif //TYLER_BASICS_IMPLEMENTATION
