@@ -2,6 +2,8 @@
 //~ Helpers
 internal ta_id
 ChooseRandomTARoom(ta_system *TA){
+    NOT_IMPLEMENTED_YET;
+#if 0
     u32 RandomIndex = GetRandomNumber(267982) % TA->RoomTable.BucketsUsed;
     for(u32 I=0; I<TA->RoomTable.MaxBuckets; I++){
         if(!TA->RoomTable.Hashes[I]) continue;
@@ -9,6 +11,7 @@ ChooseRandomTARoom(ta_system *TA){
             return TA->RoomTable.Keys[I];
         }
     }
+#endif
     return MakeTAID(0);
 }
 

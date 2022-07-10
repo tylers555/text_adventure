@@ -2383,27 +2383,31 @@ struct hash_table_bucket {
     KeyType Key;
     ValueType Value;
     
-    hash_table_bucket *Next;
+    union{
+        hash_table_bucket *Next;
+        hash_table_bucket *NextFree;
+    };
 };
 
 template <typename KeyType, typename ValueType>
 struct hash_table {
-    u32 BucketsUsed;
-    u32 MaxBuckets;
-    u64 *Hashes;
-    KeyType *Keys;
-    ValueType *Values;
+    memory_arena *Arena;
+    u32 UsedBucketCount;
+    u32 MaxBucketCount;
+    hash_table_bucket<KeyType, ValueType> *Buckets;
+    
+    hash_table_bucket<KeyType, ValueType> *NextFreeBucket;
 };
 
 template <typename KeyType, typename ValueType>
 tyler_function constexpr hash_table<KeyType, ValueType>
 MakeHashTable(memory_arena *Arena, u32 MaxBuckets){
     hash_table<KeyType, ValueType> Result = {};
-    Result.MaxBuckets = MaxBuckets;
+    Result.Arena = Arena;
+    //Result.Buckets = ArenaPushArray(Arena, decltype(*Result.Buckets), MaxBuckets);
+    Result.Buckets = (decltype(Result.Buckets))ArenaPush(Arena, sizeof(*Result.Buckets)*MaxBuckets);
+    Result.MaxBucketCount = MaxBuckets;
     
-    Result.Hashes = ArenaPushArray(Arena, u64, MaxBuckets);
-    Result.Keys = ArenaPushArray(Arena, KeyType, MaxBuckets);
-    Result.Values = ArenaPushArray(Arena, ValueType, MaxBuckets);
     return(Result);
 }
 
@@ -2419,237 +2423,123 @@ HashTableCopy(hash_table<KeyType, ValueType> *OutTable, hash_table<KeyType, Valu
 }
 
 template <typename KeyType, typename ValueType>
-tyler_function constexpr void
-HashTableInsert(hash_table<KeyType, ValueType> *Table, KeyType Key, ValueType Value){
-    //TIMED_FUNCTION();
-    Assert(Table->BucketsUsed < Table->MaxBuckets);
-    
+tyler_function hash_table_bucket<KeyType, ValueType> *
+HashTableGetBucket(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 MakeNew=false){
     u64 Hash = HashKey(Key);
-    if(Hash == 0){Hash++;}
     
-    u32 Index = Hash % Table->MaxBuckets;
-    while(true){
-        u64 TestHash = Table->Hashes[Index];
-        if(TestHash == Hash){
-            if(CompareKeys(Key, Table->Keys[Index])) break;
-        }else if(TestHash == 0){
-            Table->BucketsUsed++;
-            break;
+    u32 Index = Hash % Table->MaxBucketCount;
+    auto *Bucket = &Table->Buckets[Index];
+    if(Bucket->Hash == 0){
+        if(!MakeNew) return 0;
+        Table->UsedBucketCount++;
+        Bucket->Hash = Hash;
+        Bucket->Key = Key;
+    }else {
+        while(Bucket){
+            if((Bucket->Hash == Hash) && CompareKeys(Key, Bucket->Key)) break;
+            
+            if(MakeNew && !Bucket->Next){
+                Bucket->Next = FREELIST_ALLOC(Table->NextFreeBucket, (decltype(Bucket))ArenaPush(Table->Arena, sizeof(*Bucket)));
+                Bucket = Bucket->Next;
+                Bucket->Hash = Hash;
+                Bucket->Key = Key;
+                break;
+            }
+            Bucket = Bucket->Next;
         }
-        
-        Index++;
-        Index %= Table->MaxBuckets;
     }
     
-    Table->Hashes[Index] = Hash;
-    Table->Keys[Index] = Key;
-    Table->Values[Index] = Value;
+    return Bucket;
+}
+
+template <typename KeyType, typename ValueType>
+tyler_function constexpr void
+HashTableRemove(hash_table<KeyType, ValueType> *Table, KeyType Key){
+    u64 Hash = HashKey(Key);
+    
+    u32 Index = Hash % Table->MaxBucketCount;
+    auto *Bucket = &Table->Buckets[Index];
+    decltype(Bucket) PrevBucket = 0;
+    if(Bucket->Hash == 0){
+        INVALID_CODE_PATH;
+    }else {
+        while(Bucket){
+            if((Bucket->Hash == Hash) && CompareKeys(Key, Bucket->Key)) break;
+            PrevBucket = Bucket;
+            Bucket = Bucket->Next;
+        }
+    }
+    
+    if(!PrevBucket){ // The bucket is the root bucket
+        if(Bucket->Next) *Bucket = *Bucket->Next;
+        else *Bucket = {};
+    }else{
+        PrevBucket->Next = Bucket->Next;
+        FREELIST_FREE(Table->NextFreeBucket, Bucket);
+    }
 }
 
 template <typename KeyType, typename ValueType>
 tyler_function ValueType *
 HashTableAlloc(hash_table<KeyType, ValueType> *Table, KeyType Key){
-    //TIMED_FUNCTION();
-    Assert(Table->BucketsUsed < Table->MaxBuckets);
+    auto *Bucket = HashTableGetBucket(Table, Key, true);
+    Assert(Bucket);
+    Assert(CompareKeys(Bucket->Key, Key));
     
-    u64 Hash = HashKey(Key);
-    if(Hash == 0){Hash++;}
-    
-    u32 Index = Hash % Table->MaxBuckets;
-    while(true){
-        u64 TestHash = Table->Hashes[Index];
-        if(TestHash == Hash){
-            if(CompareKeys(Key, Table->Keys[Index])) break;
-        }else if(TestHash == 0){
-            Table->BucketsUsed++;
-            break;
-        }else{
-            Index++;
-            Index %= Table->MaxBuckets;
-        }
-    }
-    
-    Table->Hashes[Index] = Hash;
-    Table->Keys[Index] = Key;
-    ValueType *Result = &Table->Values[Index];
-    return(Result);
+    ValueType *Result = &Bucket->Value;
+    return Result;
+}
+
+template <typename KeyType, typename ValueType>
+tyler_function constexpr void
+HashTableAdd(hash_table<KeyType, ValueType> *Table, KeyType Key, ValueType Value){
+    ValueType *V = HashTableAlloc(Table, Key);
+    *V = Value;
 }
 
 template <typename KeyType, typename ValueType>
 tyler_function constexpr ValueType *
 HashTableFindPtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
-    u64 Hash = HashKey(Key);
-    if(Hash == 0) Hash++; 
+    auto *Bucket = HashTableGetBucket(Table, Key, false);
     
-    b8 IsValid = true;
-    b8 FirstIteration = true;
-    u32 Index = Hash % Table->MaxBuckets;
-    u32 StartIndex = Index;
-    while(true){
-        u64 TestHash = Table->Hashes[Index];
-        if((TestHash == Hash) &&
-           CompareKeys(Key, Table->Keys[Index])){
-            break;
-        }else if(TestHash == 0){
-            IsValid = false;
-            break;
-        }else if(!FirstIteration &&
-                 (StartIndex == Index)){
-            IsValid = false;
-            break;
-        }else{
-            Index++;
-            Index %= Table->MaxBuckets;
-        }
-        FirstIteration = false;
-    }
-    
-    ValueType *Result = 0;
-    if(IsValid) Result = &Table->Values[Index];
-    return(Result);
+    if(!Bucket) return 0;
+    return &Bucket->Value;
 }
 
 template <typename KeyType, typename ValueType>
 tyler_function constexpr ValueType
 HashTableFind(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 *Found=0){
     ValueType *ResultPtr = HashTableFindPtr(Table, Key);
-    ValueType Result = {};
     if(ResultPtr){
-        Result = *ResultPtr;
         if(Found) *Found = true;
+        return *ResultPtr;
     }
+    return {};
+}
+
+// TODO(Tyler): This could be way more efficient
+template <typename KeyType, typename ValueType>
+tyler_function constexpr ValueType *
+HashTableGetPtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
+    auto *Bucket = HashTableGetBucket(Table, Key, true);
+    Assert(Bucket);
+    
+    ValueType *Result = &Bucket->Value;
     return(Result);
 }
 
 template <typename KeyType, typename ValueType>
 tyler_function constexpr ValueType
 HashTableGet(hash_table<KeyType, ValueType> *Table, KeyType Key){
-    Assert(Table->BucketsUsed < Table->MaxBuckets);
-    
-    u64 Hash = HashKey(Key);
-    if(Hash == 0) Hash++; 
-    
-    u32 Index = Hash % Table->MaxBuckets;
-    while(true){
-        u64 TestHash = Table->Hashes[Index];
-        if((TestHash == Hash) &&
-           CompareKeys(Key, Table->Keys[Index])){
-            break;
-        }else if(TestHash == 0){
-            Table->BucketsUsed++;
-            DoesExist = false;
-            Table->Hashes[Index] = Hash;
-            Table->Keys[Index] = Key;
-            break;
-        }else{
-            Index++;
-            Index %= Table->MaxBuckets;
-        }
-    }
-    
-    ValueType Result = Table->Values[Index];
+    ValueType Result = *HashTableGetPtr(Table, Key);
     return(Result);
 }
-
-
-// TODO(Tyler): This could be way more efficient
-template <typename KeyType, typename ValueType>
-tyler_function constexpr ValueType *
-HashTableGetPtr(hash_table<KeyType, ValueType> *Table, KeyType Key){
-    Assert(Table->BucketsUsed < Table->MaxBuckets);
-    
-    u64 Hash = HashKey(Key);
-    if(Hash == 0) Hash++; 
-    
-    b8 FirstIteration = true;
-    u32 Index = Hash % Table->MaxBuckets;
-    u32 StartIndex = Index;
-    while(true){
-        u64 TestHash = Table->Hashes[Index];
-        if((TestHash == Hash) &&
-           CompareKeys(Key, Table->Keys[Index])){
-            break;
-        }else if(TestHash == 0){
-            Table->BucketsUsed++;
-            Table->Hashes[Index] = Hash;
-            Table->Keys[Index] = Key;
-            break;
-        }else if(!FirstIteration &&
-                 (StartIndex == Index)){
-            INVALID_CODE_PATH;
-        }else{
-            Index++;
-            Index %= Table->MaxBuckets;
-        }
-        FirstIteration = false;
-    }
-    
-    ValueType *Result = 0;
-    Result = &Table->Values[Index];
-    return(Result);
-}
-
-template <typename KeyType, typename ValueType>
-tyler_function constexpr b8
-HashTableRemove(hash_table<KeyType, ValueType> *Table, KeyType Key){
-    u64 Hash = HashKey(Key);
-    if(Hash == 0){ Hash++; }
-    
-    u32 Index = Hash % Table->MaxBuckets;
-    if(Index == 0){ Index++; }
-    while(u64 TestHash = Table->Hashes[Index]) {
-        if(Index == 0){ Index++; }
-        if((TestHash == Hash) &&
-           CompareKeys(Key, Table->Keys[Index])){
-            break;
-        }else if(TestHash == 0){
-            break;
-        }else{
-            Index++;
-            Index %= Table->MaxBuckets;
-        }
-    }
-    
-    b8 Result = false;
-    if(Index != 0){
-        Table->BucketsUsed--;
-        Table->Hashes[Index] = 0; 
-        Table->Keys[Index] = {}; 
-        Table->Values[Index] = {}; 
-        Result = true;
-    }
-    
-    return(Result);
-}
-
-#define HASH_TABLE_FOR_EACH_KEY_(Key, Index, Table) \
-for(u32 Index=0, Keep_=true; Index<(Table)->MaxBuckets; Index++, Keep_=true) \
-for(auto &Key=(Table)->Keys[Index]; Keep_&&(Table)->Hashes[Index]; Keep_=false)
-#define HASH_TABLE_FOR_EACH_KEY(Key, Table) HASH_TABLE_FOR_EACH_KEY_(Key, I_, Table)
-
-#define HASH_TABLE_FOR_EACH_VALUE_(Value, Index, Table) \
-for(u32 Index=0, Keep_=true; Index<(Table)->MaxBuckets; Index++, Keep_=true) \
-for(auto &Value=(Table)->Values[Index]; Keep_ && (Table)->Hashes[Index]; Keep_=false)
-#define HASH_TABLE_FOR_EACH_VALUE(Value, Table) HASH_TABLE_FOR_EACH_VALUE_(Value, I_, Table)
 
 #define HASH_TABLE_FOR_EACH_BUCKET_(Bucket, Index, Table) \
-for(u32 Index=0, Keep_=true; Index<(Table)->MaxBuckets; Index++, Keep_=true) \
-for(auto Bucket=HashTableIteratorGetBucketAtIndex_((Table), Index); Keep_ && (Table)->Hashes[Index]; Keep_=false)
+for(u32 Index=0; Index<(Table)->MaxBucketCount; Index++) \
+for(auto *BucketPtr=&(Table)->Buckets[Index], *Keep_=BucketPtr; BucketPtr && BucketPtr->Hash; BucketPtr=BucketPtr->Next,Keep_=BucketPtr) \
+for(auto &Bucket = *BucketPtr; Keep_; Keep_=0)
 #define HASH_TABLE_FOR_EACH_BUCKET(Bucket, Table) HASH_TABLE_FOR_EACH_BUCKET_(Bucket, I_, Table)
-
-template<typename KeyType, typename ValueType>
-struct hash_table_iterator_bucket {
-    KeyType &Key;
-    ValueType &Value;
-    hash_table_iterator_bucket(KeyType &Key_, ValueType &Value_) : Key(Key_), Value(Value_) {}
-};
-
-template<typename KeyType, typename ValueType>
-tyler_function inline hash_table_iterator_bucket<KeyType, ValueType>
-HashTableIteratorGetBucketAtIndex_(hash_table<KeyType, ValueType> *Table, u32 Index){
-    hash_table_iterator_bucket Result(Table->Keys[Index], Table->Values[Index]);
-    return Result;
-}
 
 #endif //TYLER_BASICS_IMPLEMENTATION
 

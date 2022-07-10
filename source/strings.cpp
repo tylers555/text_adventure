@@ -79,7 +79,7 @@ string_manager::GetString(const char *String){
     const char *ResultString = HashTableFind(&Table, String);
     if(!ResultString){
         ResultString = ArenaPushCString(&StringMemory, String);
-        HashTableInsert(&Table, ResultString, ResultString);
+        HashTableAdd(&Table, ResultString, ResultString);
     }
     
     Result.ID = (u64)ResultString;
