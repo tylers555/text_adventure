@@ -2124,7 +2124,9 @@ for(auto &Item = (Array)->Items[Index]; Keep_; Keep_=false)
 #define ARRAY_REMOVE_IN_LOOP_ORDERED(Array, Index) { ArrayOrderedRemove(Array, Index); Index--; continue; }
 
 //~ Bucket array
-
+// TODO(Tyler): This seems over complicated to me. 
+// A simpler solution might be like a freelist for empty things? 
+// Perhaps a system like an linked list of arrays?
 global_constant u32 MAX_BUCKET_ITEMS = 64;
 template<typename T, u32 U>
 struct bucket_array_bucket {
@@ -2400,14 +2402,19 @@ struct hash_table {
 };
 
 template <typename KeyType, typename ValueType>
+tyler_function constexpr void
+HashTableInit(hash_table<KeyType, ValueType> *Table, memory_arena *Arena, u32 MaxBuckets){
+    Table->Arena = Arena;
+    //Result.Buckets = ArenaPushArray(Arena, decltype(*Result.Buckets), MaxBuckets);
+    Table->Buckets = (decltype(Table->Buckets))ArenaPush(Arena, sizeof(*Table->Buckets)*MaxBuckets);
+    Table->MaxBucketCount = MaxBuckets;
+}
+
+template <typename KeyType, typename ValueType>
 tyler_function constexpr hash_table<KeyType, ValueType>
 MakeHashTable(memory_arena *Arena, u32 MaxBuckets){
     hash_table<KeyType, ValueType> Result = {};
-    Result.Arena = Arena;
-    //Result.Buckets = ArenaPushArray(Arena, decltype(*Result.Buckets), MaxBuckets);
-    Result.Buckets = (decltype(Result.Buckets))ArenaPush(Arena, sizeof(*Result.Buckets)*MaxBuckets);
-    Result.MaxBucketCount = MaxBuckets;
-    
+    HashTableInit(&Result, Arena, MaxBuckets);
     return(Result);
 }
 

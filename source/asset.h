@@ -109,7 +109,18 @@ struct asset_id {
     u64 ID;
 };
 
-#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+internal inline b8
+operator==(asset_id A, asset_id B){
+    return (A.ID == B.ID);
+}
+
+internal inline b8
+operator!=(asset_id A, asset_id B){
+    return (A.ID != B.ID);
+}
+
+//~
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS) 
 internal inline asset_id
 MakeAssetID(u32 ID){
     asset_id Result;
@@ -121,13 +132,22 @@ MakeAssetID(u32 ID){
 #define GetSoundEffect(Assets, ID_) &(Assets)->SoundEffects[ID_.ID]
 #define GetFont(Assets, ID_) &(Assets)->Fonts[ID_.ID]
 #define GetVariable(Assets, ID_) (&(Assets)->Variables[AssetVariable_##ID_])
-#define GetVar(Assets, ID_)     GetVariable(Assets, ID_)->S
-#define GetVarTAID(Assets, ID_) GetVariable(Assets, ID_)->TAID
-#define GetVarName(Assets, ID_) GetVariable(Assets, ID_)->NameData
+#define GetVar(Assets, ID_)      GetVariable(Assets, ID_)->S
+#define GetVarTAID(Assets, ID_)  GetVariable(Assets, ID_)->TAID
+#define GetVarAsset(Assets, ID_) GetVariable(Assets, ID_)->Asset
+#define GetVarName(Assets, ID_)  GetVariable(Assets, ID_)->NameData
 
-#else // !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+//~ 
+#else 
 internal inline asset_id
 MakeAssetID(string ID){
+    asset_id Result;
+    Result.ID = ID.ID;
+    return Result;
+}
+
+internal inline asset_id
+MakeAssetID(asset_id ID){
     asset_id Result;
     Result.ID = ID.ID;
     return Result;
@@ -138,14 +158,52 @@ MakeAssetID(const char *S){
     return MakeAssetID(Strings.GetString(S));
 }
 
-#define AssetID(Name) MakeAssetID(#Name)
-#define AssetIDName(ID_) Strings.GetString(MakeString((ID_).ID))
-#define GetSoundEffect(Assets, ID_) (Assets)->GetSoundEffectByString(MakeString(ID_.ID))
-#define GetFont(Assets, ID_) (Assets)->GetFontByString(MakeString(ID_.ID))
-#define GetVariable(Assets, ID_) (Assets)->GetVariableByString(MakeString(ID_.ID))
-#define GetVar(Assets, ID_)     GetVariable(Assets, AssetID(ID_))->S
-#define GetVarTAID(Assets, ID_) GetVariable(Assets, AssetID(ID_))->TAID
-#define GetVarName(Assets, ID_) GetVariable(Assets, ID_)->NameData
+template<typename ValueType>
+internal ValueType *
+AssetTableFindByKey_(hash_table<asset_id, ValueType> *Table, asset_id Name){
+    if(Name.ID){
+        ValueType *Result = HashTableFindPtr(Table, Name);
+        if(Result && !IsLoadedAssetValid(&Result->LoadingData)) return 0;
+        return Result;
+    }
+    return 0;
+}
+
+internal constexpr u64
+HashKey(asset_id Value) {
+    u64 Result = Value.ID;
+    return(Result);
+}
+
+internal constexpr b32
+CompareKeys(asset_id A, asset_id B){
+    b32 Result = (A.ID == B.ID);
+    return(Result);
+}
+
+#define asset_table(Name, ValueType) hash_table<asset_id, ValueType> Name##Table
+#define AssetTableInit(Name, Arena, MaxCount) HashTableInit(&(Name##Table), Arena, MaxCount)
+#define AssetTableGet_(Prefix, Name, Key) HashTableGetPtr(&(Prefix Name##Table), MakeAssetID(Key))
+#define AssetTableFind_(Prefix, Name, Key) AssetTableFindByKey_(&(Prefix Name##Table), MakeAssetID(Key))
+
+#define AssetsGet_(System, Name, Key) AssetTableGet_((System)->, Name, Key)
+#define AssetsFind_(System, Name, Key) AssetTableFind_((System)->, Name, Key)
+#define AssetsFind(System, Name, Key) AssetsFind_(System, Name, #Key)
+
+#define AssetID(Name, ID_) MakeAssetID(#ID_)
+#define AssetIDName(Name, ID_) Strings.GetString(MakeString((ID_).ID))
+
+#define GetVar(Assets, ID_)      AssetsFind(Assets, Variable, ID_)->S
+#define GetVarTAID(Assets, ID_)  AssetsFind(Assets, Variable, ID_)->TAID
+#define GetVarAsset(Assets, ID_) AssetsFind(Assets, Variable, ID_)->Asset
+#define GetVarName(Assets, ID_)  AssetsFind(Assets, Variable, ID_)->NameData
+
+#define TAFind_(System, Name, Key) AssetTableFind_((System)->, Name, Key)
+#define TAFind(System, Name, Key) TAFind_(System, Name, #Key)
+
+global_constant u32 ROOM_TABLE_SIZE = 64;
+global_constant u32 ITEM_TABLE_SIZE = 128;
+global_constant u32 THEME_TABLE_SIZE = 8;
 
 #endif
 
@@ -237,11 +295,44 @@ struct font_string_metrics {
     v2 Advance;
 };
 
-//~ Text adventure stuff
+//~ Theme
+global_constant color BASE_BACKGROUND_COLOR = MakeColor(0x0a0d4aff);
+global_constant color BASIC_COLOR      = MakeColor(0xf2f2f2ff);
+global_constant color ROOM_TITLE_COLOR = MakeColor(0xff6969ff);
+global_constant color ROOM_COLOR       = MakeColor(0xffe369ff);
+global_constant color DIRECTION_COLOR  = MakeColor(0x84d197ff);
+global_constant color ITEM_COLOR       = MakeColor(0x24e3e3ff);
 
-struct ta_id {
-    u64 ID;
+global_constant color RESPONSE_COLOR = MakeColor(0x9063ffff);
+global_constant color EMPHASIS_COLOR = MakeColor(0xe06ecdff);
+
+struct console_theme {
+    asset_loading_data LoadingData;
+    
+    asset_id BasicFont;
+    asset_id TitleFont;
+    
+    color BackgroundColor;
+    color CursorColor;
+    color SelectionColor;
+    
+    fancy_font_format RoomTitleFancy;
+    union{
+        struct {
+            fancy_font_format BasicFancy;     // '\0'
+            fancy_font_format DirectionFancy; // '\1'
+            fancy_font_format RoomFancy;      // '\2'
+            fancy_font_format ItemFancy;      // '\3'
+            fancy_font_format MiscFancy;      // '\'
+            fancy_font_format MoodFancy;      // '\5'
+        };
+        fancy_font_format DescriptionFancies[6];
+    };
+    fancy_font_format ResponseFancies[2];
 };
+internal inline console_theme MakeDefaultConsoleTheme();
+
+//~ Text adventure stuff
 
 enum ta_data_type {
     TADataType_None,
@@ -256,8 +347,9 @@ struct ta_data {
     ta_data_type Type;
     asset_tag Tag;
     union{
+        asset_id RoomID;
+        asset_id ItemID;
         asset_id Asset;
-        ta_id TAID;
         const char Data[];
     };
 };
@@ -270,8 +362,11 @@ struct ta_name {
 
 //~ Variables
 struct asset_variable {
+    asset_loading_data LoadingData;
+    
     const char *S;
-    ta_id TAID;
+    asset_id TAID;
+    asset_id Asset;
     ta_name NameData;
 };
 
@@ -298,20 +393,10 @@ struct asset_system {
     //~ Processed assets loading
     void LoadProcessedAssets(void *Data, u32 DataSize);
     
-#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-    asset_sound_effect SoundEffects[AssetSoundEffect_TOTAL];
-    asset_font         Fonts[AssetFont_TOTAL];
-    asset_variable     Variables[AssetVariable_TOTAL];
-#else
-    hash_table<string, asset_sound_effect> SoundEffectTable;
-    hash_table<string, asset_font> FontTable;
-    hash_table<string, asset_variable> VariableTable;
-    
-    asset_sound_effect *GetSoundEffectByString(string Name);
-    asset_font *GetFontByString(string Name);
-    asset_variable *GetVariableByString(string Name);
-#endif
-    
+    asset_table(SoundEffect, asset_sound_effect);
+    asset_table(Font,        asset_font);
+    asset_table(Variable,    asset_variable);
+    asset_table(Theme,       console_theme);
 };
 
 //~ Asset loading
@@ -401,6 +486,6 @@ struct sjap_header {
 
 //~ Miscellaneous
 struct ta_item;
-internal void MurkwellProcessItem(ta_system *TA, ta_id ItemID, ta_item *Item);
+internal void MurkwellProcessItem(ta_system *TA, asset_id ItemID, ta_item *Item);
 
 #endif //SNAIL_JUMPY_ASSET_H

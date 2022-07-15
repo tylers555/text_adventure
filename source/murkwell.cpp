@@ -1,6 +1,6 @@
 
 //~ Helpers
-internal ta_id
+internal asset_id
 ChooseRandomTARoom(ta_system *TA){
     NOT_IMPLEMENTED_YET;
 #if 0
@@ -12,7 +12,7 @@ ChooseRandomTARoom(ta_system *TA){
         }
     }
 #endif
-    return MakeTAID(0);
+    return {};
 }
 
 internal b8
@@ -34,9 +34,9 @@ GhostEnsureRoom(ta_system *TA, entity_ghost *Ghost){
 }
 
 internal void
-MurkwellAddGhost(ta_system *TA, asset_system *Assets, ta_id Room=MakeTAID(0)){
+MurkwellAddGhost(ta_system *TA, asset_system *Assets, asset_id Room=MakeAssetID(0)){
     entity_ghost *Ghost = ArrayAlloc(&TA->Ghosts);
-    Ghost->Item = GetItemID(TA, ghost_albert);
+    Ghost->Item = AssetID(Item, ghost_albert);
     Ghost->CurrentRoom = Room.ID ? Room : ChooseRandomTARoom(TA);
     GhostEnsureRoom(TA, Ghost);
     TA->FindRoom(Ghost->CurrentRoom)->Ghost = Ghost->Item;
@@ -45,7 +45,7 @@ MurkwellAddGhost(ta_system *TA, asset_system *Assets, ta_id Room=MakeTAID(0)){
 internal void
 MurkwellRemoveGhost(ta_system *TA, u32 Index){
     entity_ghost *Ghost = &TA->Ghosts[Index];
-    TA->FindRoom(Ghost->CurrentRoom)->Ghost = MakeTAID(0);
+    TA->FindRoom(Ghost->CurrentRoom)->Ghost = MakeAssetID(0);
     ArrayUnorderedRemove(&TA->Ghosts, Index);
 }
 
@@ -59,8 +59,8 @@ MurkwellRemoveAllGhosts(ta_system *TA){
 }
 
 internal void
-GhostChangeRoom(ta_system *TA, asset_system *Assets, entity_ghost *Ghost, ta_id NewRoom){
-    TA->FindRoom(Ghost->CurrentRoom)->Ghost = MakeTAID(0);
+GhostChangeRoom(ta_system *TA, asset_system *Assets, entity_ghost *Ghost, asset_id NewRoom){
+    TA->FindRoom(Ghost->CurrentRoom)->Ghost = MakeAssetID(0);
     Ghost->CurrentRoom = NewRoom;
     GhostEnsureRoom(TA, Ghost);
     TA->FindRoom(Ghost->CurrentRoom)->Ghost = Ghost->Item;
@@ -150,10 +150,10 @@ MurkwellStartCarillonPages(ta_system *TA, asset_system *Assets){
     TA->CarillonPages.QuestStatus = QuestStatus_Active;
     TA->CarillonPages.OrganWasRepaired = MurkwellIsOrganQuestDone(TA);
     if(!TA->CarillonPages.OrganWasRepaired){
-        TA->RoomEnsureItem(GetRoom(TA, cathedral_quire), GetItemID(TA, carillon_pages_singing_ghost));
+        TA->RoomEnsureItem(TAFind(TA, Room, cathedral_quire), AssetID(Item, carillon_pages_singing_ghost));
     }
     
-    TA->RoomEnsureItem(GetRoom(TA, bench), GetItemID(TA, carillon_pages_bench_ghost));
+    TA->RoomEnsureItem(TAFind(TA, Room, bench), AssetID(Item, carillon_pages_bench_ghost));
     
     return true;
 }
@@ -161,7 +161,7 @@ MurkwellStartCarillonPages(ta_system *TA, asset_system *Assets){
 //~ 
 // TODO(Tyler): This isn't really used right now
 internal void
-MurkwellProcessItem(ta_system *TA, ta_id ItemID, ta_item *Item){
+MurkwellProcessItem(ta_system *TA, asset_id ItemID, ta_item *Item){
     if(HasTag(Item->Tag, AssetTag_Haunted)){
         ArrayAdd(&TA->HauntedItems, ItemID);
     }
@@ -189,8 +189,8 @@ internal const char *
 MurkwellAdditionalRoomDescription(ta_system *TA, asset_system *Assets, ta_room *Room){
     if(TA->CarillonPages.BenchGhostIsFollowing){
         return GetVar(Assets, carillon_pages_bench_ghost_following);
-    }else if(TA->RoomHasItem(Room, GetItemID(TA, carillon_pages_ghostly_congregation))){
-        ta_data *Data = TA->FindDescription(&GetItem(TA, carillon_pages_ghostly_congregation)->Datas, 
+    }else if(TA->RoomHasItem(Room, AssetID(Item, carillon_pages_ghostly_congregation))){
+        ta_data *Data = TA->FindDescription(&TAFind(TA, Item, carillon_pages_ghostly_congregation)->Datas, 
                                             AssetTag(AssetTag_Override));
         if(Data) return Data->Data;
     }
@@ -206,10 +206,10 @@ MurkwellTick(ta_system *TA, asset_system *Assets){
     
     //~ Carillon pages
     
-    if(((TA->CurrentRoom == GetRoom(TA, plaza_southeast)) ||
-        (TA->CurrentRoom == GetRoom(TA, plaza_southwest)) ||
-        (TA->CurrentRoom == GetRoom(TA, plaza_northwest)) ||
-        (TA->CurrentRoom == GetRoom(TA, james_street))) &&
+    if(((TA->CurrentRoom == TAFind(TA, Room, plaza_southeast)) ||
+        (TA->CurrentRoom == TAFind(TA, Room, plaza_southwest)) ||
+        (TA->CurrentRoom == TAFind(TA, Room, plaza_northwest)) ||
+        (TA->CurrentRoom == TAFind(TA, Room, james_street))) &&
        ((GetRandomNumber(73219) % 10) < 1)){
         MurkwellStartCarillonPages(TA, Assets);
     }

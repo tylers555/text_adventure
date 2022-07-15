@@ -54,7 +54,7 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, wo
         }
         
         TA->CurrentRoom = FoundRoom;
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
+        Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_move));
         
         return true;
     }
@@ -85,7 +85,7 @@ HighestMatch = Match; \
             continue;
         }
         
-        ta_id NextRoomString = CurrentRoom->Adjacents[Direction];
+        asset_id NextRoomString = CurrentRoom->Adjacents[Direction];
         NextRoom = HashTableFindPtr(&TA->RoomTable, NextRoomString);
         if(!NextRoom){
             TA->Respond(GetVar(Assets, move_invalid_room));
@@ -110,7 +110,7 @@ HighestMatch = Match; \
     
     if(NextRoom){
         TA->CurrentRoom = NextRoom;
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
+        Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_move));
         
         return true;
     }
@@ -133,7 +133,7 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
     }
     
     for(u32 I=0; I<Direction_TOTAL; I++){
-        if(Room->Adjacents[I] == Data->TAID){
+        if(Room->Adjacents[I] == Data->Asset){
             asset_tag *Tag = &Room->AdjacentTags[I];
             if(HasTag(*Tag, AssetTag_Locked)){
                 if(TA->AttemptToUnlock(Mixer, Assets, Room, Tag)){
@@ -149,7 +149,7 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         }
     }
     
-    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->TAID);
+    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->RoomID);
     if(!NextRoom){
         LogMessage("That room does not exist!");
         TA->Respond("ERROR!");
@@ -157,7 +157,7 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
     }
     
     TA->CurrentRoom = NextRoom;
-    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
+    Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_move));
     
     return true;
 }
@@ -177,7 +177,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
     }
     
     for(u32 I=0; I<Direction_TOTAL; I++){
-        if(Room->Adjacents[I] == Data->TAID){
+        if(Room->Adjacents[I] == Data->RoomID){
             asset_tag *Tag = &Room->AdjacentTags[I];
             if(HasTag(*Tag, AssetTag_Locked)){
                 if(TA->AttemptToUnlock(Mixer, Assets, Room, Tag)){
@@ -193,7 +193,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
         }
     }
     
-    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->TAID);
+    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->RoomID);
     if(NextRoom){
         LogMessage("That room does not exist!");
         TA->Respond("ERROR!");
@@ -201,7 +201,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
     }
     
     TA->CurrentRoom = NextRoom;
-    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_move)));
+    Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_move));
     
     return true;
 }
@@ -239,7 +239,7 @@ b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, w
         Item->IsDirty = true;
         Item->Cost = 0;
         
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_bought)));
+        Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_item_bought));
         
         ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
         if(Description) TA->Respond(Description->Data);
@@ -284,7 +284,7 @@ b8 CommandTake(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
         if(!Description) return false;
         TA->Respond(Description->Data);
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
+        Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_item_taken));
     }
     
     return true;
@@ -305,7 +305,7 @@ b8 CommandDrop(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         
         if(TA->RoomDropItem(Assets, Room, TA->Inventory[Index-RemovedItems])) TA->InventoryRemoveItem(Index-RemovedItems);
         RemovedItems++;
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_dropped)));
+        Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_item_dropped));
     }
     
     return true;
@@ -338,7 +338,7 @@ b8 CommandBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
             ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Examine));
             if(!Description) continue;
             TA->Respond(Description->Data);
-            Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_taken)));
+            Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_item_taken));
         }else if(TA->Money >= Item->Cost){
             TA->Respond(GetVar(Assets, buy_prompt));
             TA->Callback = CallbackConfirmBuy;
@@ -372,7 +372,7 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
         TA->Respond(Description->Data);
         
         if(HasTag(Item->Tag, AssetTag_Bread)){
-            TA->InventoryAddItem(GetItemID(TA, bread_crumbs));
+            TA->InventoryAddItem(AssetID(Item, bread_crumbs));
         }
         
         TA->InventoryRemoveItem(Index-RemovedItems);
@@ -380,7 +380,7 @@ b8 CommandEat(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arra
     }
     
     if(RemovedItems > 0){
-        Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_eaten)));
+        Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_item_eaten));
         return true;
     }else{
         TA->Respond(GetVar(Assets, eat_invalid)); 
@@ -406,7 +406,7 @@ b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         if(HasTag(Item->Tag, AssetTag_Organ)) Extra = TA->OrganState;
         
         ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, Extra));
-        if(Sound) Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+        if(Sound) Mixer->PlaySound(AssetsFind(Assets, SoundEffect, Sound->Asset));
         
         ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Play, Extra));
         if(!Description) continue;
@@ -423,7 +423,7 @@ b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
             asset_tag_id Extra = AssetTag_None;
             if(HasTag(Item->Tag, AssetTag_Organ)) Extra = TA->OrganState;
             ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, Extra));
-            if(Sound) Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+            if(Sound) Mixer->PlaySound(AssetsFind(Assets, SoundEffect, Sound->Asset));
             
             TA->Respond(Description->Data);
             return true;
@@ -515,14 +515,14 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_a
         }
         
         FOR_EACH_(FixerItemID, J, &TA->Inventory){
-            if(FixerItemID != Data->TAID) continue;
+            if(FixerItemID != Data->ItemID) continue;
             
             SwitchTag(&Item->Tag, AssetTag_Broken, AssetTag_Repaired);
             TA->InventoryRemoveItem(J);
             ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Repaired));
             TAUpdateOrganState(TA);
             if(!Sound) break;
-            Mixer->PlaySound(GetSoundEffect(Assets, Sound->Asset));
+            Mixer->PlaySound(AssetsFind(Assets, SoundEffect, Sound->Asset));
             break;
         }
         
@@ -598,11 +598,11 @@ b8 CommandPray(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
     ta_room *Room = TA->CurrentRoom;
     
     if(TA->CarillonPages.QuestStatus == QuestStatus_Active){
-        if(Room == GetRoom(TA, bench)){
+        if(Room == TAFind(TA, Room, bench)){
             TA->Respond(GetVar(Assets, pray_carillon_pages_bench));
             return true;
-        }else if(Room->Area == GetAreaID(TA, cathedral)){
-            TA->RoomEnsureItem(GetRoom(TA, cathedral_nave), GetItemID(TA, carillon_pages_ghostly_congregation));
+        }else if(Room->Area == AssetID(Area, cathedral)){
+            TA->RoomEnsureItem(TAFind(TA, Room, cathedral_nave), AssetID(Item, carillon_pages_ghostly_congregation));
             TA->Respond(GetVar(Assets, pray_carillon_pages_cathedral));
             return true;
         }
@@ -620,25 +620,25 @@ b8 CommandPerformRitual(audio_mixer *Mixer, ta_system *TA, asset_system *Assets,
         TA->Respond(GetVar(Assets, perform_ritual_carillon_pages_inactive));
         return false;
     }
-    if(Room != GetRoom(TA, bench)){
+    if(Room != TAFind(TA, Room, bench)){
         TA->Respond(GetVar(Assets, perform_ritual_carillon_pages_wrong_room));
         return false;
     }
-    if(!TA->InventoryHasItem(GetItemID(TA, ritual_book))){
+    if(!TA->InventoryHasItem(AssetID(Item, ritual_book))){
         TA->Respond(GetVar(Assets, perform_ritual_carillon_pages_no_book));
         return false;
     }
-    if(!TA->RoomHasItem(Room, GetItemID(TA, ritual_candles))){
+    if(!TA->RoomHasItem(Room, AssetID(Item, ritual_candles))){
         TA->Respond(GetVar(Assets, perform_ritual_carillon_pages_no_candles));
         return false;
     }
     
-    ta_id Page = GetItemID(TA, carillon_page_4);
+    asset_id Page = AssetID(Item, carillon_page_4);
     if(!TA->InventoryAddItem(Page)) Assert(TA->RoomAddItem(Room, Page));
     
     TA->Respond(GetVar(Assets, perform_ritual_carillon_pages_successful));
-    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_perform_ritual)));
-    TA->RoomRemoveItemByID(Room, GetItemID(TA, carillon_pages_bench_ghost));
+    Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_perform_ritual));
+    TA->RoomRemoveItemByID(Room, AssetID(Item, carillon_pages_bench_ghost));
     return true;
 }
 
@@ -658,7 +658,7 @@ b8 CommandPerform(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_
     
     if(!FoundSomething) FOR_EACH(ItemID, &Room->Items){
         ta_item *Item = TA->FindItem(ItemID);
-        if(Item == GetItem(TA, bench_carillon_pages_ritual)){
+        if(Item == TAFind(TA, Item, bench_carillon_pages_ritual)){
             return CommandPerformRitual(Mixer, TA, Assets, Words);
         }
     }
@@ -671,15 +671,15 @@ b8 CommandSetupCandles(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, 
     
     ta_found_items FoundItems = TAFindItems(TA, &TA->Inventory, Words);
     
-    ta_id Candles = GetItemID(TA, ritual_candles);
-    ta_id RitualBook = GetItemID(TA, ritual_book);
+    asset_id Candles = AssetID(Item, ritual_candles);
+    asset_id RitualBook = AssetID(Item, ritual_book);
     FOR_EACH_PTR(FoundItem, &FoundItems.Items){
         ta_item *Item = FoundItem->Item;
         
         if((Item->ID == Candles) || HasTag(Item->Tag, AssetTag_Ritual)){
             if(TA->InventoryHasItem(Candles) && TA->InventoryHasItem(RitualBook)){
                 if(TA->RoomDropItem(Assets, Room, Candles)){
-                    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_setup_candles)));
+                    Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_setup_candles));
                     TA->Respond(GetVar(Assets, setup_candles_carillon_pages));
                     TA->InventoryRemoveItemByID(Candles);
                     return true;
@@ -691,7 +691,7 @@ b8 CommandSetupCandles(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, 
     if(FoundItems.Items.Count == 0){
         if(TA->InventoryHasItem(Candles) && TA->InventoryHasItem(RitualBook)){
             if(TA->RoomDropItem(Assets, Room, Candles)){
-                Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_setup_candles)));
+                Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_setup_candles));
                 TA->Respond(GetVar(Assets, setup_candles_carillon_pages));
                 TA->InventoryRemoveItemByID(Candles);
                 return true;
@@ -755,10 +755,10 @@ b8 CommandFeed(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
     }
     
     TA->InventoryRemoveItemByID(Food->ID);
-    if((Eater->ID == GetItemID(TA, carillon_pages_bench_ghost)) &&
-       (Food->ID == GetItemID(TA, apple_pie))){
+    if((Eater->ID == AssetID(Item, carillon_pages_bench_ghost)) &&
+       (Food->ID == AssetID(Item, apple_pie))){
         TA->CarillonPages.BenchGhostIsFollowing = true;
-        ta_id Page = GetItemID(TA, carillon_page_4);
+        asset_id Page = AssetID(Item, carillon_page_4);
         if(!TA->InventoryAddItem(Page)) Assert(TA->RoomAddItem(Room, Page));
         TA->Respond(GetVar(Assets, feed_carillon_pages_bench_ghost_pie));
     }else{
@@ -766,7 +766,7 @@ b8 CommandFeed(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         TA->Respond(Feed->Data);
     }
     
-    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_item_fed)));
+    Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_item_fed));
     
     return true;
 }
@@ -790,7 +790,7 @@ b8 CommandTestCarillonPages(audio_mixer *Mixer, ta_system *TA, asset_system *Ass
 //~ @meta_commands
 b8 CommandMusic(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     if(!SettingsState.MusicHandle.ID){
-        SettingsState.MusicHandle = Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_test_music)), MixerSoundFlag_Loop);
+        SettingsState.MusicHandle = Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_test_music), MixerSoundFlag_Loop);
     }else{
         Mixer->StopSound(SettingsState.MusicHandle);
         SettingsState.MusicHandle = {};

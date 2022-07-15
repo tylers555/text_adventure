@@ -1,48 +1,13 @@
 #ifndef TEXT_ADVENTURE_H
 #define TEXT_ADVENTURE_H
 
-//~ Theme
-global_constant color BASE_BACKGROUND_COLOR = MakeColor(0x0a0d4aff);
-global_constant color BASIC_COLOR      = MakeColor(0xf2f2f2ff);
-global_constant color ROOM_TITLE_COLOR = MakeColor(0xff6969ff);
-global_constant color ROOM_COLOR       = MakeColor(0xffe369ff);
-global_constant color DIRECTION_COLOR  = MakeColor(0x84d197ff);
-global_constant color ITEM_COLOR       = MakeColor(0x24e3e3ff);
-
-global_constant color RESPONSE_COLOR = MakeColor(0x9063ffff);
-global_constant color EMPHASIS_COLOR = MakeColor(0xe06ecdff);
-
-struct console_theme {
-    asset_id BasicFont;
-    asset_id TitleFont;
-    
-    color BackgroundColor;
-    color CursorColor;
-    color SelectionColor;
-    
-    fancy_font_format RoomTitleFancy;
-    union{
-        struct {
-            fancy_font_format BasicFancy;     // '\0'
-            fancy_font_format DirectionFancy; // '\1'
-            fancy_font_format RoomFancy;      // '\2'
-            fancy_font_format ItemFancy;      // '\3'
-            fancy_font_format MiscFancy;      // '\'
-            fancy_font_format MoodFancy;      // '\5'
-        };
-        fancy_font_format DescriptionFancies[6];
-    };
-    fancy_font_format ResponseFancies[2];
-};
-internal inline console_theme MakeDefaultConsoleTheme();
-
 //~ Text adventure stuff
 
 global_constant u32 TA_ROOM_DEFAULT_ITEM_COUNT = 8;
 global_constant u32 INVENTORY_ITEM_COUNT = 10;
 
 struct ta_area {
-    ta_id Name;
+    asset_id Name;
     v2 Offset;
 };
 
@@ -53,9 +18,11 @@ struct ta_map {
 };
 
 struct ta_item {
+    asset_loading_data LoadingData;
+    
     b8 IsDirty;
     
-    ta_id ID;
+    asset_id ID;
     ta_name NameData;
     asset_tag Tag;
     u32 Cost;
@@ -70,17 +37,19 @@ enum room_flags_ {
 };
 
 struct ta_room {
-    ta_id ID;
+    asset_loading_data LoadingData;
+    
+    asset_id ID;
     room_flags Flags;
     ta_name NameData;
-    ta_id Area;
+    asset_id Area;
     asset_tag Tag;
     array<ta_data *> Datas;
-    array<ta_id> Items;
-    ta_id     Adjacents[Direction_TOTAL];
+    array<asset_id> Items;
+    asset_id     Adjacents[Direction_TOTAL];
     asset_tag AdjacentTags[Direction_TOTAL];
     
-    ta_id Ghost;
+    asset_id Ghost;
 };
 
 //~
@@ -96,15 +65,13 @@ struct ta_system;
 typedef b8 ta_command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words);
 
 struct ta_system {
-    hash_table<ta_id, console_theme> ThemeTable;
-    
-    hash_table<ta_id, ta_room> RoomTable;
-    hash_table<ta_id, ta_item> ItemTable;
+    asset_table(Room, ta_room);
+    hash_table<asset_id, ta_item> ItemTable;
     
     // Used for processed assets
-    hash_table<const char *, ta_id> ItemNameTable;
+    hash_table<const char *, asset_id> ItemNameTable;
     
-    array<ta_id> Inventory;
+    array<asset_id> Inventory;
     ta_map Map;
     
     ta_room *CurrentRoom;
@@ -117,23 +84,23 @@ struct ta_system {
         u32 BuyItemIndex;
     };
     
-    inline b8 MaybeMarkItemDirty(ta_id ItemID);
+    inline b8 MaybeMarkItemDirty(asset_id ItemID);
     
     void Initialize(asset_system *Assets, memory_arena *Arena);
-    inline b8 InventoryAddItem(ta_id Item);
+    inline b8 InventoryAddItem(asset_id Item);
     inline b8 InventoryRemoveItem(u32 Index);
-    inline b8 InventoryRemoveItemByID(ta_id ID);
-    inline b8 InventoryHasItem(ta_id ID);
+    inline b8 InventoryRemoveItemByID(asset_id ID);
+    inline b8 InventoryHasItem(asset_id ID);
     
-    inline ta_room *FindRoom(ta_id Room);
-    inline b8 RoomAddItem(ta_room *Room, ta_id Item);
-    inline b8 RoomDropItem(asset_system *Assets, ta_room *Room, ta_id Item);
+    inline ta_room *FindRoom(asset_id Room);
+    inline b8 RoomAddItem(ta_room *Room, asset_id Item);
+    inline b8 RoomDropItem(asset_system *Assets, ta_room *Room, asset_id Item);
     inline b8 RoomRemoveItem(ta_room *Room, u32 Index);
-    inline b8 RoomRemoveItemByID(ta_room *Room, ta_id ID);
-    inline b8 RoomHasItem(ta_room *Room, ta_id ID);
-    inline b8 RoomEnsureItem(ta_room *Room, ta_id ID);
+    inline b8 RoomRemoveItemByID(ta_room *Room, asset_id ID);
+    inline b8 RoomHasItem(ta_room *Room, asset_id ID);
+    inline b8 RoomEnsureItem(ta_room *Room, asset_id ID);
     
-    inline ta_item *FindItem(ta_id Item);
+    inline ta_item *FindItem(asset_id Item);
     
     inline ta_data *FindData(array<ta_data *> *Datas, ta_data_type Type, asset_tag Tag);
     inline ta_data *FindDescription(array<ta_data *> *Descriptions, asset_tag Tag);
@@ -142,6 +109,7 @@ struct ta_system {
     b8 IsClosed(asset_tag Tag);
     inline void Respond(const char *Format, ...);
     
+    //~ Command
     memory_arena CommandMemory;
     stack<const char *> CommandStack;
     ta_editing_command_node EditingCommandSentinel;
@@ -155,13 +123,13 @@ struct ta_system {
     void EditingCommandCycleUp(os_input *Input);
     void EditingCommandCycleDown(os_input *Input);
     
-    //- Debug
-    inline b8 CheckAndLogItemID(ta_id ItemID);
-    inline b8 CheckAndLogRoomID(ta_id RoomID);
+    //~ Debug
+    inline b8 CheckAndLogItemID(asset_id ItemID);
+    inline b8 CheckAndLogRoomID(asset_id RoomID);
     
     //~ Game specific data
     array<entity_ghost> Ghosts;
-    array<ta_id> HauntedItems;
+    array<asset_id> HauntedItems;
     pray_status PrayStatus;
     u32 Money;
     murkwell_event Event;

@@ -3,8 +3,8 @@
 internal inline console_theme
 MakeDefaultConsoleTheme(){
     console_theme Result = {};
-    Result.BasicFont = AssetID(font_basic);
-    Result.TitleFont = AssetID(font_basic_bold);
+    Result.BasicFont = AssetID(Font, font_basic);
+    Result.TitleFont = AssetID(Font, font_basic_bold);
     Result.BackgroundColor = MakeColor(0x0a0d4aff);
     Result.CursorColor     = MakeColor(0xf2f2f2ff);
     Result.SelectionColor = MakeColor(0x232c8cff);
@@ -28,73 +28,6 @@ MakeDefaultConsoleTheme(){
     return Result;
 }
 
-//~ TA IDs
-internal inline ta_id 
-MakeTAID(u64 ID){
-    ta_id Result;
-    Result.ID = ID;
-    return Result;
-}
-
-internal inline ta_id 
-MakeTAID(string S){
-    ta_id Result;
-    Result.ID = S.ID;
-    return Result;
-}
-
-internal inline constexpr b8
-operator==(ta_id A, ta_id B){
-    b8 Result = (A.ID == B.ID);
-    return Result;
-}
-
-internal inline constexpr b8
-operator!=(ta_id A, ta_id B){
-    b8 Result = (A.ID != B.ID);
-    return Result;
-}
-
-internal constexpr u64
-HashKey(ta_id Value) {
-    u64 Result = Value.ID;
-    return(Result);
-}
-
-internal constexpr b32
-CompareKeys(ta_id A, ta_id B){
-    b32 Result = (A == B);
-    return(Result);
-}
-
-#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-#error These functions are used and won't work! Changes needed!
-internal inline ta_id
-TAIDByName(ta_system *TA, const char *S){
-    ta_id ItemID = {};
-    return ItemID;
-}
-
-#error GetRoom not implemented yet!
-
-#else
-internal inline ta_id
-TAIDByName(ta_system *TA, const char *S){
-    ta_id Result = MakeTAID(Strings.GetString(S));
-    return Result;
-}
-
-#define GetRoomID(TA, Name) TAIDByName((TA), #Name)
-#define GetRoom(TA, Name) (TA)->FindRoom(GetRoomID(TA, Name))
-#define GetItemID(TA, Name) TAIDByName((TA), #Name)
-#define GetItem(TA, Name) (TA)->FindItem(GetItemID(TA, Name))
-#define GetAreaID(TA, Name) TAIDByName(TA, #Name)
-
-global_constant u32 ROOM_TABLE_SIZE = 64;
-global_constant u32 ITEM_TABLE_SIZE = 128;
-global_constant u32 THEME_TABLE_SIZE = 8;
-
-#endif
 
 //~ Command processing
 internal array<char *>
@@ -256,7 +189,7 @@ TAContinueFindName(ta_found_items *Founds, ta_name_comparison *Comparison){
 }
 
 internal void 
-TAContinueFindItems(ta_system *TA, array<ta_id> *Items, word_array Words, ta_found_items *Founds){
+TAContinueFindItems(ta_system *TA, array<asset_id> *Items, word_array Words, ta_found_items *Founds){
     for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
         ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
         if(!Item) continue;
@@ -281,7 +214,7 @@ return false; \
 HANDLE_AMBIGUOUS_FOUND_ITEMS(FoundItems, Function, Verb) \
 
 internal ta_found_items
-TAFindItems(ta_system *TA, array<ta_id> *Items, word_array Words){
+TAFindItems(ta_system *TA, array<asset_id> *Items, word_array Words){
     ta_found_items Result = {};
     Result.Items = MakeDynamicArray<ta_found_item>(&GlobalTransientMemory, 2);
     TAContinueFindItems(TA, Items, Words, &Result);
@@ -290,7 +223,7 @@ TAFindItems(ta_system *TA, array<ta_id> *Items, word_array Words){
 }
 
 internal inline s32
-TAFindItemByTag(ta_system *TA, array<ta_id> *Items, asset_tag Tag){
+TAFindItemByTag(ta_system *TA, array<asset_id> *Items, asset_tag Tag){
     for(u32 J=0; J<Items->Count; J++){
         ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, J));
         if(!Item) continue;
@@ -309,7 +242,7 @@ DoTANameComparisonsOverlap(ta_name_comparison Old, ta_name_comparison New){
 
 //~ Other
 inline ta_area
-MakeTAArea(ta_id Name, v2 Offset){
+MakeTAArea(asset_id Name, v2 Offset){
     ta_area Result = {};;
     Result.Name = Name;
     Result.Offset = Offset;
@@ -332,14 +265,14 @@ ta_system::Respond(const char *Format, ...){
 }
 
 inline ta_room *
-ta_system::FindRoom(ta_id Room){
-    ta_room *Result = HashTableFindPtr(&RoomTable, Room);
+ta_system::FindRoom(asset_id Room){
+    ta_room *Result = TAFind_(this, Room, Room);
     return Result;
 }
 
 inline ta_item *
-ta_system::FindItem(ta_id Item){
-    ta_item *Result = HashTableFindPtr(&ItemTable, Item);
+ta_system::FindItem(asset_id Item){
+    ta_item *Result = TAFind_(this, Item, Item);
     return Result;
 }
 
@@ -367,7 +300,7 @@ void
 ta_system::Unlock(audio_mixer *Mixer, asset_system *Assets, ta_room *Room, asset_tag *Locked){
     Room->Flags |= RoomFlag_Dirty;
     *Locked = AssetTag();
-    Mixer->PlaySound(GetSoundEffect(Assets, AssetID(sound_open_door)));
+    Mixer->PlaySound(AssetsFind(Assets, SoundEffect, sound_open_door));
 }
 
 b8
@@ -406,7 +339,7 @@ ta_system::IsClosed(asset_tag Tag){
 
 //~ Debug
 inline b8
-ta_system::CheckAndLogItemID(ta_id ItemID){
+ta_system::CheckAndLogItemID(asset_id ItemID){
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
     ta_item *Item = FindItem(ItemID);
     if(!Item){
@@ -419,7 +352,7 @@ ta_system::CheckAndLogItemID(ta_id ItemID){
 #endif
 }
 inline b8
-ta_system::CheckAndLogRoomID(ta_id RoomID){
+ta_system::CheckAndLogRoomID(asset_id RoomID){
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
     ta_room *Room = FindRoom(RoomID);
     if(!Room) LogMessage("Item %s does not exist!", Strings.GetString(MakeString(RoomID.ID)));
@@ -431,7 +364,7 @@ ta_system::CheckAndLogRoomID(ta_id RoomID){
 
 //~ Inventory
 inline b8
-ta_system::MaybeMarkItemDirty(ta_id ItemID){
+ta_system::MaybeMarkItemDirty(asset_id ItemID){
     ta_item *Item = FindItem(ItemID);
     if(Item){
         Item->IsDirty = true;
@@ -441,7 +374,7 @@ ta_system::MaybeMarkItemDirty(ta_id ItemID){
 }
 
 inline b8
-ta_system::InventoryAddItem(ta_id ItemID){
+ta_system::InventoryAddItem(asset_id ItemID){
     MaybeMarkItemDirty(ItemID);
     b8 Result = ArrayMaybeAdd(&Inventory, ItemID);
     if(!Result) Respond("You are far too \002\002weak\002\001 to carry that many items!!!");
@@ -456,7 +389,7 @@ ta_system::InventoryRemoveItem(u32 Index){
 }
 
 inline b8
-ta_system::InventoryRemoveItemByID(ta_id ID){
+ta_system::InventoryRemoveItemByID(asset_id ID){
     if(!CheckAndLogItemID(ID)) return false;
     MaybeMarkItemDirty(ID);
     b8 Result = ArrayRemoveByValue(&Inventory, ID);
@@ -466,7 +399,7 @@ ta_system::InventoryRemoveItemByID(ta_id ID){
 }
 
 inline b8
-ta_system::InventoryHasItem(ta_id ID){
+ta_system::InventoryHasItem(asset_id ID){
     if(!CheckAndLogItemID(ID)) return false;
     return ArrayHasItem(&Inventory, ID);
 }
@@ -474,9 +407,9 @@ ta_system::InventoryHasItem(ta_id ID){
 //~ Room
 
 inline b8
-ta_system::RoomAddItem(ta_room *Room, ta_id Item){
+ta_system::RoomAddItem(ta_room *Room, asset_id Item){
     if(!Room->Items){
-        Room->Items = MakeArray<ta_id>(Memory, TA_ROOM_DEFAULT_ITEM_COUNT);
+        Room->Items = MakeArray<asset_id>(Memory, TA_ROOM_DEFAULT_ITEM_COUNT);
     }
     
     b8 Result = ArrayMaybeAdd(&Room->Items, Item);
@@ -486,7 +419,7 @@ ta_system::RoomAddItem(ta_room *Room, ta_id Item){
 }
 
 inline b8
-ta_system::RoomDropItem(asset_system *Assets, ta_room *Room, ta_id Item){
+ta_system::RoomDropItem(asset_system *Assets, ta_room *Room, asset_id Item){
     b8 Result = RoomAddItem(Room, Item);
     if(!Result){
         Respond(GetVar(Assets, room_too_small));
@@ -503,7 +436,7 @@ ta_system::RoomRemoveItem(ta_room *Room, u32 Index){
 }
 
 inline b8
-ta_system::RoomRemoveItemByID(ta_room *Room, ta_id ID){
+ta_system::RoomRemoveItemByID(ta_room *Room, asset_id ID){
     b8 Result = ArrayRemoveByValue(&Room->Items, ID);
     Assert(Result);
     MaybeMarkItemDirty(ID);
@@ -512,12 +445,12 @@ ta_system::RoomRemoveItemByID(ta_room *Room, ta_id ID){
 }
 
 inline b8
-ta_system::RoomHasItem(ta_room *Room, ta_id ID){
+ta_system::RoomHasItem(ta_room *Room, asset_id ID){
     return ArrayHasItem(&Room->Items, ID);
 }
 
 inline b8
-ta_system::RoomEnsureItem(ta_room *Room, ta_id ID){
+ta_system::RoomEnsureItem(ta_room *Room, asset_id ID){
     CheckAndLogItemID(ID);
     if(!RoomHasItem(Room, ID)){
         Assert(RoomAddItem(Room, ID));
@@ -529,8 +462,8 @@ ta_system::RoomEnsureItem(ta_room *Room, ta_id ID){
 //~ Miscellaneous
 internal inline void
 TAUpdateOrganState(ta_system *TA){
-    ta_item *Bellows = GetItem(TA, cathedral_maintenance_room_organ_bellows);
-    ta_item *Pipes   = GetItem(TA, cathedral_maintenance_room_organ_pipes);
+    ta_item *Bellows = TAFind(TA, Item, cathedral_maintenance_room_organ_bellows);
+    ta_item *Pipes   = TAFind(TA, Item, cathedral_maintenance_room_organ_pipes);
     if(HasTag(Bellows->Tag, AssetTag_Repaired) &&
        HasTag(Pipes->Tag, AssetTag_Repaired)){
         TA->OrganState = AssetTag_Repaired;

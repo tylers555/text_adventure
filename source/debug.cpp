@@ -183,7 +183,7 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
     ta_system *TA = &State->TextAdventure;
     os_input *Input = &State->Input;
     
-    asset_font *Font = GetFont(Assets, AssetID(font_basic));
+    asset_font *Font = AssetsFind(Assets, Font, font_basic);
     
     v2 DebugP = V2(10, 10);
     if(DisplayFlags & DebugDisplay_Basic){

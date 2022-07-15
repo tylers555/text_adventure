@@ -43,7 +43,7 @@
     start_carillon_pages
     
 : Variables
-    ta_id "theme"           "theme_default"
+    asset "theme"           "theme_default"
     # @sja_start_room 
     ta_id "start_room"      "cathedral_quire"
     

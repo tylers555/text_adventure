@@ -2,11 +2,10 @@
 void
 asset_system::Initialize(memory_arena *Arena){
     Memory = MakeArena(Arena, Megabytes(128));
-#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-    SoundEffectTable = MakeHashTable<string, asset_sound_effect>(Arena, MAX_ASSETS_PER_TYPE);
-    FontTable        = MakeHashTable<string, asset_font>(Arena, MAX_ASSETS_PER_TYPE);
-    VariableTable    = MakeHashTable<string, asset_variable>(Arena, MAX_VARIABLES);
-#endif
+    AssetTableInit(SoundEffect, Arena, MAX_ASSETS_PER_TYPE);
+    AssetTableInit(Font,        Arena, MAX_ASSETS_PER_TYPE);
+    AssetTableInit(Theme,       Arena, MAX_ASSETS_PER_TYPE);
+    AssetTableInit(Variable,    Arena, MAX_VARIABLES);
     
     //~ Dummy assets
     u8 InvalidColor[] = {0xff, 0x00, 0xff, 0xff};
@@ -73,43 +72,6 @@ SwitchTag(asset_tag *ID, asset_tag_id From, asset_tag_id To){
     else                   return false;
     return true;
 }
-
-#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-
-//~ Sound effects
-asset_sound_effect *
-asset_system::GetSoundEffectByString(string Name){
-    if(Name.ID){
-        asset_sound_effect *Result = HashTableFindPtr(&SoundEffectTable, Name);
-        if(Result && !IsLoadedAssetValid(&Result->LoadingData)) return 0;
-        return Result;
-    }
-    return 0;
-}
-
-//~ Fonts
-asset_font *
-asset_system::GetFontByString(string Name){
-    if(Name.ID){
-        asset_font *Result = HashTableFindPtr(&FontTable, Name);
-        if(Result && !IsLoadedAssetValid(&Result->LoadingData)) return 0;
-        return Result;
-    }
-    return 0;
-}
-
-//~ Variables
-asset_variable *
-asset_system::GetVariableByString(string Name){
-    asset_variable *Result = 0;
-    if(Name.ID){
-        Result = HashTableFindPtr(&VariableTable, Name);
-    }
-    Assert(Result);
-    return(Result);
-}
-
-#endif
 
 //~ Fonts
 internal f32

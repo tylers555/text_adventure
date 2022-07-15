@@ -2,11 +2,10 @@
 //~ Text adventure system
 void
 ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
-    RoomTable = MakeHashTable<ta_id, ta_room>(Arena, ROOM_TABLE_SIZE);
-    ItemTable = MakeHashTable<ta_id, ta_item>(Arena, ITEM_TABLE_SIZE);
-    ThemeTable = MakeHashTable<ta_id, console_theme>(Arena, THEME_TABLE_SIZE);
+    AssetTableInit(Room, Arena, ROOM_TABLE_SIZE);
+    AssetTableInit(Item, Arena, ITEM_TABLE_SIZE);
     
-    Inventory = MakeArray<ta_id>(Arena, INVENTORY_ITEM_COUNT);
+    Inventory = MakeArray<asset_id>(Arena, INVENTORY_ITEM_COUNT);
     
     CommandMemory = MakeArena(Arena, Megabytes(1));
     CommandStack = MakeStack<const char *>(Arena, 512);
@@ -19,7 +18,7 @@ ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
     CurrentEditingCommand = &EditingCommandSentinel;
     
     //~ Game specific data
-    HauntedItems = MakeArray<ta_id>(Arena, 16);
+    HauntedItems = MakeArray<asset_id>(Arena, 16);
     Ghosts = MakeArray<entity_ghost>(Arena, 16);
     OrganState = AssetTag_Broken;
     PrayStatus = PrayStatus_None;
@@ -156,7 +155,7 @@ internal void
 GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, os_input *Input, ta_system *TA){
     DO_DEBUG_INFO();
     
-    console_theme *Theme = HashTableFindPtr(&TA->ThemeTable, GetVarTAID(Assets, theme));
+    console_theme *Theme = AssetsFind_(Assets, Theme, GetVarAsset(Assets, theme));
     if(!Theme){
         DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
                                 "Theme: \"%s\" does not exist does not exist!", GetVar(Assets, theme));
@@ -168,9 +167,10 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
         Input->BeginTextInput(&TA->EditingCommandSentinel.Context);
         TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, GetVarTAID(Assets, start_room));
         if(!TA->CurrentRoom){
-            TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, TAIDByName(TA, "Southeast plaza"));
             if(!TA->CurrentRoom){
-                LogMessage("CurrentRoom is not set!");
+                DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
+                                        "The current theme's title font(%s) does not exist does not exist!",
+                                        GetVar(Assets, start_room));
                 return;
             }else{
                 LogMessage("Room: '%s' does not exist!", GetVar(Assets, start_room));
@@ -179,14 +179,18 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
         TA->Money = 10;
     }
     
-    asset_font *BoldFont = GetFont(Assets, Theme->TitleFont);
-    asset_font *Font = GetFont(Assets, Theme->BasicFont);
+    asset_font *BoldFont = AssetsFind_(Assets, Font, Theme->TitleFont);
+    asset_font *Font = AssetsFind_(Assets, Font, Theme->BasicFont);
     if(!BoldFont){
-        DebugInfo.SubmitMessage(DebugMessage_PerFrame, "Theme title font does not exist does not exist!");
+        DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
+                                "The current theme's title font(%s) does not exist does not exist!",
+                                AssetIDName(Item, Theme->TitleFont));
         return;
     }
     if(!Font){
-        DebugInfo.SubmitMessage(DebugMessage_PerFrame, "Theme basic font does not exist does not exist!");
+        DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
+                                "The current theme's basic font(%s) does not exist does not exist!",
+                                AssetIDName(Item, Theme->BasicFont));
         return;
     }
     

@@ -34,8 +34,8 @@ struct carillon_pages_state {
 
 //~ Entities
 struct entity_ghost {
-    ta_id Item;
-    ta_id CurrentRoom;
+    asset_id Item;
+    asset_id CurrentRoom;
 };
 
 //~ Game specific stuff
