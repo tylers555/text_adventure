@@ -202,7 +202,7 @@ BuilderAdd(string_builder *Builder, char C){
 }
 
 internal inline void
-BuilderAddData(string_builder *Builder, void *Data, u32 DataSize){
+BuilderAddData(string_builder *Builder, const void *Data, u32 DataSize){
     BuilderMaybeResize(Builder, DataSize);
     CopyMemory(&Builder->Buffer[Builder->BufferSize], Data, DataSize);
     Builder->BufferSize += DataSize;

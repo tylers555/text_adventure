@@ -1,9 +1,9 @@
 
-#ifdef DO_RELEASE_BUILD
-//#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
+#if defined(SNAIL_JUMPY_ASSET_PROCESSOR_BUILD)
+#elif defined(DO_RELEASE_BUILD)
+#define SNAIL_JUMPY_DEBUG_BUILD
 #else
 #define SNAIL_JUMPY_DEBUG_BUILD
-//#define SNAIL_JUMPY_USE_PROCESSED_ASSETS
 #endif
 
 #include "main.h"
@@ -18,7 +18,9 @@ global memory_arena GlobalTickMemory;
 #include "logging.cpp"
 #include "stream.cpp"
 #include "file_processing.cpp"
+
 #include "render.cpp"
+
 #include "wav.cpp"
 #include "asset.cpp"
 #include "debug.cpp"
@@ -33,7 +35,7 @@ global memory_arena GlobalTickMemory;
 
 //~ 
 internal void
-MainStateInitialize(main_state *State){
+MainStateInitialize(main_state *State, void *Data, u32 DataSize){
     DEBUG_DATA_INITIALIZE(State);
     
     {
@@ -50,11 +52,13 @@ MainStateInitialize(main_state *State){
     State->Mixer.Initialize(&GlobalPermanentMemory);
     
     Strings.Initialize(&GlobalPermanentMemory);
-    State->TextAdventure.Initialize(&State->Assets, &GlobalPermanentMemory);
-    State->Assets.Initialize(&GlobalPermanentMemory);
+    State->TextAdventure.Initialize(&State->Assets, &GlobalPermanentMemory, Data, DataSize);
+    State->Assets.Initialize(&GlobalPermanentMemory, Data, DataSize);
     
+#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
     State->AssetLoader.Initialize(&GlobalPermanentMemory, &State->Mixer, &State->Assets, &State->TextAdventure);
     State->AssetLoader.LoadAssetFile(ASSET_FILE_PATH);
+#endif
 }
 
 //~
@@ -64,10 +68,14 @@ MainStateDoFrame(main_state *State){
     
     OSProcessInput(&State->Input);
     
+    b8 DoIt = true;
+#if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
     asset_loading_status LoadingStatus = State->AssetLoader.LoadAssetFile(ASSET_FILE_PATH);
-    DebugInfo.AssetLoadingStatus = LoadingStatus;
+    DEBUG_STATEMENT(DebugInfo.AssetLoadingStatus = LoadingStatus);
+    DoIt = (LoadingStatus != AssetLoadingStatus_Errors);
+#endif
     
-    if(LoadingStatus != AssetLoadingStatus_Errors){
+    if(DoIt){
         State->Renderer.NewFrame(&State->Input, &GlobalTransientMemory, State->Input.WindowSize);
         
         GameDoFrame(&State->Renderer, &State->Mixer, &State->Assets, &State->Input, &State->TextAdventure);

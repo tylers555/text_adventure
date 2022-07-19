@@ -11,9 +11,16 @@ WinMain(HINSTANCE Instance,
     //~ Initialize Win32 stuff
     LARGE_INTEGER PerformanceCounterFrequencyResult;
     QueryPerformanceFrequency(&PerformanceCounterFrequencyResult);
-    GlobalPerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
+    Win32PerfCounterFrequency = PerformanceCounterFrequencyResult.QuadPart;
     
-    AssetProcessorMain();
+    if(!AttachConsole(ATTACH_PARENT_PROCESS)){
+        Assert(GetLastError() == ERROR_INVALID_HANDLE);
+        Assert(AllocConsole());
+    }
+    
+    if(!AssetProcessorMain()){
+        return -1;
+    }
     
     return 0;
 }

@@ -1,9 +1,9 @@
 
 //~ Text adventure system
 void
-ta_system::Initialize(asset_system *Assets, memory_arena *Arena){
-    AssetTableInit(Room, Arena, ROOM_TABLE_SIZE);
-    AssetTableInit(Item, Arena, ITEM_TABLE_SIZE);
+ta_system::Initialize(asset_system *Assets, memory_arena *Arena, void *Data, u32 DataSize){
+    AssetTableInit(Room, Arena, ROOM_TABLE_SIZE, Data, DataSize);
+    AssetTableInit(Item, Arena, ITEM_TABLE_SIZE, Data, DataSize);
     
     Inventory = MakeArray<asset_id>(Arena, INVENTORY_ITEM_COUNT);
     
@@ -157,20 +157,20 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
     
     console_theme *Theme = AssetsFind_(Assets, Theme, GetVarAsset(Assets, theme));
     if(!Theme){
-        DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
-                                "Theme: \"%s\" does not exist does not exist!", GetVar(Assets, theme));
+        DEBUG_MESSAGE(DebugMessage_PerFrame, 
+                      "Theme: \"%s\" does not exist does not exist!", GetVar(Assets, theme));
         return;
     }
     Renderer->ClearColor = Theme->BackgroundColor;
     
     if(!TA->CurrentRoom){
         Input->BeginTextInput(&TA->EditingCommandSentinel.Context);
-        TA->CurrentRoom = HashTableFindPtr(&TA->RoomTable, GetVarTAID(Assets, start_room));
+        TA->CurrentRoom = TA->FindRoom(GetVarTAID(Assets, start_room));
         if(!TA->CurrentRoom){
             if(!TA->CurrentRoom){
-                DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
-                                        "The current theme's title font(%s) does not exist does not exist!",
-                                        GetVar(Assets, start_room));
+                DEBUG_MESSAGE(DebugMessage_PerFrame, 
+                              "The current theme's title font(%s) does not exist does not exist!",
+                              GetVar(Assets, start_room));
                 return;
             }else{
                 LogMessage("Room: '%s' does not exist!", GetVar(Assets, start_room));
@@ -182,15 +182,15 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
     asset_font *BoldFont = AssetsFind_(Assets, Font, Theme->TitleFont);
     asset_font *Font = AssetsFind_(Assets, Font, Theme->BasicFont);
     if(!BoldFont){
-        DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
-                                "The current theme's title font(%s) does not exist does not exist!",
-                                AssetIDName(Item, Theme->TitleFont));
+        DEBUG_MESSAGE(DebugMessage_PerFrame, 
+                      "The current theme's title font(%s) does not exist does not exist!",
+                      AssetIDName(Item, Theme->TitleFont));
         return;
     }
     if(!Font){
-        DebugInfo.SubmitMessage(DebugMessage_PerFrame, 
-                                "The current theme's basic font(%s) does not exist does not exist!",
-                                AssetIDName(Item, Theme->BasicFont));
+        DEBUG_MESSAGE(DebugMessage_PerFrame, 
+                      "The current theme's basic font(%s) does not exist does not exist!",
+                      AssetIDName(Item, Theme->BasicFont));
         return;
     }
     
@@ -234,7 +234,7 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
         if(Room->Items.Count > 0){
             b8 HasDisplayedItems = false;
             for(u32 I=0; I<Room->Items.Count; I++){
-                ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
+                ta_item *Item = TA->FindItem(Room->Items[I]);
                 if(!Item) continue;
                 if(DoDisplayItem(Item)){
                     HasDisplayedItems = true; 
@@ -256,7 +256,7 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
                 }
                 
                 for(u32 I=0; I<Room->Items.Count; I++){
-                    ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[I]);
+                    ta_item *Item = TA->FindItem(Room->Items[I]);
                     if(!Item) continue;
                     if(!DoDisplayItem(Item)) continue;
                     DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->NameData.Name, &InventoryRect);
@@ -275,7 +275,7 @@ GameDoFrame(game_renderer *Renderer, audio_mixer *Mixer, asset_system *Assets, o
         }
         
         for(u32 I=0; I<TA->Inventory.Count; I++){
-            ta_item *Item = HashTableFindPtr(&TA->ItemTable, TA->Inventory[I]);
+            ta_item *Item = TA->FindItem(TA->Inventory[I]);
             Assert(Item);
             DoString(Renderer, Font, &Theme->ItemFancy, 1, Item->NameData.Name, &InventoryRect);
         }

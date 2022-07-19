@@ -1,19 +1,4 @@
 
-void
-asset_system::Initialize(memory_arena *Arena){
-    Memory = MakeArena(Arena, Megabytes(128));
-    AssetTableInit(SoundEffect, Arena, MAX_ASSETS_PER_TYPE);
-    AssetTableInit(Font,        Arena, MAX_ASSETS_PER_TYPE);
-    AssetTableInit(Theme,       Arena, MAX_ASSETS_PER_TYPE);
-    AssetTableInit(Variable,    Arena, MAX_VARIABLES);
-    
-    //~ Dummy assets
-    u8 InvalidColor[] = {0xff, 0x00, 0xff, 0xff};
-    render_texture InvalidTexture = MakeTexture();
-    TextureUpload(InvalidTexture, InvalidColor, 1, 1);
-    stbi_set_flip_vertically_on_load(true);
-}
-
 //~ Asset tags
 
 internal constexpr inline asset_tag
@@ -562,4 +547,23 @@ FontRenderFancyString(game_renderer *Renderer, asset_font *Font, const fancy_fon
     v2 Size = RectSize(R);
     f32 Result = FontRenderFancyString(Renderer, Font, Fancies, FancyCount, V2(R.X0,R.Y1), S, Size.X);
     return Result;
+}
+
+
+//~ 
+#include "asset_processor_helpers.cpp"
+#include "generated_asset_data.h"
+void
+asset_system::Initialize(memory_arena *Arena, void *Data, u32 DataSize){
+    Memory = MakeArena(Arena, Megabytes(128));
+    AssetTableInit(SoundEffect, Arena, MAX_ASSETS_PER_TYPE, Data, DataSize);
+    AssetTableInit(Font,        Arena, MAX_ASSETS_PER_TYPE, Data, DataSize);
+    AssetTableInit(Theme,       Arena, MAX_ASSETS_PER_TYPE, Data, DataSize);
+    AssetTableInit(Variable,    Arena, MAX_VARIABLES,       Data, DataSize);
+    
+    //~ Dummy assets
+    u8 InvalidColor[] = {0xff, 0x00, 0xff, 0xff};
+    render_texture InvalidTexture = MakeTexture();
+    TextureUpload(InvalidTexture, InvalidColor, 1, 1);
+    stbi_set_flip_vertically_on_load(true);
 }

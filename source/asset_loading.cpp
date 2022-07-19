@@ -1,11 +1,8 @@
-
 #if !defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-
 
 //~ Initialization
 void
 asset_loader::Initialize(memory_arena *Arena, audio_mixer *Mixer_, asset_system *Assets, ta_system *TA){
-    
     InProgress.Initialize(Arena);
     Mixer = Mixer_;
     MainAssets = Assets;
@@ -195,7 +192,7 @@ asset_loader::VLogWarning(const char *Format, va_list VarArgs){
     VBuilderAdd(&Builder, Format, VarArgs);
     char *Message = EndStringBuilder(&Builder);
     // NOTE(Tyler): Use the asset loader memory, because it will last until the asset system is reset. 
-    DebugInfo.SubmitMessage(DebugMessage_Asset, FinalizeStringBuilder(&InProgress.Memory, &Builder));
+    DEBUG_MESSAGE(DebugMessage_Asset, FinalizeStringBuilder(&InProgress.Memory, &Builder));
 }
 
 void 
@@ -284,7 +281,7 @@ asset_loader::SeekNextCommand(){
 
 #define HANDLE_INVALID_ATTRIBUTE(Attribute) \
 CurrentAttribute = 0;\
-LogWarning("Invalid attribute: %s", Attribute); \
+LogWarning("Invalid attribute: \"%s\"", Attribute); \
 if(!SeekNextAttribute()) return AssetLoadingStatus_Warnings;
 
 v2
@@ -650,7 +647,7 @@ asset_loader::ProcessCommand(){
     
     char *Message = ArenaPushFormatCString(&InProgress.Memory, "(Line: %u) '%s' isn't a valid command!", Reader.Line, String);
     LogMessage(Message);
-    DebugInfo.SubmitMessage(DebugMessage_Asset, Message);
+    DEBUG_MESSAGE(DebugMessage_Asset, Message);
     ProcessIgnore();
     return AssetLoadingStatus_Warnings;
 }
@@ -669,7 +666,7 @@ asset_loader::ProcessSpecialCommands(){
         const char *Attribute = SJA_EXPECT_IDENTIFIER(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
         if(DoAttribute(Attribute, "give_item")){
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            asset_id Item = MakeAssetID(S);
+            asset_id Item = MakeAssetID("Item", S);
             b8 FoundIt = false;
             for(u32 I=0; I<TA->Inventory.Count; I++){
                 if(TA->Inventory[I] == Item) { FoundIt = true; break; }
@@ -700,22 +697,24 @@ asset_loader::ProcessVariables(){
             asset_variable *Variable = AssetsGet_(&InProgress, Variable, Name);
             Variable->S = Data;
         }else if(DoAttribute(Attribute, "asset")){
+            const char *Type = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             const char *Name = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             const char *Data = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             asset_variable *Variable = AssetsGet_(&InProgress, Variable, Name);
             Variable->S = Strings.GetPermanentString(Data);
-            Variable->Asset = MakeAssetID(Data);
-        }else if(DoAttribute(Attribute, "ta_id")){
+            Variable->Asset = MakeAssetID(Type, Data);
+        }else if(DoAttribute(Attribute, "room")){
             const char *Name = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             const char *Data = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             asset_variable *Variable = AssetsGet_(&InProgress, Variable, Name);
             Variable->S = Strings.GetPermanentString(Data);
-            Variable->TAID = MakeAssetID(Data);
-        }else if(DoAttribute(Attribute, "name")){
+            Variable->TAID = MakeAssetID("Room", Data);
+        }else if(DoAttribute(Attribute, "item")){
             const char *Name = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            ta_name NameData = ExpectTypeName();
+            const char *Data = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             asset_variable *Variable = AssetsGet_(&InProgress, Variable, Name);
-            Variable->NameData = NameData;
+            Variable->S = Strings.GetPermanentString(Data);
+            Variable->TAID = MakeAssetID("Item", Data);
         }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
     
@@ -739,10 +738,10 @@ asset_loader::ProcessTheme(){
         asset_loading_status Status;
         if(DoAttribute(Attribute, "basic_font")){
             const char *S = SJA_EXPECT_STRING(&Reader, return AssetLoadingStatus_Warnings);
-            Theme->BasicFont = MakeAssetID(Strings.GetString(S));
+            Theme->BasicFont = MakeAssetID("Font", Strings.GetString(S));
         }else if(DoAttribute(Attribute, "title_font")){
             const char *S = SJA_EXPECT_STRING(&Reader, return AssetLoadingStatus_Warnings);
-            Theme->TitleFont = MakeAssetID(Strings.GetString(S));
+            Theme->TitleFont = MakeAssetID("Font", Strings.GetString(S));
         }else if(DoAttribute(Attribute, "background_color")){ Theme->BackgroundColor = ExpectTypeColor(); 
         }else if(DoAttribute(Attribute, "cursor_color")){     Theme->CursorColor     = ExpectTypeColor(); 
         }else if(DoAttribute(Attribute, "selection_color")){  Theme->SelectionColor  = ExpectTypeColor(); 
@@ -836,7 +835,7 @@ asset_loader::ProcessFont(){
         }else if(DoAttribute(Attribute, "descent")){
             Font->Descent = (f32)SJA_EXPECT_UINT(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
         }else if(DoAttribute(Attribute, "char")){
-            if(!Font->Texture){
+            if(!Font->Texture.ID){
                 FailCommand(&Font->LoadingData, "The font image must be defined before any characters!");
                 return AssetLoadingStatus_Warnings;
             }
@@ -869,7 +868,7 @@ asset_loader::ProcessFont(){
             
             CurrentOffset.X += Width+Padding;
         }else{
-            if(!Font->Texture){
+            if(!Font->Texture.ID){
                 FailCommand(&Font->LoadingData, "The font image must be defined before any characters!");
                 return AssetLoadingStatus_Warnings;
             }
@@ -964,7 +963,7 @@ asset_loader::ProcessTARoom(){
     
     const char *Identifier = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_COMMAND);
     CurrentAsset = Identifier;
-    asset_id ID = MakeAssetID(Identifier);
+    asset_id ID = MakeAssetID("Room", Identifier);
     ta_room *Room = HashTableGetPtr(&TA->RoomTable, ID);
     Room->ID = ID;
     Room->NameData = ExpectTypeName();
@@ -992,18 +991,19 @@ asset_loader::ProcessTARoom(){
             Data->Type = TADataType_Room;
             Data->Tag = MaybeExpectTag();
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            Data->RoomID = MakeAssetID(S);
+            Data->RoomID = MakeAssetID("Room", S);
             ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "data_asset")){
+            const char *Type = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             ta_data *Data = ArenaPushType(&InProgress.Memory, ta_data);
             Data->Type = TADataType_Asset;
             Data->Tag = MaybeExpectTag();
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            Data->Asset = MakeAssetID(Strings.GetString(S));
+            Data->Asset = MakeAssetID(Type, Strings.GetString(S));
             ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "area")){
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            Room->Area = MakeAssetID(Strings.GetString(S));
+            Room->Area = MakeAssetID("Area", Strings.GetString(S));
         }else if(DoAttribute(Attribute, "adjacents")){ 
             while(true){
                 file_token Token = Reader.PeekToken();
@@ -1014,7 +1014,7 @@ asset_loader::ProcessTARoom(){
                 SJA_EXPECT_IDENTIFIER(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
                 
                 const char *NextRoomName = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-                Room->Adjacents[Direction] = MakeAssetID(NextRoomName);
+                Room->Adjacents[Direction] = MakeAssetID("Room", NextRoomName);
                 asset_tag Tag = MaybeExpectTag();
                 if(!(Room->Flags & RoomFlag_Dirty)) Room->AdjacentTags[Direction] = Tag;
             }
@@ -1025,7 +1025,7 @@ asset_loader::ProcessTARoom(){
             u32 Count = Maximum(CStringItems.Count, MaxItemCount);
             Room->Items = MakeArray<asset_id>(&InProgress.Memory, Count);
             for(u32 I=0; I<CStringItems.Count; I++){
-                asset_id S = MakeAssetID(CStringItems[I]);
+                asset_id S = MakeAssetID("Item", CStringItems[I]);
                 ta_item *Item = TA->FindItem(S);
                 if(!Item || !Item->IsDirty) ArrayAdd(&Room->Items, S);
             }
@@ -1049,7 +1049,7 @@ asset_loader::ProcessTAItem(){
     
     const char *Identifier = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_COMMAND);
     CurrentAsset = Identifier;
-    asset_id ID = MakeAssetID(Identifier);
+    asset_id ID = MakeAssetID("Item", Identifier);
     ta_item *Item = HashTableGetPtr(&TA->ItemTable, ID);
     Item->ID = ID;
     Item->NameData = ExpectTypeName();
@@ -1072,14 +1072,15 @@ asset_loader::ProcessTAItem(){
             Data->Type = TADataType_Item;
             Data->Tag = MaybeExpectTag();
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            Data->ItemID = MakeAssetID(S);
+            Data->ItemID = MakeAssetID("Item", S);
             ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "data_asset")){
+            const char *Type = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
             ta_data *Data = ArenaPushType(&InProgress.Memory, ta_data);
             Data->Type = TADataType_Asset;
             Data->Tag = MaybeExpectTag();
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            Data->Asset = MakeAssetID(Strings.GetString(S));
+            Data->Asset = MakeAssetID(Type, Strings.GetString(S));
             ArrayAdd(&Descriptions, Data);
         }else if(DoAttribute(Attribute, "cost")){
             u32 Cost = SJA_EXPECT_UINT(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
@@ -1123,7 +1124,7 @@ asset_loader::ProcessTAMap(){
         }else if(DoAttribute(Attribute, "area")){
             ta_area *Area = ArrayAlloc(&Areas);
             const char *S = SJA_EXPECT_STRING(&Reader, SJA_ERROR_BEHAVIOR_ATTRIBUTE);
-            Area->Name = MakeAssetID(S);
+            Area->Name = MakeAssetID("Area", S);
             Area->Offset = ExpectTypeV2();
         }else{ HANDLE_INVALID_ATTRIBUTE(Attribute); }
     }
@@ -1135,48 +1136,4 @@ asset_loader::ProcessTAMap(){
     
     return ChooseStatus(Result);
 }
-
-#else // SNAIL_JUMPY_USE_PROCESSED_ASSETS
-
-//~ Processed assets
-
-internal inline ta_data *
-MakeTAString(memory_arena *Memory, asset_tag Tag, const char *S, u32 L){
-    ta_data *Result = (ta_data *)ArenaPush(Memory, sizeof(Tag)+L+1);
-    Result->Tag = Tag;
-    CopyCString((char *)Result->Data, S, L);
-    return Result;
-}
-
-internal inline ta_data *
-MakeTAString(memory_arena *Memory, asset_tag Tag, const char *S){
-    return MakeTAString(Memory, Tag, S, CStringLength(S));
-}
-
-internal inline ta_data *
-ReadTAString(stream *Stream){
-    ta_data *Result = (ta_data *)Stream->BufferPos;
-    Assert(StreamConsumeType(Stream, asset_tag));
-    Assert(StreamConsumeString(Stream));
-    
-    return Result;
-}
-
-#include "generated_asset_data.h"
-
-void
-asset_loader::LoadProcessedAssets(void *Data, u32 DataSize){
-    ta_system *TA = TextAdventure;
-    
-    stream Stream = MakeReadStream(Data, DataSize);
-    sjap_header Header; StreamReadVar(&Stream, Header);
-    Assert((Header.SJAP[0] == 'S') &&
-           (Header.SJAP[1] == 'J') &&
-           (Header.SJAP[2] == 'A') &&
-           (Header.SJAP[3] == 'P'));
-    
-    InitializeProcessedAssets(this, Data, DataSize);
-}
-
-
 #endif // SNAIL_JUMPY_USE_PROCESSED_ASSETS

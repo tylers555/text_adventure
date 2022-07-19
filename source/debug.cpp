@@ -1,6 +1,19 @@
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
 
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+#define SJA_DEBUG(Statement) 
+#define SJA_DEBUG_EXPR(Statement) false
+#else // defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+#define SJA_DEBUG(Statement) Statement
+#define SJA_DEBUG_EXPR(Expression) Expression
+#endif // defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
+
 //#define DEBUG_DISPLAY_TEXT_INPUT_UNDO
+
+#define DEBUG_DATA_INITIALIZE(State) debug_info_initializer DEBUG_INFO_INITIALIZER(State);
+#define DO_DEBUG_INFO() debug_info_display DebugDisplay##__FUNCTION__
+#define DEBUG_MESSAGE(...) DebugInfo.SubmitMessage(__VA_ARGS__)
+#define DEBUG_STATEMENT(Statement) Statement
 
 local_constant f32 DEBUG_FADEOUT_RANGE = 0.5f;
 
@@ -82,7 +95,6 @@ struct debug_info {
 
 global debug_info DebugInfo;
 
-#define DEBUG_DATA_INITIALIZE(State) debug_info_initializer DEBUG_INFO_INITIALIZER(State);
 struct debug_info_initializer {
     u64 StartTime;
     debug_info_initializer(main_state *State_){
@@ -95,6 +107,7 @@ struct debug_info_initializer {
     
     ~debug_info_initializer(){
         DebugInfo.InitTime = OSGetMicroseconds()-StartTime;
+        DEBUG_MESSAGE(DebugMessage_Fadeout, "InitTime: %llu", DebugInfo.InitTime);
     }
 };
 
@@ -140,7 +153,7 @@ debug_info::SubmitStringMessage(debug_message_type Type, const char *String, f32
         }
     }
     
-    Message.AssetLoadCounter = State->AssetLoader.LoadCounter;
+    SJA_DEBUG(Message.AssetLoadCounter = State->AssetLoader.LoadCounter);
     Message.Timeout = Timeout;
     
     if(SendToConsole) LogMessage(String); 
@@ -178,7 +191,7 @@ debug_info::SubmitMessage(debug_message_type Type, f32 Timeout, const char *Form
 inline void
 debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
     asset_system *Assets = &State->Assets;
-    asset_loader *Loader = &State->AssetLoader;
+    SJA_DEBUG(asset_loader *Loader = &State->AssetLoader);
     game_renderer *Renderer = &State->Renderer;
     ta_system *TA = &State->TextAdventure;
     os_input *Input = &State->Input;
@@ -240,7 +253,7 @@ debug_info::EndFrame(debug_scope_time_elapsed Elapsed) {
         v2 DebugP = V2(250, 190);
         FOR_EACH_(Message, Index, &Messages){
             if((Message.Type == DebugMessage_Asset) && 
-               (Message.AssetLoadCounter < Loader->LoadCounter)){
+               SJA_DEBUG_EXPR(Message.AssetLoadCounter < Loader->LoadCounter)){
                 ARRAY_REMOVE_IN_LOOP_ORDERED(&Messages, Index);
             }
             
@@ -284,8 +297,9 @@ struct debug_info_display {
     }
 };
 
-#define DO_DEBUG_INFO() debug_info_display DebugDisplay##__FUNCTION__
 #else
-#define DO_DEBUG_INFO()
-#define DEBUG_DATA_INITIALIZE()
+#define DO_DEBUG_INFO(...)
+#define DEBUG_DATA_INITIALIZE(...)
+#define DEBUG_MESSAGE(...) 
+#define DEBUG_STATEMENT(Statement) 
 #endif

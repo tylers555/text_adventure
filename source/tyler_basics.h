@@ -101,6 +101,8 @@ typedef double f64;
 #define GLUE_(a,b) a##b
 #define GLUE(a,b) GLUE_(a,b)
 
+#define STRINGIFY(X) #X
+
 // TODO(Tyler): I'm not sure how I feel about these
 #define FOR_RANGE_(Type, Iterator, Start, End) for(Type Iterator=(Start); Iterator<(End); Iterator++)
 #define FOR_RANGE(Iterator, Start, End) FOR_RANGE_(u32, Iterator, Start, End)
@@ -1791,6 +1793,32 @@ MakeFullArray(T *Items, u32 Count){
     return(Result);
 }
 
+template<typename T> tyler_function inline array<T>
+MakeFullArrayFromArgs(memory_arena *Arena, u32 Count, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Count);
+    array<T> Result = MakeArray(Arena, Count);
+    FOR_RANGE(I, 0, Count){
+        T Arg = va_arg(VarArgs, T);
+        ArrayAdd(&Result, Arg);
+    }
+    va_end(VarArgs);
+    return Result;
+}
+
+template<typename T> tyler_function inline array<T>
+MakeFullArrayFromArgs_(memory_arena *Arena, u32 Count, ...){
+    va_list VarArgs;
+    va_start(VarArgs, Count);
+    array<T> Result = MakeArray<T>(Arena, Count);
+    FOR_RANGE(I, 0, Count){
+        T Arg = va_arg(VarArgs, T);
+        ArrayAdd(&Result, Arg);
+    }
+    va_end(VarArgs);
+    return Result;
+}
+
 template<typename T> tyler_function inline T
 ArrayGet(array<T> *Array, s64 Index){
     Assert(Index < Array->Count);
@@ -2396,6 +2424,7 @@ struct hash_table {
     memory_arena *Arena;
     u32 UsedBucketCount;
     u32 MaxBucketCount;
+    u32 Count;
     hash_table_bucket<KeyType, ValueType> *Buckets;
     
     hash_table_bucket<KeyType, ValueType> *NextFreeBucket;
@@ -2439,6 +2468,7 @@ HashTableGetBucket(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 MakeNe
     if(Bucket->Hash == 0){
         if(!MakeNew) return 0;
         Table->UsedBucketCount++;
+        Table->Count++;
         Bucket->Hash = Hash;
         Bucket->Key = Key;
     }else {
@@ -2447,6 +2477,7 @@ HashTableGetBucket(hash_table<KeyType, ValueType> *Table, KeyType Key, b8 MakeNe
             
             if(MakeNew && !Bucket->Next){
                 Bucket->Next = FREELIST_ALLOC(Table->NextFreeBucket, (decltype(Bucket))ArenaPush(Table->Arena, sizeof(*Bucket)));
+                Table->Count++;
                 Bucket = Bucket->Next;
                 Bucket->Hash = Hash;
                 Bucket->Key = Key;
@@ -2479,11 +2510,15 @@ HashTableRemove(hash_table<KeyType, ValueType> *Table, KeyType Key){
     
     if(!PrevBucket){ // The bucket is the root bucket
         if(Bucket->Next) *Bucket = *Bucket->Next;
-        else *Bucket = {};
+        else{
+            *Bucket = {};
+            UsedBucketCount--;
+        }
     }else{
         PrevBucket->Next = Bucket->Next;
         FREELIST_FREE(Table->NextFreeBucket, Bucket);
     }
+    Count--;
 }
 
 template <typename KeyType, typename ValueType>
@@ -2542,11 +2577,11 @@ HashTableGet(hash_table<KeyType, ValueType> *Table, KeyType Key){
     return(Result);
 }
 
-#define HASH_TABLE_FOR_EACH_BUCKET_(Bucket, Index, Table) \
-for(u32 Index=0; Index<(Table)->MaxBucketCount; Index++) \
+#define HASH_TABLE_FOR_EACH_BUCKET_(Bucket, Index, Count, Table) \
+for(u32 Index=0, Count=0; Index<(Table)->MaxBucketCount; Index++) \
 for(auto *BucketPtr=&(Table)->Buckets[Index], *Keep_=BucketPtr; BucketPtr && BucketPtr->Hash; BucketPtr=BucketPtr->Next,Keep_=BucketPtr) \
-for(auto &Bucket = *BucketPtr; Keep_; Keep_=0)
-#define HASH_TABLE_FOR_EACH_BUCKET(Bucket, Table) HASH_TABLE_FOR_EACH_BUCKET_(Bucket, I_, Table)
+for(auto &Bucket = *BucketPtr; Keep_; Count++, Keep_=0)
+#define HASH_TABLE_FOR_EACH_BUCKET(Bucket, Table) HASH_TABLE_FOR_EACH_BUCKET_(Bucket, I_, Count_, Table)
 
 #endif //TYLER_BASICS_IMPLEMENTATION
 

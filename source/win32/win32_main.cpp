@@ -340,9 +340,6 @@ WinMain(HINSTANCE Instance,
     
     main_state MainState = {};
     
-    //~ Load Icon
-    
-    
     //~ Initialize window
     WNDCLASSEX WindowClass = {};
     
@@ -432,19 +429,9 @@ WinMain(HINSTANCE Instance,
     //~ Prepare OSInput
     MainState.Input.WindowSize = Win32GetWindowSize();
     
-    //~ Initialize game
-    MainStateInitialize(&MainState);
-    LogMessage("Game initialized");
-    
-    //~ Audio thread
-    win32_audio_thread_parameter AudioParameter = {};
-    AudioParameter.DeviceContext = DeviceContext;
-    AudioParameter.Mixer = &MainState.Mixer;
-    CreateThread(0, 0, Win32AudioThreadProc, &AudioParameter, 0, 0);
-    LogMessage("Audio initialized");
-    
     //~ Load processed assets
-    // NOTE(Tyler): Asset loading must happen after game state has been initialized
+    u32 DataSize = 0;
+    void *Data = 0;
 #if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
     {
         HRSRC Resource = FindResource(0, MAKEINTRESOURCE(WIN32_PROCESSED_ASSETS), RT_RCDATA);
@@ -459,16 +446,25 @@ WinMain(HINSTANCE Instance,
             return -1;
         }
         
-        u32 DataSize = SizeofResource(0, Resource);
-        void *Data = LockResource(ResourceData);
+        DataSize = SizeofResource(0, Resource);
+        Data = LockResource(ResourceData);
         if(!Data){
             Assert(0);
             return -1;
         }
-        
-        MainState.Assets.LoadProcessedAssets(Data, DataSize);
     }
 #endif
+    
+    //~ Initialize game
+    MainStateInitialize(&MainState, Data, DataSize);
+    LogMessage("Game initialized");
+    
+    //~ Audio thread
+    win32_audio_thread_parameter AudioParameter = {};
+    AudioParameter.DeviceContext = DeviceContext;
+    AudioParameter.Mixer = &MainState.Mixer;
+    CreateThread(0, 0, Win32AudioThreadProc, &AudioParameter, 0, 0);
+    LogMessage("Audio initialized");
     
     //~ Main loop
     MainState.Input.dTime = TargetSecondsPerFrame;

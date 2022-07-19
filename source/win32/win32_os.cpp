@@ -309,12 +309,29 @@ OSDefaultFree(void *Pointer){
     Assert(HeapFree(GetProcessHeap(), 0, Pointer));
 }
 
+// TODO(Tyler): I'm not sure why this is required, but I don't know how to get 4coder to see the output
+#if defined(SNAIL_JUMPY_ASSET_PROCESSOR_BUILD)
+internal void
+OSVWriteToDebugConsole(const char *Format, va_list VarArgs){
+    printf(Format, VarArgs);
+}
+#else
 internal void
 OSVWriteToDebugConsole(const char *Format, va_list VarArgs){
     char Buffer[DEFAULT_BUFFER_SIZE];
     stbsp_vsnprintf(Buffer, sizeof(Buffer), Format, VarArgs);
-    WriteConsole(GetStdHandle(STD_OUTPUT_HANDLE), Buffer, (DWORD)CStringLength(Buffer), 0, 0);
+    HANDLE Handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    Assert(Handle);
+    if(Handle == INVALID_HANDLE_VALUE){
+        DWORD Error = GetLastError();
+        Assert(0);
+    }
+    if(!WriteConsole(Handle, Buffer, (DWORD)CStringLength(Buffer), 0, 0)){
+        DWORD Error = GetLastError();
+        Assert(0);
+    }
 }
+#endif // defined(SNAIL_JUMPY_ASSET_PROCESSOR_BUILD)
 
 internal void
 OSWriteToDebugConsole(os_file *Output, const char *Format, ...){

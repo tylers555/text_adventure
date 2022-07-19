@@ -43,9 +43,9 @@
     start_carillon_pages
     
 : Variables
-    asset "theme"           "theme_default"
+    asset "Theme" "theme" "theme_default"
     # @sja_start_room 
-    ta_id "start_room"      "cathedral_quire"
+    room "start_room"      "cathedral_quire"
     
 : Variables # @sja_command_messages
     var "invalid_command"     "That is not a valid command!\n"
@@ -559,6 +559,7 @@
     area "east_thorn_lane" V2(72 38)
     area "west_thorn_lane" V2(47 36)
     area "tailor"          V2(61 27)
+    area "library"         V2(50 50)
 
 #~ @sja_items
 
@@ -805,7 +806,7 @@
         east      "plaza_southeast"
         south     "bar_front"
         west      "thorn_lane_east"
-    items Array("plaza_southwest" "plaza_southwest_bell_tower")    
+    items Array("plaza_southwest_cathedral" "plaza_southwest_bell_tower")    
 
 : TARoom "plaza_northwest" Name("Northwest plaza" Array("plaza") Array("nw" "northwest" "north" "west"))
     area "northwest_plaza"
@@ -819,6 +820,9 @@
         north "james_street"
         south "plaza_southwest"
 
+#~ @sja_crypt
+: TARoom "crypt_room_1" Name("Crypt" Array("Crypt"))
+
 #~ @sja_cathedral
 : TAItem "cathedral_maintenance_room_organ_bellows" Name(Array("bellow" "bellows") Array("organ")) Tag("static" "broken")
     description Tag("examine" "broken")
@@ -826,7 +830,7 @@
         "you quickly notice that some appear to have extensive damage and are missing spots of their leather."
     description Tag("examine" "repaired")
         "They are in peachy keen condition!"
-    data_asset Tag("sound" "repaired") "sound_bellows_repaired"
+    data_asset "SoundEffect" Tag("sound" "repaired") "sound_bellows_repaired"
     data_item Tag("fixer")             "leather_sheet"
     
 : TAItem "cathedral_maintenance_room_organ_pipes" Name(Array("pipe" "pipes") Array("organ")) Tag("static" "broken")
@@ -834,7 +838,7 @@
         "You observe that several pipes seem to be absent."
     description Tag("examine" "repaired")
         "They are in fantastic condition. "
-    data_asset Tag("sound" "repaired") "sound_pipes_repaired"
+    data_asset "SoundEffect" Tag("sound" "repaired") "sound_pipes_repaired"
     data_item Tag("fixer")             "organ_pipes"
     
 : TARoom "cathedral_front" Name("Cathedral front" Array("cathedral" "church" "front") Array("cathedral" "church" ))
@@ -876,7 +880,7 @@
         north "cathedral_apse"
         east  "cathedral_transept_right"
         south "cathedral_nave"
-        west  "cathedral_transpect_left"
+        west  "cathedral_transept_left"
 
 : TARoom "cathedral_apse" Name("Cathedral apse" Array("apse") Array("cathedral" "church"))
     area "cathedral"
@@ -928,8 +932,8 @@
         "Not all the notes sound properly, and you hear the breathy sound of leaking air."
     description Tag("play" "repaired")
         "All the notes sound with renewed strength."
-    data_asset Tag("sound" "play" "broken")   "sound_organ_play_broken"
-    data_asset Tag("sound" "play" "repaired") "sound_organ_play_repaired"
+    data_asset "SoundEffect" Tag("sound" "play" "broken")   "sound_organ_play_broken"
+    data_asset "SoundEffect" Tag("sound" "play" "repaired") "sound_organ_play_repaired"
     
 : TARoom "cathedral_organ_console" Name("Cathedral organ console" Array("console" "organ") Array("cathedral" "organ" "church")) Tag("organ")
     area "cathedral"
@@ -987,7 +991,7 @@
     adjacents
         west "bell_tower_storage_room"
         up   "bell_tower_playing_room"
-        down "cathedral_staircase"
+        down "cathedral_transept_left"
 
 : TARoom "bell_tower_storage_room" Name("Bell tower storage room" Array("storage" "room") Array("bell" "tower" "storage"))
     area "bell_tower"
@@ -1004,7 +1008,7 @@
     description Tag("play")
         "From within the enclosed playing room, you can faintly hear the sound of the tremendous bells. "
         "Something ghosty happens!"
-    data_asset Tag("sound" "play") "sound_bell_tower_play"
+    data_asset "SoundEffect" Tag("sound" "play") "sound_bell_tower_play"
 
 : TARoom "bell_tower_playing_room" Name("Bell tower playing room" Array("playing" "room") Array("bell" "tower" "playing"))
     area "bell_tower"
@@ -1014,7 +1018,7 @@
     adjacents
         up   "bell_tower_belfrey"
         down "bell_tower_programming_room"
-    items Array("bell__clavier")
+    items Array("bell_tower_clavier")
 
 : TARoom "bell_tower_belfrey" Name("Bell tower belfrey" Array("belfrey") Array("bell" "tower"))
     area "bell_tower"
@@ -1048,7 +1052,7 @@
     adjacents
         north     "garden_tree"
         northeast "garden_fountain"
-        southwest "southeast_plaza"
+        southwest "plaza_southeast"
     items Array("ghost_albert")
 
 : TARoom "graveyard" Name("Graveyard" Array("graveyard"))
@@ -1142,6 +1146,8 @@
         east "bakery_kitchen"
     items Array("muffins" "honeyed_almond_pastries" "churros" "croissants" "wheat_bread")
     
+: TARoom "bakery_kitchen" Name("Bakery kitchen" Array("Kitchen") Array("bakery"))
+
 : TARoom "bar_front" Name("Bar front" Array("bar" "front") Array("bar"))
     area "bar"
     description
@@ -1155,6 +1161,9 @@
         east  "shop_front"
         south "bar"
         west  "thorn_lane_east"
+
+#- @sja_restaurant
+: TARoom "restaurant_front" Name("Restaurant front" Array("restaurant" "front") Array("restaurant"))
 
 #- @sja_bar
 : TARoom "bar" Name("Bar" Array("bar"))
@@ -1298,7 +1307,7 @@
     data_room Tag("exit") "inn_front"
     adjacents
         south "inn_front"
-        up "Inn hallway"
+        up "inn_hallway"
     items Array("inn_lobby_plant_pot")
     
 : TARoom "inn_hallway" Name("Inn hallway" Array("hallway") Array("inn"))
@@ -1307,7 +1316,7 @@
         "The tight hallway presents to you three doors: \2Room 1\0, \2Room 2\0, \2Room 3\0."
     description Tag("adjacents")
     data_room Tag("exit") "inn_lobby"
-    data_room Tag("enter" "inn") "PLACEHOLDER"
+    #data_room Tag("enter" "inn") "PLACEHOLDER"
     adjacents
         down "inn_lobby"
     
@@ -1457,7 +1466,7 @@
         north "plant_shop_greenhouse"
         south "plant_shop_front"
     items Array("plant_pot" "garden_shovel" "garden_gloves" 
-                "lush green plants" "dainty philodendron micans"  "ferns" "calatheas" "silvery scindapsus")
+                "green_plants" "philodendron_micans"  "ferns" "calatheas" "scindapsus")
     
 : TARoom "plant_shop_greenhouse" Name("Plant shop greenhouse" Array("greenhouse" "house") Array("plant" "shop" "green"))
     area "plant_shop"
@@ -1534,6 +1543,10 @@
     items Array("james_street_cathedral" "james_street_bushes" "james_street_bell_tower")
 
 #- @sja_art_studio
+: TARoom "art_studio_front" Name("Art studio front" Array("art" "studio" "front") Array("art" "studio"))
+    description
+        "Art studio"
+
 : TARoom "art_studio" Name("Art studio" Array("art" "studio") Array("art"))
     description
         "Art studio"
@@ -1553,6 +1566,10 @@
         "Library"
     adjacents
         east "library_front"
-    items Array("carillon_pages_ritual_book")
+    items Array("ritual_book")
 
+#- @sja_concert_hall
+: TARoom "concert_hall_front" Name("Concert hall front" Array("concert" "hall" "front") Array("concert" "hall")) 
 
+#- @sja_market
+: TARoom "bridge" Name("Bridge" Array("bridge"))

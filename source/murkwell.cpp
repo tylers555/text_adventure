@@ -27,7 +27,7 @@ MurkwellPostEvent(ta_system *TA, murkwell_event_type Type){
 // NOTE(Tyler): This is a debug thing in case a room has not been defined yet in the SJA
 internal void
 GhostEnsureRoom(ta_system *TA, entity_ghost *Ghost){
-    while(!HashTableFindPtr(&TA->RoomTable, Ghost->CurrentRoom)){
+    while(!TA->FindRoom(Ghost->CurrentRoom)){
         LogMessage("Room does not exist!");
         Ghost->CurrentRoom = ChooseRandomTARoom(TA);
     }
@@ -70,7 +70,7 @@ internal void
 MurkwellUpdateGhosts(ta_system *TA, asset_system *Assets){
     for(u32 I=0; I<TA->Ghosts.Count; I++){
         entity_ghost *Ghost = &TA->Ghosts[I];
-        ta_room *Room = HashTableFindPtr(&TA->RoomTable, Ghost->CurrentRoom);
+        ta_room *Room = TA->FindRoom(Ghost->CurrentRoom);
         
         b8 DoDrop = (GetRandomNumber(5142) % 10) < 1; // 10% chance of droppping
         

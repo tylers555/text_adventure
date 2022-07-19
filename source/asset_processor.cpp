@@ -1,95 +1,96 @@
+#define SNAIL_JUMPY_ASSET_PROCESSOR_BUILD
+#define SNAIL_JUMPY_DEBUG_BUILD
 #include "main.h"
 
-// TODO(Tyler): This should work by using #include "main.cpp", and then providing a new renderer backend
-// The renderer backend would be struct full of function pointers, or perhaps it should be overridden in some
-// other way. #including "main.cpp" would allow one piece of code that manages all the initialization.
-
-global settings_state SettingsState;
-
-global asset_processor AssetProcessor;
-
-global memory_arena GlobalTickMemory;
+asset_processor AssetProcessor;
 
 //~ Stubs
 internal render_texture 
 MakeTexture(texture_flags Flags){
-    render_texture Result = AssetProcessor.Textures.Count;
+    render_texture Result = {AssetProcessor.Textures.Count};
     ArrayAlloc(&AssetProcessor.Textures);
     return Result;
 }
 
 internal void
 TextureUpload(render_texture Texture, u8 *Pixels, u32 Width, u32 Height, u32 Channels){
-    AssetProcessor.Textures[Texture].Pixels   = PushArray(&GlobalPermanentMemory, u8, Width*Height*Channels);
-    CopyMemory(AssetProcessor.Textures[Texture].Pixels, Pixels, Width*Height*Channels);
-    AssetProcessor.Textures[Texture].Width    = Width;
-    AssetProcessor.Textures[Texture].Height   = Height;
-    AssetProcessor.Textures[Texture].Channels = Channels;
+    AssetProcessor.Textures[Texture.ID].Pixels   = ArenaPushArray(&GlobalPermanentMemory, u8, Width*Height*Channels);
+    CopyMemory(AssetProcessor.Textures[Texture.ID].Pixels, Pixels, Width*Height*Channels);
+    AssetProcessor.Textures[Texture.ID].Width    = Width;
+    AssetProcessor.Textures[Texture.ID].Height   = Height;
+    AssetProcessor.Textures[Texture.ID].Channels = Channels;
 }
 
-internal void
-RenderTexture(game_renderer *Renderer, rect R, f32 Z, render_texture Texture, 
-              rect TextureRect=MakeRect(V2(0,0), V2(1,1)), b8 HasAlpha=false, color Color=WHITE){}
+internal b8 RendererBackendInitialize(){ return true; }
+internal shader_program  MakeShaderProgramFromFileData(entire_file File){ return {}; }
+internal screen_shader MakeScreenShaderFromFileData(entire_file File){ return {}; }
+internal s32 ShaderProgramGetUniformLocation(shader_program Program, const char *Name){ return 1; }
 
-internal void
-RenderRect(game_renderer *Renderer, rect R, f32 Z, color Color){}
+internal void InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2s Size){}
+internal void ResizeFramebuffer(framebuffer *Framebuffer, v2s Size){}
+internal void UseFramebuffer(framebuffer *Framebuffer){}
 
-internal void
-RenderLine(game_renderer *Renderer, v2 A, v2 B, f32 Z, f32 Thickness, color Color){}
+internal void RendererBackendRenderAll(game_renderer *Renderer){}
 
-//~ Includes 
-#include "os.cpp"
-#include "logging.cpp"
-#include "stream.cpp"
-#include "file_processing.cpp"
-#include "wav.cpp"
-#include "asset.cpp"
-#include "text_adventure.cpp"
-#include "asset_loading.cpp"
-#include "audio_mixer.cpp"
-#include "murkwell.cpp"
-#include "commands.cpp"
+#include "main.cpp"
 
-#include "debug.cpp"
-#include "game.cpp"
-#include "map.cpp"
+//~ 
+// TODO(Tyler): I don't like this solution, but I don't have a better way of doing it right now. 
+// This is here so that arrays can know what type their arguments are. 
+#define DEFINE_TYPE_NAME(Type) internal inline const char *AssetProcessorTypeName(Type *V){ return #Type;}
 
+DEFINE_TYPE_NAME(const char *);
+DEFINE_TYPE_NAME(ta_data *);
+DEFINE_TYPE_NAME(asset_id);
+DEFINE_TYPE_NAME(ta_area);
 
-template <typename ValueType>
-internal inline hash_table<ta_id, ValueType>
-ProcessTAIDTable(hash_table<ta_id, ValueType> *InTable){
-    hash_table<ta_id, ValueType> Result = MakeHashTable<ta_id, ValueType>(&GlobalTransientMemory, InTable->BucketsUsed);
-    HashTableCopy(&Result, InTable);
-    return Result;
-}
-
-internal inline void 
-BuilderAddFancyFormat(string_builder *Builder, fancy_font_format *Fancy){
-    BuilderAdd(Builder, "MakeFancyFormat(MakeColor(%.2ff, %.2ff, %.2ff, %.2ff), MakeColor(%.2ff, %.2ff, %.2ff, %.2ff), %.2ff, %.2ff, %.2ff, %.2ff, %.2ff, %.2ff)", 
-               Fancy->Color1.R, Fancy->Color1.G, Fancy->Color1.B, Fancy->Color1.A,
-               Fancy->Color2.R, Fancy->Color2.G, Fancy->Color2.B, Fancy->Color2.A, 
-               Fancy->Amplitude, Fancy->Speed, Fancy->dT,
-               Fancy->ColorSpeed, Fancy->ColordT, Fancy->ColorTOffset);
+internal inline void
+AssetProcessorEmitDataSizeCheck(){
+    BuilderAdd(&AssetProcessor.AssetBuilder, "Assert(%u < DataSize);\n", AssetProcessor.SJAPBuilder.BufferSize); 
 }
 
 internal inline void
-BuilderAddTAName(string_builder *Builder, const char *S, ta_name *Name){
-    BuilderAdd(Builder, "%sName = \"%s\";\n", S, Name->Name);
-    BuilderAdd(Builder, "%sAliases = MakeFullArray<const char *>(Memory, %u);\n", 
-               S, Name->Aliases.Count);
-    for(u32 J=0; J<Name->Aliases.Count; J++){
-        BuilderAdd(Builder, "%sAliases[%u] = \"%s\";\n", S, J, Name->Aliases[J]);
-    }
-    BuilderAdd(Builder, "%sAdjectives = MakeFullArray<const char *>(Memory, %u);\n", 
-               S, Name->Adjectives.Count);
-    for(u32 J=0; J<Name->Adjectives.Count; J++){
-        BuilderAdd(Builder, "%sAdjectives[%u] = \"%s\";\n", S, J, Name->Adjectives[J]);
-    }
+AssetProcessorMaybeEmitDataSizeCheck(){
+    if(!AssetProcessor.DoEmitCheck) return;
+    AssetProcessorEmitDataSizeCheck();
+    AssetProcessor.DoEmitCheck = false;
 }
 
 internal inline const char *
-MakeStringLiteral(const char *S){
-    string_builder Builder = BeginBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
+AssetProcessorStringify(u64 Uint){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "%llu", Uint);
+}
+internal inline const char *AssetProcessorStringify(u8  Uint) { return AssetProcessorStringify((u64)Uint); }
+internal inline const char *AssetProcessorStringify(u16 Uint) { return AssetProcessorStringify((u64)Uint); }
+internal inline const char *AssetProcessorStringify(u32 Uint) { return AssetProcessorStringify((u64)Uint); }
+
+internal inline const char *
+AssetProcessorStringify(s64 Int){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "%lld", Int);
+}
+internal inline const char *AssetProcessorStringify(s8  Int) { return AssetProcessorStringify((s64)Int); }
+internal inline const char *AssetProcessorStringify(s16 Int) { return AssetProcessorStringify((s64)Int); }
+internal inline const char *AssetProcessorStringify(s32 Int) { return AssetProcessorStringify((s64)Int); }
+
+internal inline const char *
+AssetProcessorStringify(f32 Float){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "%ff", Float);
+}
+
+internal inline const char *
+AssetProcessorStringify(v2s V){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "V2S(%d, %d)", V.X, V.Y);
+}
+
+internal inline const char *
+AssetProcessorStringify(v2 V){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "V2(%ff, %ff)", V.X, V.Y);
+}
+
+internal inline const char *
+AssetProcessorStringify(const char *S){
+    if(!S) return "0";
+    string_builder Builder = BeginResizeableStringBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
     BuilderAdd(&Builder, '"');
     
     u32 Length = CStringLength(S);
@@ -114,318 +115,344 @@ MakeStringLiteral(const char *S){
     }
     
     BuilderAdd(&Builder, '"');
-    const char *Result = EndBuilder(&Builder);
+    const char *Result = EndStringBuilder(&Builder);
     return Result;
 }
 
-internal inline void 
-AssetProcessorMain(){
-    //~ Initialize core stuff
-    {
-        umw Size = Gigabytes(1);
-        void *Memory = OSVirtualAlloc(Size);
-        Assert(Memory);
-        InitializeArena(&GlobalPermanentMemory, Memory, Size);
+internal inline const char *
+AssetProcessorStringify(render_texture TextureID){
+    string_builder *AssetBuilder = &AssetProcessor.AssetBuilder;
+    string_builder *SJAPBuilder  = &AssetProcessor.SJAPBuilder;
+    
+    asset_processor_texture *Texture = &AssetProcessor.Textures[TextureID.ID]; 
+    const char *Result = ArenaPushFormatCString(&GlobalTransientMemory, 
+                                                "MakeAndUploadTexture(((u8 *)Data+%u), %u, %u, %u)", 
+                                                SJAPBuilder->BufferSize, Texture->Width, Texture->Height, Texture->Channels); 
+    BuilderAddData(SJAPBuilder, Texture->Pixels, Texture->Width*Texture->Height*Texture->Channels); 
+    AssetProcessor.DoEmitCheck = true;
+    
+    return Result;
+}
+
+internal inline const char *
+AssetProcessorStringify(color Color){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "MakeColor(%ff, %ff, %ff, %ff)", 
+                                  Color.R, Color.G, Color.B, Color.A);
+}
+
+internal inline const char *
+AssetProcessorStringify(fancy_font_format Fancy){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "MakeFancyFormat(MakeColor(%ff, %ff, %ff, %ff), MakeColor(%ff, %ff, %ff, %ff), %ff, %ff, %ff, %ff, %ff, %ff)", 
+                                  Fancy.Color1.R, Fancy.Color1.G, Fancy.Color1.B, Fancy.Color1.A,
+                                  Fancy.Color2.R, Fancy.Color2.G, Fancy.Color2.B, Fancy.Color2.A, 
+                                  Fancy.Amplitude, Fancy.Speed, Fancy.dT,
+                                  Fancy.ColorSpeed, Fancy.ColordT, Fancy.ColorTOffset);
+}
+
+internal inline const char *
+AssetProcessorStringify(asset_id ID){
+    const char *Result = AssetIDName(0, ID);
+    if(Result) return ArenaPushFormatCString(&GlobalTransientMemory, "MakeAssetID(%sID_%s)", ID.TableName, Result);
+    return "MakeAssetID(0)";
+}
+
+internal inline const char *
+AssetProcessorStringify(asset_tag Tag){
+    return ArenaPushFormatCString(&GlobalTransientMemory,
+                                  "MakeAssetTag((asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u)",
+                                  Tag.E[0], Tag.E[1], Tag.E[2], Tag.E[3]);
+}
+
+internal inline const char *
+AssetProcessorStringify(ta_data *Data){
+    const char *Extra = 0;
+    switch(Data->Type){
+        case TADataType_Asset: 
+        case TADataType_Room: 
+        case TADataType_Item: {
+            Extra = AssetProcessorStringify(Data->Asset);
+        }break;
+        case TADataType_Description:
+        case TADataType_Command: {
+            Extra = AssetProcessorStringify(Data->Data);
+        }break;
     }
-    GlobalTransientMemory = MakeArena(&GlobalPermanentMemory, Megabytes(512));
-    GlobalTickMemory      = MakeArena(&GlobalPermanentMemory, Megabytes(256));
     
-    //~ Initialize asset processor
-    AssetProcessor.Textures = MakeArray<asset_processor_texture>(&GlobalPermanentMemory, 512);
+    return ArenaPushFormatCString(&GlobalTransientMemory, "MakeTAData(Arena, (ta_data_type)%u, %s, %s)",
+                                  Data->Type, AssetProcessorStringify(Data->Tag), Extra);
+}
+
+template<typename T> internal inline const char *
+AssetProcessorStringify(array<T> Array){
+    string_builder Builder = BeginResizeableStringBuilder(&GlobalTransientMemory, DEFAULT_BUFFER_SIZE);
+    BuilderAdd(&Builder, "MakeFullArrayFromArgs_<%s>(Arena, %u", AssetProcessorTypeName((T *)0), Array.Count);
+    FOR_EACH_(Item, Index, &Array) BuilderAdd(&Builder, ", %s", AssetProcessorStringify(Item)); 
+    BuilderAdd(&Builder, ")");
+    return EndStringBuilder(&Builder);
+}
+
+internal inline const char *
+AssetProcessorStringify(ta_name Name){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "MakeTAName(%s, %s, %s)", 
+                                  AssetProcessorStringify(Name.Name), AssetProcessorStringify(Name.Aliases), AssetProcessorStringify(Name.Adjectives));
+}
+
+internal inline const char *
+AssetProcessorStringify(ta_area Area){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "MakeTAArea(%s, %s)", 
+                                  AssetProcessorStringify(Area.Name), AssetProcessorStringify(Area.Offset));
+}
+
+template<typename KeyType, typename ValueType> internal constexpr inline const char *
+AssetProcessorAttributeName(const char *Name, const char *Attribute,
+                            hash_table_bucket<KeyType, ValueType> *Bucket){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "Assets[%sID_%s].%s", 
+                                  Name, AssetIDName(0, Bucket->Key), Attribute);
+}
+
+internal inline const char *
+AssetProcessorStringify(asset_font_glyph Glyph){
+    return ArenaPushFormatCString(&GlobalTransientMemory, "MakeAssetFontGlyph(%s, %s)", 
+                                  AssetProcessorStringify(Glyph.Offset), AssetProcessorStringify(Glyph.Width));
+}
+
+internal inline b8
+AssetProcessorMain(){
+    AssetProcessor.Textures = MakeDynamicArray<asset_processor_texture>(512);
+    main_state State = {};
+    MainStateInitialize(&State, 0, 0);
+    if(State.AssetLoader.LoadAssetFile(ASSET_FILE_PATH) != AssetLoadingStatus_Okay){
+        return false;
+    }
     
-    //~ Other initialization
-    asset_system Assets = {};
-    ta_system *TA = &TextAdventure;
-    
-    Strings.Initialize(&GlobalPermanentMemory);
-    TextAdventure.Initialize(&Assets, &GlobalPermanentMemory);
-    Assets.Initialize(&GlobalPermanentMemory);
-    Assets.LoadAssetFile(ASSET_FILE_PATH);
+    asset_system *Assets = &State.Assets;
+    ta_system *TA = &State.TextAdventure;
     
     ArenaClear(&GlobalTransientMemory);
-    string_builder SJAPBuilder  = BeginBuilder(&GlobalTransientMemory, Megabytes(200));
+    AssetProcessor.SJAPBuilder  = BeginResizeableStringBuilder(&GlobalTransientMemory, Megabytes(200));
+    AssetProcessor.IDBuilder    = BeginResizeableStringBuilder(&GlobalTransientMemory, Megabytes(2));
+    AssetProcessor.NameBuilder  = BeginResizeableStringBuilder(&GlobalTransientMemory, Megabytes(2));
+    AssetProcessor.AssetBuilder = BeginResizeableStringBuilder(&GlobalTransientMemory, Megabytes(2));
+    
+    string_builder *SJAPBuilder  = &AssetProcessor.SJAPBuilder;
+    string_builder *IDBuilder    = &AssetProcessor.IDBuilder;
+    string_builder *NameBuilder  = &AssetProcessor.NameBuilder;
+    string_builder *AssetBuilder = &AssetProcessor.AssetBuilder;
     
     sjap_header Header = {};
     Header.SJAP[0] = 'S';
     Header.SJAP[1] = 'J';
     Header.SJAP[2] = 'A';
     Header.SJAP[3] = 'P';
+    BuilderAddVar(SJAPBuilder, Header);
     
-    BuilderAddVar(&SJAPBuilder, Header);
-    
-    string_builder EnumBuilder = BeginBuilder(&GlobalTransientMemory, Megabytes(2));
-    BuilderAdd(&EnumBuilder, 
+    BuilderAdd(IDBuilder, 
                "#if !defined(GENERATED_ASSET_ID_H) && defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)\n"
                "#define GENERATED_ASSET_ID_H\n"
                "enum {\n");
     
-    string_builder AssetBuilder = BeginBuilder(&GlobalTransientMemory, Megabytes(2));
-    BuilderAdd(&AssetBuilder, 
+    BuilderAdd(AssetBuilder, 
                "#if !defined(GENERATED_ASSET_DATA_H) && defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)\n"
-               "#define GENERATED_ASSET_DATA_H\n"
-               "internal inline void\n"
-               "InitializeProcessedAssets(asset_system *Assets, void *Data, u32 DataSize){\n"
-               "ta_system *TA = &TextAdventure;\n"
-               "memory_arena *Memory = &Assets->Memory;\n");
-    //~ Assets 
+               "#define GENERATED_ASSET_DATA_H\n");
+    
+    dynamic_array<asset_id> IDArray = MakeDynamicArray<asset_id>(&GlobalTransientMemory, 128);
+    
+    //~ Core 
+    //- Emit table 
+#define PROCESSOR_BEGIN_EMIT_TABLE(System, Name, Type) \
+BuilderAdd(AssetBuilder, \
+"internal inline void\n" \
+"ProcessedAssetsInitialize" #Name "(memory_arena *Arena, "#Type" Assets[" #Name "ID_TOTAL], void *Data, u32 DataSize){\n"); \
+BuilderAdd(NameBuilder, "global const char *"#Name"NameTable[] = {"); \
+PROCESSOR_BEGIN_EMIT_ASSET(System, Name)
+    
+#define PROCESSOR_END_EMIT_TABLE(System, Name) \
+PROCESSOR_END_EMIT_ASSET(System, Name); \
+BuilderAdd(AssetBuilder, "\n}\n\n"); \
+BuilderAdd(NameBuilder,  "\n};\n");
+    
+#define PROCESSOR_BEGIN_EMIT_ASSET(System, Name) \
+HASH_TABLE_FOR_EACH_BUCKET_(Bucket, I, Index, &(System)->Name##Table){ \
+ASSET_TABLE_EMIT_ID(Name); \
+auto &Asset = Bucket.Value; \
+BuilderAdd(AssetBuilder, "{\n"); \
+BuilderAdd(NameBuilder, "\n\"%s\",", AssetIDName(0, Bucket.Key)); \
+AssetProcessorEmitDataSizeCheck()
+    
+#define PROCESSOR_END_EMIT_ASSET(System, Name) \
+BuilderAdd(AssetBuilder, "\n}"); \
+} \
+ASSET_TABLE_EMIT_ID_TOTAL(System, Name);
+    
+    //- Emit attributes
+#define ASSET_TABLE_EMIT_ID_(Name, ID) \
+BuilderAdd(IDBuilder, #Name"ID_%s = %u,\n", AssetIDName(0, ID), Index); \
+ArrayAdd(&IDArray, ID);
+    
+#define ASSET_TABLE_EMIT_ID(Name) ASSET_TABLE_EMIT_ID_(Name, Bucket.Key)
+    
+#define ASSET_TABLE_EMIT_ID_TOTAL_(Name, Count) \
+BuilderAdd(IDBuilder, #Name"ID_TOTAL = %u,\n\n", Count)
+    
+#define ASSET_TABLE_EMIT_ID_TOTAL(System, Name) ASSET_TABLE_EMIT_ID_TOTAL_(Name, (System)->Name##Table.Count);
+    
+#define ASSET_TABLE_EMIT_ATTRIBUTE(Name, Attribute) \
+AssetProcessor.CurrentAttribute = AssetProcessorAttributeName(#Name, #Attribute, &Bucket); \
+BuilderAdd(AssetBuilder, "%s = %s;\n", \
+AssetProcessor.CurrentAttribute, AssetProcessorStringify(Asset.Attribute)); \
+AssetProcessorMaybeEmitDataSizeCheck();
+    
+#define ASSET_TABLE_EMIT_DATA_ARRAY(Name, Attribute, Count) \
+AssetProcessor.CurrentAttribute = AssetProcessorAttributeName(#Name, #Attribute, &Bucket); \
+AssetProcessorEmitDataSizeCheck(); \
+BuilderAdd(AssetBuilder, "AssetProcessorAssign(&%s, (u8 *)Data+%u);", \
+AssetProcessor.CurrentAttribute, SJAPBuilder->BufferSize); \
+BuilderAddData(SJAPBuilder, Asset.Attribute, sizeof(Asset.Attribute)*Count); \
+    
+#define ASSET_TABLE_EMIT_C_ARRAY(Name, Attribute) \
+AssetProcessor.CurrentAttribute = AssetProcessorAttributeName(#Name, #Attribute, &Bucket); \
+FOR_RANGE(I, 0, ArrayCount(Asset.Attribute)){ \
+BuilderAdd(AssetBuilder, "%s[%u] = %s;\n", \
+AssetProcessor.CurrentAttribute, I, AssetProcessorStringify(Asset.Attribute[I])); \
+}
+    
+    //~ Assets
     //- Sound effects
     {
-        u32 Index=1;
-        for(u32 I=0; I<Assets.SoundEffectTable.MaxBuckets; I++){
-            string Name = Assets.SoundEffectTable.Keys[I];
-            if(Name.ID){
-                asset_sound_effect *Effect = &Assets.SoundEffectTable.Values[I];
-                
-                BuilderAdd(&EnumBuilder, "AssetID_%s = %u,\n", Strings.GetString(Name), Index);
-                BuilderAdd(&AssetBuilder, "Assets->SoundEffects[%u].Sound.ChannelCount = %u;\n", Index, Effect->Sound.ChannelCount);
-                BuilderAdd(&AssetBuilder, "Assets->SoundEffects[%u].Sound.SampleCount  = %u;\n", Index, Effect->Sound.SampleCount);
-                BuilderAdd(&AssetBuilder, "Assets->SoundEffects[%u].Sound.BaseSpeed    = %ff;\n", Index, Effect->Sound.BaseSpeed);
-                BuilderAdd(&AssetBuilder, "Assets->SoundEffects[%u].VolumeMultiplier   = %ff;\n", Index, Effect->VolumeMultiplier);
-                BuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                BuilderAdd(&AssetBuilder, "Assets->SoundEffects[%u].Sound.Samples = (s16 *)((u8 *)Data+%u);\n", Index, SJAPBuilder.BufferSize);
-                
-                BuilderAddData(&SJAPBuilder, Effect->Sound.Samples, Effect->Sound.ChannelCount*Effect->Sound.SampleCount*sizeof(s16));
-                
-                Index++;
-            }
-        }
-        BuilderAdd(&EnumBuilder, (const char *)"AssetSoundEffect_TOTAL = %u,\n", Index++);
+        PROCESSOR_BEGIN_EMIT_TABLE(Assets, SoundEffect, asset_sound_effect);
+        
+        ASSET_TABLE_EMIT_ATTRIBUTE(SoundEffect, Sound.ChannelCount);
+        ASSET_TABLE_EMIT_ATTRIBUTE(SoundEffect, Sound.SampleCount);
+        ASSET_TABLE_EMIT_ATTRIBUTE(SoundEffect, Sound.BaseSpeed);
+        ASSET_TABLE_EMIT_ATTRIBUTE(SoundEffect, VolumeMultiplier);
+        ASSET_TABLE_EMIT_DATA_ARRAY(SoundEffect, Sound.Samples, Asset.Sound.ChannelCount*Asset.Sound.SampleCount);
+        
+        PROCESSOR_END_EMIT_TABLE(Assets, SoundEffect);
     }
     
     //- Fonts
     {
-        u32 Index = 1;
-        for(u32 I=0; I<Assets.FontTable.MaxBuckets; I++){
-            string Name = Assets.FontTable.Keys[I];
-            if(Name.ID){
-                asset_font *Font = &Assets.FontTable.Values[I];
-                
-                BuilderAdd(&EnumBuilder, "AssetID_%s = %u,\n", Strings.GetString(Name), Index);
-                BuilderAdd(&AssetBuilder, "{\n");
-                BuilderAdd(&AssetBuilder, "Assets->Fonts[%u].Size    = V2S(%d, %d);\n", Index, Font->Size.X, Font->Size.Y);
-                BuilderAdd(&AssetBuilder, "Assets->Fonts[%u].Height  = %f;\n", Index, Font->Height);
-                BuilderAdd(&AssetBuilder, "Assets->Fonts[%u].Descent = %f;\n", Index, Font->Descent);
-                BuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                BuilderAdd(&AssetBuilder, "CopyMemory(Assets->Fonts[%u].Table, ((u8 *)Data+%u), sizeof(Assets->Fonts[%u].Table));\n", Index, SJAPBuilder.BufferSize, Index);
-                BuilderAddVar(&SJAPBuilder, Font->Table);
-                
-                asset_processor_texture *Texture = &AssetProcessor.Textures[Font->Texture];
-                BuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                BuilderAdd(&AssetBuilder, "u8 *Pixels = ((u8 *)Data+%u);\n", SJAPBuilder.BufferSize);
-                BuilderAdd(&AssetBuilder, "Assets->Fonts[%u].Texture = MakeTexture();\n", Index);
-                BuilderAdd(&AssetBuilder, "TextureUpload(Assets->Fonts[%u].Texture, Pixels, %u, %u, %u);\n", 
-                           Index, Texture->Width, Texture->Height, Texture->Channels);
-                BuilderAdd(&AssetBuilder, "}\n", Index, SJAPBuilder.BufferSize);
-                // TODO(Tyler): This currently does no compression, this will likely be wanted in the future
-                BuilderAddData(&SJAPBuilder, Texture->Pixels, Texture->Width*Texture->Height*Texture->Channels);
-                
-                Index++;
-            }
-        }
-        BuilderAdd(&EnumBuilder, (const char *)"AssetFont_TOTAL = %u,\n", Index++);
+        PROCESSOR_BEGIN_EMIT_TABLE(Assets, Font, asset_font);
+        
+        ASSET_TABLE_EMIT_ATTRIBUTE(Font, Size);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Font, Height);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Font, Descent);
+        ASSET_TABLE_EMIT_C_ARRAY(Font, Table);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Font, Texture);
+        
+        PROCESSOR_END_EMIT_TABLE(Assets, Font);
     }
     
     //- Variables
     {
-        u32 Index = 1;
-        for(u32 I=0; I<Assets.VariableTable.MaxBuckets; I++){
-            string Name = Assets.VariableTable.Keys[I];
-            if(Name.ID){
-                asset_variable *Variable = &Assets.VariableTable.Values[I];
-                
-                BuilderAdd(&EnumBuilder, "AssetVariable_%s = %u,\n", Strings.GetString(Name), Index);
-                BuilderAdd(&AssetBuilder, "{\n");
-                BuilderAdd(&AssetBuilder, "Assets->Variables[%u].S    = %s;\n", Index, MakeStringLiteral(Variable->S));
-                BuilderAdd(&AssetBuilder, "Assets->Variables[%u].TAID = MakeTAID(%llu);\n", Index, Variable->TAID);
-                BuilderAdd(&AssetBuilder, "}\n");
-                Index++;
-            }
-        }
-        BuilderAdd(&EnumBuilder, (const char *)"AssetVariable_TOTAL = %u,\n", Index++);
-    }
-    BuilderAdd(&EnumBuilder, "};\n");
-    
-    
-    //~ Text adventure stuff
-    BuilderAdd(&EnumBuilder, "global_constant u32 ROOM_TABLE_SIZE = %u;\n", TA->RoomTable.BucketsUsed);
-    BuilderAdd(&EnumBuilder, "global_constant u32 ITEM_TABLE_SIZE = %u;\n", TA->ItemTable.BucketsUsed);
-    BuilderAdd(&EnumBuilder, "global_constant u32 THEME_TABLE_SIZE = %u;\n", TA->ThemeTable.BucketsUsed);
-    
-    hash_table<ta_id, console_theme> ThemeTable = ProcessTAIDTable(&TA->ThemeTable);
-    hash_table<ta_id, ta_room> RoomTable = ProcessTAIDTable(&TA->RoomTable);
-    hash_table<ta_id, ta_item> ItemTable = ProcessTAIDTable(&TA->ItemTable);
-    
-    //- Themes
-#define ADD_FANCY(Name) \
-BuilderAdd(&AssetBuilder, "Theme->" #Name " = "); \
-BuilderAddFancyFormat(&AssetBuilder, &Theme->Name); \
-BuilderAdd(&AssetBuilder, ";\n"); 
-    
-    BuilderAdd(&AssetBuilder, "TA->ThemeTable.BucketsUsed = %u;\n", ThemeTable.BucketsUsed);
-    for(u32 I=0; I<ThemeTable.MaxBuckets; I++){
-        ta_id Name = ThemeTable.Keys[I];
-        if(Name.ID){
-            console_theme *Theme = &ThemeTable.Values[I];
-            
-            BuilderAdd(&AssetBuilder, "{\n");
-            BuilderAdd(&AssetBuilder, "TA->ThemeTable.Keys[%u] = MakeTAID(%llu);\n", I, Name);
-            BuilderAdd(&AssetBuilder, "TA->ThemeTable.Hashes[%u] = %llu;\n", I, ThemeTable.Hashes[I]);
-            BuilderAdd(&AssetBuilder, "console_theme *Theme = &TA->ThemeTable.Values[%u];\n", I);
-            BuilderAdd(&AssetBuilder, "Theme->BasicFont = AssetID(%s); \n", AssetIDName(Theme->BasicFont));
-            BuilderAdd(&AssetBuilder, "Theme->TitleFont = AssetID(%s); \n", AssetIDName(Theme->TitleFont));
-            BuilderAdd(&AssetBuilder, "Theme->BackgroundColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
-                       Theme->BackgroundColor.R, Theme->BackgroundColor.G, Theme->BackgroundColor.B, Theme->BackgroundColor.A);
-            BuilderAdd(&AssetBuilder, "Theme->CursorColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
-                       Theme->CursorColor.R, Theme->CursorColor.G, Theme->CursorColor.B, Theme->CursorColor.A);
-            BuilderAdd(&AssetBuilder, "Theme->SelectionColor = MakeColor(%ff, %ff, %ff, %ff); \n", 
-                       Theme->SelectionColor.R, Theme->SelectionColor.G, Theme->SelectionColor.B, Theme->SelectionColor.A);
-            ADD_FANCY(BasicFancy);
-            ADD_FANCY(RoomTitleFancy);
-            ADD_FANCY(ItemFancy);
-            ADD_FANCY(RoomFancy);
-            ADD_FANCY(DirectionFancy);
-            ADD_FANCY(MiscFancy);
-            ADD_FANCY(MoodFancy);
-            ADD_FANCY(ResponseFancies[0]);
-            ADD_FANCY(ResponseFancies[1]);
-            BuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[0] = Theme->BasicFancy;\n");
-            BuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[1] = Theme->DirectionFancy;\n");
-            BuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[2] = Theme->RoomFancy;\n");
-            BuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[3] = Theme->ItemFancy;\n");
-            BuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[4] = Theme->MiscFancy;\n");
-            BuilderAdd(&AssetBuilder, "Theme->DescriptionFancies[5] = Theme->MoodFancy;\n");
-            BuilderAdd(&AssetBuilder, "}\n");
-        }
-    }
-#undef ADD_FANCY
-    
-    //- TA Rooms
-    
-    BuilderAdd(&AssetBuilder, "TA->RoomTable.BucketsUsed = %u;\n", RoomTable.BucketsUsed);
-    for(u32 I=0; I<RoomTable.MaxBuckets; I++){
-        ta_id Name = RoomTable.Keys[I];
-        if(Name.ID){
-            ta_room *Room = &RoomTable.Values[I];
-            
-            BuilderAdd(&AssetBuilder, "{\n");
-            BuilderAdd(&AssetBuilder, "TA->RoomTable.Keys[%u] = MakeTAID(%llu);\n", I, Name);
-            BuilderAdd(&AssetBuilder, "TA->RoomTable.Hashes[%u] = %llu;\n", I, RoomTable.Hashes[I]);
-            BuilderAdd(&AssetBuilder, "ta_room *Room = &TA->RoomTable.Values[%u];\n", I);
-            BuilderAddTAName(&AssetBuilder, "Room->NameData.", &Room->NameData);
-            BuilderAdd(&AssetBuilder, "Room->Area = MakeTAID(%llu);\n", Room->Area);
-            BuilderAdd(&AssetBuilder, "Room->Tag = MakeAssetTag((asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u);\n", 
-                       Room->Tag.A, Room->Tag.B, Room->Tag.C, Room->Tag.D);
-            BuilderAdd(&AssetBuilder, "Room->Datas = MakeFullArray<ta_data *>(Memory, %u);\n", 
-                       Room->Datas.Count);
-            for(u32 J=0; J<Room->Datas.Count; J++){
-                ta_data *Data = Room->Datas[J];
-                BuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                BuilderAdd(&AssetBuilder, "Room->Datas[%u] = (ta_data *)((u8 *)Data+%u);\n", J, SJAPBuilder.BufferSize);
-                BuilderAddVar(&SJAPBuilder, Room->Datas[J]->Type);
-                BuilderAddVar(&SJAPBuilder, Room->Datas[J]->Tag);
-                BuilderAdd(&SJAPBuilder, Room->Datas[J]->Data);
-                BuilderAdd(&SJAPBuilder, '\0');
-            }
-            BuilderAdd(&AssetBuilder, "Room->Items = MakeFullArray<ta_id>(Memory, %u);\n", 
-                       Room->Items.Count);
-            for(u32 J=0; J<Room->Items.Count; J++){
-                BuilderAdd(&AssetBuilder, "Room->Items[%u] = MakeTAID(%llu);\n", J, Room->Items[J]);
-            }
-            for(u32 J=0; J<ArrayCount(Room->Adjacents); J++){
-                asset_tag Tag = Room->AdjacentTags[J];
-                BuilderAdd(&AssetBuilder, "Room->Adjacents[%u] = MakeTAID((u64)%llu);\n", J, Room->Adjacents[J]);
-                BuilderAdd(&AssetBuilder, "Room->AdjacentTags[%u] = MakeAssetTag((asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u);\n",
-                           J, Tag.A, Tag.B, Tag.C, Tag.D);
-            }
-            
-            BuilderAdd(&AssetBuilder, "}\n");
-        }
+        PROCESSOR_BEGIN_EMIT_TABLE(Assets, Variable, asset_variable);
+        
+        ASSET_TABLE_EMIT_ATTRIBUTE(Variable, S);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Variable, TAID);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Variable, Asset);
+        
+        PROCESSOR_END_EMIT_TABLE(Assets, Variable);
     }
     
-    //- TA Items
-    BuilderAdd(&AssetBuilder, 
-               "TA->ItemNameTable = MakeHashTable<const char *, ta_id>(Memory, ITEM_TABLE_SIZE);\n");
-    BuilderAdd(&AssetBuilder, "TA->ItemTable.BucketsUsed = %u;\n", ItemTable.BucketsUsed);
-    
-    for(u32 I=0; I<ItemTable.MaxBuckets; I++){
-        ta_id Name = ItemTable.Keys[I];
-        if(Name.ID){
-            ta_item *Item = &ItemTable.Values[I];
-            BuilderAdd(&AssetBuilder, "{\n");
-            BuilderAdd(&AssetBuilder, "HashTableInsert(&TA->ItemNameTable, \"%s\", MakeTAID(%llu));\n", Item->Name, Name);
-            BuilderAdd(&AssetBuilder, "TA->ItemTable.Keys[%u] = MakeTAID(%llu);\n", I, Name);
-            BuilderAdd(&AssetBuilder, "TA->ItemTable.Hashes[%u] = %llu;\n", I, ItemTable.Hashes[I]);
-            BuilderAdd(&AssetBuilder, "ta_item *Item = &TA->ItemTable.Values[%u];\n", I);
-            BuilderAddTAName(&AssetBuilder, "Item->NameData.", &Item->NameData);
-            BuilderAdd(&AssetBuilder, "Item->Tag  = MakeAssetTag((asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u, (asset_tag_id)%u);\n", 
-                       Item->Tag.A, Item->Tag.B, Item->Tag.C, Item->Tag.D);
-            BuilderAdd(&AssetBuilder, "Item->Cost = %u;\n", Item->Cost);
-            
-            BuilderAdd(&AssetBuilder, "Item->Datas = MakeFullArray<ta_data *>(Memory, %u);\n", 
-                       Item->Datas.Count);
-            for(u32 J=0; J<Item->Datas.Count; J++){
-                BuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-                BuilderAdd(&AssetBuilder, "Item->Datas[%u] = (ta_data *)((u8 *)Data+%u);\n", J, SJAPBuilder.BufferSize);
-                BuilderAddVar(&SJAPBuilder, Item->Datas[J]->Tag);
-                BuilderAdd(&SJAPBuilder, Item->Datas[J]->Data);
-                BuilderAdd(&SJAPBuilder, '\0');
-            }
-            
-            BuilderAdd(&AssetBuilder, "}\n");
-        }
+    //- Themes 
+    {
+        PROCESSOR_BEGIN_EMIT_TABLE(Assets, Theme, console_theme);
+        
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, BasicFont); 
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, TitleFont); 
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, BackgroundColor); 
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, CursorColor); 
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, SelectionColor); 
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, RoomTitleFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, BasicFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, DirectionFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, RoomFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, ItemFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, MiscFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, MoodFancy);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, ResponseFancies[0]);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Theme, ResponseFancies[1]);
+        
+        PROCESSOR_END_EMIT_TABLE(Assets, Theme);
     }
     
-    //- TA Map
+    //- Rooms
+    {
+        PROCESSOR_BEGIN_EMIT_TABLE(TA, Room, ta_room);
+        
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, ID);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, Flags);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, NameData);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, Area);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, Tag);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, Datas);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Room, Items);
+        ASSET_TABLE_EMIT_C_ARRAY(Room, Adjacents);
+        ASSET_TABLE_EMIT_C_ARRAY(Room, AdjacentTags);
+        
+        PROCESSOR_END_EMIT_TABLE(TA, Room);
+    }
+    
+    //- Rooms
+    {
+        PROCESSOR_BEGIN_EMIT_TABLE(TA, Item, ta_item);
+        
+        ASSET_TABLE_EMIT_ATTRIBUTE(Item, ID);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Item, NameData);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Item, Tag);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Item, Cost);
+        ASSET_TABLE_EMIT_ATTRIBUTE(Item, Datas);
+        
+        PROCESSOR_END_EMIT_TABLE(TA, Item);
+    }
+    
+    //- Map
     {
         ta_map *Map = &TA->Map;
-        BuilderAdd(&AssetBuilder, "{\n");
         
-        asset_processor_texture *Texture = &AssetProcessor.Textures[Map->Texture];
-        BuilderAdd(&AssetBuilder, "Assert(%u < DataSize);\n", SJAPBuilder.BufferSize);
-        BuilderAdd(&AssetBuilder, "u8 *Pixels = ((u8 *)Data+%u);\n", SJAPBuilder.BufferSize);
-        BuilderAdd(&AssetBuilder, "TA->Map.Texture = MakeTexture();\n");
-        BuilderAdd(&AssetBuilder, "TextureUpload(TA->Map.Texture, Pixels, %u, %u, %u);\n", 
-                   Texture->Width, Texture->Height, Texture->Channels);
-        BuilderAddData(&SJAPBuilder, Texture->Pixels, Texture->Width*Texture->Height*Texture->Channels);
-        BuilderAdd(&AssetBuilder, "TA->Map.Size = V2(%f, %f);\n", Map->Size.X, Map->Size.Y);
-        BuilderAdd(&AssetBuilder, "TA->Map.Areas = MakeFullArray<ta_area>(Memory, %u);\n", TA->Map.Areas.Count);
-        for(u32 J=0; J<TA->Map.Areas.Count; J++){
-            BuilderAdd(&AssetBuilder, "TA->Map.Areas[%u] = MakeTAArea(MakeTAID((u64)%llu), V2(%f, %f));\n", 
-                       J, TA->Map.Areas[J].Name, TA->Map.Areas[J].Offset.X, TA->Map.Areas[J].Offset.Y);
+        BuilderAdd(AssetBuilder, "internal inline void\n" 
+                   "ProcessedAssetsInitializeMap(void *Data, u32 DataSize, ta_map *Map, memory_arena *Arena){\n"); 
+        BuilderAdd(AssetBuilder, "Map->Texture = %s;\n", AssetProcessorStringify(Map->Texture));
+        BuilderAdd(AssetBuilder, "Map->Size    = %s;\n", AssetProcessorStringify(Map->Size));
+        BuilderAdd(AssetBuilder, "Map->Areas   = %s;\n", AssetProcessorStringify(Map->Areas));
+        BuilderAdd(AssetBuilder, "\n}\n\n");
+        
+        FOR_EACH_(Area, Index, &Map->Areas){
+            ASSET_TABLE_EMIT_ID_(Area, Area.Name);
         }
-        
-        BuilderAdd(&AssetBuilder, "}\n");
+        ASSET_TABLE_EMIT_ID_TOTAL_(Area, Map->Areas.Count);
     }
     
     //~ Output to file
+    BuilderAdd(IDBuilder, 
+               "};\n"
+               "%s"
+               "\n#endif // GENERATED_ASSET_ID_H\n",
+               EndStringBuilder(NameBuilder));
     
-    
-    BuilderAdd(&EnumBuilder, 
-               "#endif // GENERATED_ASSET_ID_H\n");
-    BuilderAdd(&AssetBuilder, 
-               "}\n"
+    BuilderAdd(AssetBuilder, 
                "#endif // GENERATED_ASSET_DATA_H\n");
     
     {
         os_file *OutputFile = OSOpenFile("./processed_assets.sjap", OpenFile_Write|OpenFile_Clear);
         Assert(OutputFile);
-        BuilderToFile(&SJAPBuilder, OutputFile);
+        BuilderToFile(SJAPBuilder, OutputFile);
         OSCloseFile(OutputFile);
     }
     
     {
         os_file *OutputFile = OSOpenFile("../source/generated_asset_id.h", OpenFile_Write|OpenFile_Clear);
         Assert(OutputFile);
-        BuilderToFile(&EnumBuilder, OutputFile);
+        BuilderToFile(IDBuilder, OutputFile);
         OSCloseFile(OutputFile);
     }
     
     {
         os_file *OutputFile = OSOpenFile("../source/generated_asset_data.h", OpenFile_Write|OpenFile_Clear);
         Assert(OutputFile);
-        BuilderToFile(&AssetBuilder, OutputFile);
+        BuilderToFile(AssetBuilder, OutputFile);
         OSCloseFile(OutputFile);
     }
     
-    printf("Done!\n");
+    return true;
 }

@@ -85,7 +85,7 @@ RenderRectOutline(game_renderer *Renderer, rect R, f32 Z, color Color, f32 Thick
 internal void
 RenderTexture(game_renderer *Renderer, rect R, f32 Z, render_texture Texture, 
               rect TextureRect=MakeRect(V2(0,0), V2(1,1)), b8 HasAlpha=false, color Color=WHITE){
-    Assert(Texture);
+    Assert(Texture.ID);
     
     RenderQuad(Renderer, Texture, Z,
                V2(R.Min.X, R.Min.Y), V2(TextureRect.Min.X, TextureRect.Min.Y), Color,
@@ -124,7 +124,7 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
     TextureUpload(WhiteTexture, TemplateColor, 1, 1);
     
 #if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-    entire_file GameShaderFile; GameShaderFile.Data = (u8 *)BEGIN_STRING
+    entire_file GameShaderFile; GameShaderFile.Data = (u8 *)STRINGIFY
     (
      //~
 #vertex_shader
@@ -169,7 +169,7 @@ game_renderer::Initialize(memory_arena *Arena, v2 OutputSize_){
     GameShaderFile.Size = CStringLength((const char *)GameShaderFile.Data);
     
     
-    entire_file GameScreenShaderFile; GameScreenShaderFile.Data = (u8 *)BEGIN_STRING
+    entire_file GameScreenShaderFile; GameScreenShaderFile.Data = (u8 *)STRINGIFY
     (
 #vertex_shader
      

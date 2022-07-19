@@ -1,4 +1,14 @@
 
+#if 0
+#if defined(SNAIL_JUMPY_ASSET_PROCESSOR_BUILD)
+#include <stdio.h>
+#define WriteToConsole(Format, Args) vprintf(Format, Args)
+#else 
+#endif
+#endif
+
+#define WriteToConsole(Buffer, Args) OSVWriteToDebugConsole(Buffer, Args);
+
 #if defined(SNAIL_JUMPY_DEBUG_BUILD)
 internal void
 VLogMessage(const char *Format, va_list VarArgs){
@@ -11,7 +21,7 @@ VLogMessage(const char *Format, va_list VarArgs){
         Buffer[FormatLength+1] = '\0';
     }
     
-    OSVWriteToDebugConsole(Buffer, VarArgs);
+    WriteToConsole(Buffer, VarArgs);
     
 #if 0
     u32 Length = CStringLength(Buffer);

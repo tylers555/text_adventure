@@ -19,18 +19,6 @@ enum asset_loading_status {
     AssetLoadingStatus_Errors,
 };
 
-struct asset_loading_data {
-#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS)
-#else
-    asset_loading_status Status;
-#endif
-};
-
-internal inline b8 
-IsLoadedAssetValid(asset_loading_data *Data){
-    return (Data->Status != AssetLoadingStatus_Errors);
-}
-
 //~ Assets
 
 global_constant u32 SJA_MAX_ARRAY_ITEM_COUNT = 256;
@@ -105,57 +93,60 @@ union asset_tag {
 };
 
 //~ Asset ID
+
+//~
+#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS) 
 struct asset_id {
     u64 ID;
 };
 
-internal inline b8
-operator==(asset_id A, asset_id B){
-    return (A.ID == B.ID);
-}
+struct asset_loading_data {
+};
 
-internal inline b8
-operator!=(asset_id A, asset_id B){
-    return (A.ID != B.ID);
-}
+#define asset_table(Name, ValueType) ValueType Name##Table[Name##ID_TOTAL]
+#define AssetTableInit(Name, Arena, MaxCount, Data, DataSize) ProcessedAssetsInitialize##Name(Arena, Name##Table, Data, DataSize)
+#define AssetTableGet_(Prefix, Name, Key) (&(Prefix Name##Table[Key.ID]))
+#define AssetTableFind_(Prefix, Name, Key) (&(Prefix Name##Table[Key.ID]))
 
-//~
-#if defined(SNAIL_JUMPY_USE_PROCESSED_ASSETS) 
-internal inline asset_id
-MakeAssetID(u32 ID){
-    asset_id Result;
-    Result.ID = ID;
-    return Result;
-}
+#define AssetID(Name, ID) MakeAssetID(Name##ID_##ID)
+#define AssetIDName(Name, ID_) Name##NameTable[ID_.ID]
 
-#define AssetID(Name) MakeAssetID(AssetID_##Name)
-#define GetSoundEffect(Assets, ID_) &(Assets)->SoundEffects[ID_.ID]
-#define GetFont(Assets, ID_) &(Assets)->Fonts[ID_.ID]
-#define GetVariable(Assets, ID_) (&(Assets)->Variables[AssetVariable_##ID_])
-#define GetVar(Assets, ID_)      GetVariable(Assets, ID_)->S
-#define GetVarTAID(Assets, ID_)  GetVariable(Assets, ID_)->TAID
-#define GetVarAsset(Assets, ID_) GetVariable(Assets, ID_)->Asset
-#define GetVarName(Assets, ID_)  GetVariable(Assets, ID_)->NameData
+#define AssetsGet_(System, Name, Key) AssetTableGet_((System)->, Name, Key)
+#define AssetsFind_(System, Name, Key) AssetTableFind_((System)->, Name, Key)
+#define AssetsFind(System, Name, Key) AssetsFind_(System, Name, AssetID(Name, Key))
+
+#define GetVar(Assets, ID_)      AssetsFind(Assets, Variable, ID_)->S
+#define GetVarTAID(Assets, ID_)  AssetsFind(Assets, Variable, ID_)->TAID
+#define GetVarAsset(Assets, ID_) AssetsFind(Assets, Variable, ID_)->Asset
+#define GetVarName(Assets, ID_)  AssetsFind(Assets, Variable, ID_)->NameData
+
+#define TAFind_(System, Name, Key) AssetTableFind_((System)->, Name, Key)
+#define TAFind(System, Name, Key) TAFind_(System, Name, AssetID(Name, Key))
 
 //~ 
 #else 
+struct asset_id {
+    const char *TableName;
+    u64 ID;
+};
+
 internal inline asset_id
-MakeAssetID(string ID){
+MakeAssetID(const char *TableName, string ID){
     asset_id Result;
+    Result.TableName = Strings.GetPermanentString(TableName);
     Result.ID = ID.ID;
     return Result;
 }
 
 internal inline asset_id
-MakeAssetID(asset_id ID){
-    asset_id Result;
-    Result.ID = ID.ID;
+MakeAssetID(const char *TableName, asset_id ID){
+    asset_id Result = ID;
     return Result;
 }
 
 internal inline asset_id
-MakeAssetID(const char *S){
-    return MakeAssetID(Strings.GetString(S));
+MakeAssetID(const char *TableName, const char *S){
+    return MakeAssetID(TableName, Strings.GetString(S));
 }
 
 template<typename ValueType>
@@ -182,15 +173,15 @@ CompareKeys(asset_id A, asset_id B){
 }
 
 #define asset_table(Name, ValueType) hash_table<asset_id, ValueType> Name##Table
-#define AssetTableInit(Name, Arena, MaxCount) HashTableInit(&(Name##Table), Arena, MaxCount)
-#define AssetTableGet_(Prefix, Name, Key) HashTableGetPtr(&(Prefix Name##Table), MakeAssetID(Key))
-#define AssetTableFind_(Prefix, Name, Key) AssetTableFindByKey_(&(Prefix Name##Table), MakeAssetID(Key))
+#define AssetTableInit(Name, Arena, MaxCount, Data, DataSize) HashTableInit(&(Name##Table), Arena, MaxCount)
+#define AssetTableGet_(Prefix, Name, Key) HashTableGetPtr(&(Prefix Name##Table), MakeAssetID(#Name, Key))
+#define AssetTableFind_(Prefix, Name, Key) AssetTableFindByKey_(&(Prefix Name##Table), MakeAssetID(#Name, Key))
 
 #define AssetsGet_(System, Name, Key) AssetTableGet_((System)->, Name, Key)
 #define AssetsFind_(System, Name, Key) AssetTableFind_((System)->, Name, Key)
 #define AssetsFind(System, Name, Key) AssetsFind_(System, Name, #Key)
 
-#define AssetID(Name, ID_) MakeAssetID(#ID_)
+#define AssetID(Name, ID_) MakeAssetID(#Name, #ID_)
 #define AssetIDName(Name, ID_) Strings.GetString(MakeString((ID_).ID))
 
 #define GetVar(Assets, ID_)      AssetsFind(Assets, Variable, ID_)->S
@@ -205,7 +196,33 @@ global_constant u32 ROOM_TABLE_SIZE = 64;
 global_constant u32 ITEM_TABLE_SIZE = 128;
 global_constant u32 THEME_TABLE_SIZE = 8;
 
+struct asset_loading_data {
+    asset_loading_status Status;
+};
+
+internal inline b8 
+IsLoadedAssetValid(asset_loading_data *Data){
+    return (Data->Status != AssetLoadingStatus_Errors);
+}
+
 #endif
+
+internal inline asset_id
+MakeAssetID(u32 ID){
+    asset_id Result;
+    Result.ID = ID;
+    return Result;
+}
+
+internal inline b8
+operator==(asset_id A, asset_id B){
+    return (A.ID == B.ID);
+}
+
+internal inline b8
+operator!=(asset_id A, asset_id B){
+    return (A.ID != B.ID);
+}
 
 //~ Sound effects
 struct sound_data {
@@ -367,7 +384,6 @@ struct asset_variable {
     const char *S;
     asset_id TAID;
     asset_id Asset;
-    ta_name NameData;
 };
 
 //~ Special commands
@@ -387,16 +403,12 @@ struct audio_mixer;
 struct asset_system {
     //~ Asset stuff
     memory_arena Memory;
-    
-    void Initialize(memory_arena *Arena);
-    
-    //~ Processed assets loading
-    void LoadProcessedAssets(void *Data, u32 DataSize);
-    
     asset_table(SoundEffect, asset_sound_effect);
     asset_table(Font,        asset_font);
     asset_table(Variable,    asset_variable);
     asset_table(Theme,       console_theme);
+    
+    void Initialize(memory_arena *Arena, void *Data=0, u32 DataSize=0);
 };
 
 //~ Asset loading
@@ -475,7 +487,14 @@ struct asset_processor_texture {
 };
 
 struct asset_processor {
-    array<asset_processor_texture> Textures;
+    dynamic_array<asset_processor_texture> Textures;
+    string_builder SJAPBuilder;
+    string_builder IDBuilder;
+    string_builder NameBuilder;
+    string_builder AssetBuilder;
+    const char *CurrentAttribute;
+    
+    b8 DoEmitCheck;
 };
 
 #pragma pack(push, 1)

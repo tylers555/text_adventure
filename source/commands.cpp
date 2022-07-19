@@ -7,7 +7,7 @@ b8 HelperCommandGoTo(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, wo
     b8 IsAmbiguous = false;
     
     FOR_RANGE(I, 0, Direction_TOTAL){
-        ta_room *Room = HashTableFindPtr(&TA->RoomTable, TA->CurrentRoom->Adjacents[I]);
+        ta_room *Room = TA->FindRoom(TA->CurrentRoom->Adjacents[I]);
         if(!Room) continue;
         
         ta_name_comparison Comparison = TACompareWordsAndName(&Room->NameData, Words);
@@ -86,7 +86,7 @@ HighestMatch = Match; \
         }
         
         asset_id NextRoomString = CurrentRoom->Adjacents[Direction];
-        NextRoom = HashTableFindPtr(&TA->RoomTable, NextRoomString);
+        NextRoom = TA->FindRoom(NextRoomString);
         if(!NextRoom){
             TA->Respond(GetVar(Assets, move_invalid_room));
             return false;
@@ -149,7 +149,7 @@ b8 CommandExit(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         }
     }
     
-    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->RoomID);
+    ta_room *NextRoom = TA->FindRoom(Data->RoomID);
     if(!NextRoom){
         LogMessage("That room does not exist!");
         TA->Respond("ERROR!");
@@ -193,7 +193,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
         }
     }
     
-    ta_room *NextRoom = HashTableFindPtr(&TA->RoomTable, Data->RoomID);
+    ta_room *NextRoom = TA->FindRoom(Data->RoomID);
     if(NextRoom){
         LogMessage("That room does not exist!");
         TA->Respond("ERROR!");
@@ -210,7 +210,7 @@ b8 CommandEnter(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_ar
 
 b8 CallbackConfirmBuy(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_array Words){
     ta_room *Room = TA->CurrentRoom;
-    ta_item *Item = HashTableFindPtr(&TA->ItemTable, Room->Items[TA->BuyItemIndex]);
+    ta_item *Item = TA->FindItem(Room->Items[TA->BuyItemIndex]);
     if(!Item){
         LogMessage("Item does not exist!");
         TA->Respond("ERROR!");
@@ -406,7 +406,7 @@ b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
         if(HasTag(Item->Tag, AssetTag_Organ)) Extra = TA->OrganState;
         
         ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, Extra));
-        if(Sound) Mixer->PlaySound(AssetsFind(Assets, SoundEffect, Sound->Asset));
+        if(Sound) Mixer->PlaySound(AssetsFind_(Assets, SoundEffect, Sound->Asset));
         
         ta_data *Description = TA->FindDescription(&Item->Datas, AssetTag(AssetTag_Play, Extra));
         if(!Description) continue;
@@ -423,7 +423,7 @@ b8 CommandPlay(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_arr
             asset_tag_id Extra = AssetTag_None;
             if(HasTag(Item->Tag, AssetTag_Organ)) Extra = TA->OrganState;
             ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Play, Extra));
-            if(Sound) Mixer->PlaySound(AssetsFind(Assets, SoundEffect, Sound->Asset));
+            if(Sound) Mixer->PlaySound(AssetsFind_(Assets, SoundEffect, Sound->Asset));
             
             TA->Respond(Description->Data);
             return true;
@@ -522,7 +522,7 @@ b8 CommandRepair(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_a
             ta_data *Sound = TA->FindData(&Item->Datas, TADataType_Asset, AssetTag(AssetTag_Sound, AssetTag_Repaired));
             TAUpdateOrganState(TA);
             if(!Sound) break;
-            Mixer->PlaySound(AssetsFind(Assets, SoundEffect, Sound->Asset));
+            Mixer->PlaySound(AssetsFind_(Assets, SoundEffect, Sound->Asset));
             break;
         }
         
@@ -656,9 +656,9 @@ b8 CommandPerform(audio_mixer *Mixer, ta_system *TA, asset_system *Assets, word_
         FoundSomething = true;
     }
     
-    if(!FoundSomething) FOR_EACH(ItemID, &Room->Items){
+    if(!FoundSomething && (Room == TAFind(TA, Room, bench))) FOR_EACH(ItemID, &TA->Inventory){
         ta_item *Item = TA->FindItem(ItemID);
-        if(Item == TAFind(TA, Item, bench_carillon_pages_ritual)){
+        if(HasTag(Item->Tag, AssetTag_Ritual)){
             return CommandPerformRitual(Mixer, TA, Assets, Words);
         }
     }

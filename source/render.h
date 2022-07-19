@@ -3,7 +3,9 @@
 
 
 //~ Primitive types
-typedef u32 render_texture;
+struct render_texture {
+    u32 ID;
+};
 typedef u32 shader_program;
 
 typedef u32 texture_flags;

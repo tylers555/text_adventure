@@ -1,5 +1,5 @@
 
-//~ Theme
+//~ 
 internal inline console_theme
 MakeDefaultConsoleTheme(){
     console_theme Result = {};
@@ -27,7 +27,6 @@ MakeDefaultConsoleTheme(){
     
     return Result;
 }
-
 
 //~ Command processing
 internal array<char *>
@@ -190,8 +189,8 @@ TAContinueFindName(ta_found_items *Founds, ta_name_comparison *Comparison){
 
 internal void 
 TAContinueFindItems(ta_system *TA, array<asset_id> *Items, word_array Words, ta_found_items *Founds){
-    for(u32 ItemIndex=0; ItemIndex<Items->Count; ItemIndex++){
-        ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, ItemIndex));
+    FOR_EACH_(ItemID, ItemIndex, Items){
+        ta_item *Item = TA->FindItem(ItemID);
         if(!Item) continue;
         
         ta_name_comparison Comparison = TACompareWordsAndName(&Item->NameData, Words);
@@ -224,8 +223,8 @@ TAFindItems(ta_system *TA, array<asset_id> *Items, word_array Words){
 
 internal inline s32
 TAFindItemByTag(ta_system *TA, array<asset_id> *Items, asset_tag Tag){
-    for(u32 J=0; J<Items->Count; J++){
-        ta_item *Item = HashTableFindPtr(&TA->ItemTable, ArrayGet(Items, J));
+    FOR_EACH_(ItemID, J, Items){
+        ta_item *Item = TA->FindItem(ItemID);
         if(!Item) continue;
         if(CompareTags(Item->Tag, Tag)) return J;
     }
@@ -241,14 +240,6 @@ DoTANameComparisonsOverlap(ta_name_comparison Old, ta_name_comparison New){
 }
 
 //~ Other
-inline ta_area
-MakeTAArea(asset_id Name, v2 Offset){
-    ta_area Result = {};;
-    Result.Name = Name;
-    Result.Offset = Offset;
-    return Result;
-}
-
 inline void
 DoString(game_renderer *Renderer, asset_font *Font, fancy_font_format *Fancies, u32 FancyCount, 
          const char *S, rect *R){

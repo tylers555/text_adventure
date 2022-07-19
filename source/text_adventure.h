@@ -66,7 +66,7 @@ typedef b8 ta_command_func(audio_mixer *Mixer, ta_system *TA, asset_system *Asse
 
 struct ta_system {
     asset_table(Room, ta_room);
-    hash_table<asset_id, ta_item> ItemTable;
+    asset_table(Item, ta_item);
     
     // Used for processed assets
     hash_table<const char *, asset_id> ItemNameTable;
@@ -86,7 +86,7 @@ struct ta_system {
     
     inline b8 MaybeMarkItemDirty(asset_id ItemID);
     
-    void Initialize(asset_system *Assets, memory_arena *Arena);
+    void Initialize(asset_system *Assets, memory_arena *Arena, void *Data=0, u32 DataSize=0);
     inline b8 InventoryAddItem(asset_id Item);
     inline b8 InventoryRemoveItem(u32 Index);
     inline b8 InventoryRemoveItemByID(asset_id ID);

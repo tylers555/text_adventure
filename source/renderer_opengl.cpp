@@ -282,8 +282,8 @@ InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2s 
     glGenFramebuffers(1, &Framebuffer->ID);
     glBindFramebuffer(GL_FRAMEBUFFER, Framebuffer->ID);
     
-    glGenTextures(1, &Framebuffer->Texture);
-    glBindTexture(GL_TEXTURE_2D, Framebuffer->Texture);
+    glGenTextures(1, &Framebuffer->Texture.ID);
+    glBindTexture(GL_TEXTURE_2D, Framebuffer->Texture.ID);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
@@ -291,7 +291,7 @@ InitializeFramebuffer(framebuffer *Framebuffer, screen_shader ScreenShader, v2s 
     glTexEnvi(GL_TEXTURE_2D, GL_TEXTURE_ENV_MODE, GL_MODULATE);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Framebuffer->Texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Framebuffer->Texture.ID, 0);
     
     glGenRenderbuffers(1, &Framebuffer->RenderbufferID);
     glBindRenderbuffer(GL_RENDERBUFFER, Framebuffer->RenderbufferID);
@@ -316,10 +316,10 @@ ResizeFramebuffer(framebuffer *Framebuffer, v2s Size){
     
     glBindFramebuffer(GL_FRAMEBUFFER, Framebuffer->ID);
     
-    glBindTexture(GL_TEXTURE_2D, Framebuffer->Texture);
+    glBindTexture(GL_TEXTURE_2D, Framebuffer->Texture.ID);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, Width, Height, 0, GL_RGB, GL_UNSIGNED_BYTE, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Framebuffer->Texture, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, Framebuffer->Texture.ID, 0);
     
     glBindRenderbuffer(GL_RENDERBUFFER, Framebuffer->RenderbufferID);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, Width, Height);
@@ -355,7 +355,7 @@ opengl_backend::RenderFramebuffer(framebuffer *Framebuffer, v2 OutputSize, f32 S
     glUseProgram(Framebuffer->ScreenShader.ID);
     glUniform1f(Framebuffer->ScreenShader.ScaleLocation, Scale);
     glBindVertexArray(ScreenVertexArray);
-    glBindTexture(GL_TEXTURE_2D, Framebuffer->Texture);
+    glBindTexture(GL_TEXTURE_2D, Framebuffer->Texture.ID);
     
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
@@ -365,8 +365,8 @@ opengl_backend::RenderFramebuffer(framebuffer *Framebuffer, v2 OutputSize, f32 S
 internal render_texture
 MakeTexture(texture_flags Flags){
     render_texture Result;
-    glGenTextures(1, &Result);
-    glBindTexture(GL_TEXTURE_2D, Result);
+    glGenTextures(1, &Result.ID);
+    glBindTexture(GL_TEXTURE_2D, Result.ID);
     
     if(Flags & TextureFlag_Blend){
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -385,12 +385,12 @@ MakeTexture(texture_flags Flags){
 
 internal void
 DeleteTexture(render_texture Texture){
-    glDeleteTextures(1, &Texture);
+    glDeleteTextures(1, &Texture.ID);
 }
 
 internal void
 TextureUpload(render_texture Texture, u8 *Pixels, u32 Width, u32 Height, u32 Channels){
-    glBindTexture(GL_TEXTURE_2D, Texture);
+    glBindTexture(GL_TEXTURE_2D, Texture.ID);
     if(Channels == 1){
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, Width, Height, 0, GL_RED, GL_UNSIGNED_BYTE, Pixels);
     }else if(Channels == 4){
@@ -410,7 +410,7 @@ GLRenderNodes(game_renderer *Renderer, render_node *StartNode){
         for(u32 J=0; J<Node->Count; J++){
             render_item *Item = &Node->Items[J];
             
-            glBindTexture(GL_TEXTURE_2D, Item->Texture);
+            glBindTexture(GL_TEXTURE_2D, Item->Texture.ID);
             v2 ClipSize = RectSize(Item->ClipRect);
             glScissor((GLsizei)Item->ClipRect.Min.X, (GLsizei)Item->ClipRect.Min.Y, 
                       (GLsizei)ClipSize.X,           (GLsizei)ClipSize.Y);
